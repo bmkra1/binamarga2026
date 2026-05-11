@@ -201,6 +201,14 @@ select:focus,input:focus{border-color:var(--blue)}
 #toast{position:fixed;bottom:20px;right:20px;background:#222;color:#fff;padding:9px 16px;border-radius:var(--r);font-size:13px;display:none;z-index:999}
 
 @media(max-width:800px){.sidebar{display:none}.main{margin-left:0}.mg{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.det-grid{grid-template-columns:1fr}}
+
+/* inline edit form */
+.inline-edit{background:var(--surf);border:1px solid var(--blue);border-radius:var(--r);padding:14px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.inline-edit .fg label{font-size:10px;color:var(--txt2);display:block;margin-bottom:2px}
+.inline-edit .fg input,.inline-edit .fg select{width:100%;font-size:12px;padding:5px 8px}
+.inline-edit-actions{grid-column:1/-1;display:flex;gap:8px;margin-top:4px}
+.save-spinner{display:none;font-size:11px;color:var(--txt2)}
+
 </style>
 </head>
 <body>
@@ -257,18 +265,84 @@ select:focus,input:focus{border-color:var(--blue)}
 
 <!-- DASHBOARD -->
 <div id="pg-dashboard" class="pg on">
-  <div class="ph"><h2>Dashboard Monitoring</h2><p>Progress fisik dan realisasi seluruh paket &mdash; <span class="rt-dot"></span>realtime</p></div>
-  <div class="mg" id="metrics"></div>
-  <div class="dash-filters">
-    <select id="df-dana" onchange="rDashboard()"><option value="">Semua sumber dana</option><option>DAK</option><option>DAU</option><option>Bankeu</option><option>Hibah</option></select>
-    <select id="df-sort" onchange="rDashboard()"><option value="no">Urut: Nomor</option><option value="fisik_desc">Fisik tertinggi</option><option value="fisik_asc">Fisik terendah</option><option value="real_desc">Realisasi tertinggi</option></select>
-    <select id="df-pho" onchange="rDashboard()"><option value="">Semua PHO</option><option value="Sudah">Sudah PHO</option><option value="Belum">Belum PHO</option></select>
-    <input type="text" id="df-search" placeholder="Cari nama paket..." oninput="rDashboard()" style="flex:1;min-width:150px">
+  <!-- HERO HEADER -->
+  <div id="dash-hero" style="border-radius:var(--rL);padding:20px 24px;margin-bottom:18px;display:flex;align-items:center;gap:20px;background:linear-gradient(135deg,#0C447C 0%,#185FA5 55%,#1a7ac7 100%);position:relative;overflow:hidden">
+    <div style="position:absolute;right:-20px;top:-20px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.05)"></div>
+    <div style="position:absolute;right:60px;bottom:-40px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+    <!-- LOGO -->
+    <div style="flex-shrink:0;z-index:1">
+      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="34" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        <circle cx="36" cy="36" r="26" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <!-- Jalan / road symbol -->
+        <rect x="28" y="18" width="16" height="36" rx="3" fill="rgba(255,255,255,0.9)"/>
+        <rect x="33" y="23" width="6" height="6" rx="1" fill="#185FA5"/>
+        <rect x="33" y="33" width="6" height="6" rx="1" fill="#185FA5"/>
+        <rect x="33" y="43" width="6" height="6" rx="1" fill="#185FA5"/>
+        <!-- Wings -->
+        <path d="M14 38 Q22 30 28 34" stroke="rgba(255,255,255,0.8)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M58 38 Q50 30 44 34" stroke="rgba(255,255,255,0.8)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M14 42 Q22 36 28 38" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M58 42 Q50 36 44 38" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <!-- TEXT -->
+    <div style="z-index:1;flex:1;min-width:0">
+      <div style="font-size:11px;color:rgba(255,255,255,0.65);letter-spacing:.8px;text-transform:uppercase;margin-bottom:2px">Dinas Pekerjaan Umum &amp; Penataan Ruang</div>
+      <div style="font-size:20px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:1px">Bidang Bina Marga</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.8)">Kabupaten Karanganyar &mdash; Tahun Anggaran 2026</div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.65)">
+        <span style="width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 2s infinite"></span>
+        Realtime &bull; Data tersinkron otomatis
+      </div>
+    </div>
+    <!-- QUICK STATS -->
+    <div style="display:flex;gap:12px;z-index:1;flex-shrink:0" id="hero-stats"></div>
   </div>
+
+  <!-- METRIC CARDS -->
+  <div class="mg" id="metrics"></div>
+
+  <!-- CHARTS PER SUMBER DANA -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="card">
+      <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
+        <span>&#x1F4CA; Prestasi fisik per sumber dana</span>
+        <span class="bd dak" style="font-size:9px">rata-rata %</span>
+      </div>
+      <div style="height:200px"><canvas id="chart-fisik"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
+        <span>&#x1F4B0; Realisasi pembayaran per sumber dana</span>
+        <span class="bd dau" style="font-size:9px">rata-rata %</span>
+      </div>
+      <div style="height:200px"><canvas id="chart-real"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">&#x1F4C8; Nilai kontrak vs realisasi (Rp miliar)</div>
+      <div style="height:200px"><canvas id="chart-kontrak"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">&#x2705; Status PHO per sumber dana</div>
+      <div style="height:200px"><canvas id="chart-pho"></canvas></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS LIST -->
   <div class="card" style="padding:0;overflow:hidden">
-    <div style="display:flex;gap:16px;padding:10px 14px;border-bottom:1px solid var(--bdr);font-size:11px;color:var(--txt2);flex-wrap:wrap">
-      <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:7px;border-radius:4px;background:var(--blue);display:inline-block"></span>Prestasi Fisik (%)</span>
-      <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:7px;border-radius:4px;background:var(--green);display:inline-block"></span>Realisasi Pembayaran (%)</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--bdr);flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px">&#x1F6E3; Progress seluruh paket pekerjaan</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="df-dana" onchange="rDashboard()" style="font-size:11px;padding:4px 8px"><option value="">Semua dana</option><option>DAK</option><option>DAU</option><option>Bankeu</option><option>Hibah</option></select>
+        <select id="df-sort" onchange="rDashboard()" style="font-size:11px;padding:4px 8px"><option value="no">Urut: No</option><option value="fisik_desc">Fisik &darr;</option><option value="fisik_asc">Fisik &uarr;</option><option value="real_desc">Realisasi &darr;</option></select>
+        <select id="df-pho" onchange="rDashboard()" style="font-size:11px;padding:4px 8px"><option value="">Semua PHO</option><option value="Sudah">Sudah PHO</option><option value="Belum">Belum PHO</option></select>
+        <input type="text" id="df-search" placeholder="Cari paket..." oninput="rDashboard()" style="font-size:11px;padding:4px 8px;min-width:120px">
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;padding:8px 14px;border-bottom:1px solid var(--bdr);font-size:11px;color:var(--txt2)">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:24px;height:6px;border-radius:3px;background:var(--blue);display:inline-block"></span>Fisik (%)</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:24px;height:6px;border-radius:3px;background:var(--green);display:inline-block"></span>Realisasi (%)</span>
     </div>
     <div class="progress-list" id="prog-list"></div>
   </div>
@@ -385,10 +459,8 @@ select:focus,input:focus{border-color:var(--blue)}
 
 <div id="toast"></div>
 <script>
-// ===== DATA BAWAAN EXCEL =====
 var SEED = {"projects":[{"no":1,"noRuas":"72","nama":"Penanganan Long Segment (pemeliharaan berkala,peningkatan/rekonstruksi) Ruas Jalan Bendungan - Jenggrik","dana":"DAK","lokasi":"MOJOGEDANG","lebarPanjang":"5.25 X 3","pagu":5893000000.0,"hps":5893000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":5893000000.0,"addKontrak10":5893000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Margono, S.T., M.M.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Daryanto, S.T.","Aris Sumantri, S.T.","Ir. Angga Darmawan, S.T., M.T."]},{"no":2,"noRuas":"4","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Colomadu - Banyuanyar","dana":"DAK","lokasi":"COLOMADU","lebarPanjang":"5.28 X 5","pagu":4913000000.0,"hps":4913000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4913000000.0,"addKontrak10":4913000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Daryanto, S.T.","Susilo Tri Cahyo, S.T., M.M."]},{"no":3,"noRuas":"162","nama":"Penanganan Long Segment (pemeliharaan berkala, Peningkatan/rekonstruksi) Ruas Jalan Jatipuro - Klerong","dana":"DAK","lokasi":"JATIPURO","lebarPanjang":"4.4 X 4","pagu":1813000000.0,"hps":1813000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":1813000000.0,"addKontrak10":1813000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Triyanto, S.T., M.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Daryanto, S.T.","anggota":["Nanang Mardiyanto, S.T.","Ir. Arif Bayu Priyambodo, S.T., M.T.","Lardi, S.T."]},{"no":4,"noRuas":"148","nama":"Penanganan Long Segment (pemeliharaan berkala,peningkatan/rekonstruksi) Ruas Jalan Jatiyoso - Beruk","dana":"DAK","lokasi":"JATIYOSO","lebarPanjang":"12.94 X 3.8","pagu":4423000000.0,"hps":4423000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4423000000.0,"addKontrak10":4423000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Margono, S.T., M.M.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Dr. Ir. Rohmatun, S.T., M.T., IPM","Raditya Dwi Nugraha, S.H.","Lardi, S.T."]},{"no":5,"noRuas":"159","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Jumapolo - Jatipuro","dana":"DAK","lokasi":"JATIPURO","lebarPanjang":"9.26 X 2.9","pagu":9301000000.0,"hps":9301000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":9301000000.0,"addKontrak10":9301000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Asihno Purwadi, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Ir. Tri Wiyono, S.T., M.T.","anggota":["Dr. Ir. Rohmatun, S.T., M.T., IPM","Ir. Arif Bayu Priyambodo, S.T., M.T.","Nanang Mardiyanto, S.T."]},{"no":6,"noRuas":"144","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Matesih - Plosorejo","dana":"DAK","lokasi":"MATESIH","lebarPanjang":"2.86 X 3","pagu":4003000000.0,"hps":4003000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4003000000.0,"addKontrak10":4003000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Triyanto, S.T., M.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Ir. Arif Bayu Priyambodo, S.T., M.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Daryanto, S.T.","Aris Sumantri, S.T.","Ir. Agus Sutrisno, S.T., M.M."]},{"no":7,"noRuas":"81","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan MGR. Sugiyopranoto","dana":"DAK","lokasi":"KARANGANYAR/KARANGPANDAN","lebarPanjang":"11.73 X 3.6","pagu":7613000000.0,"hps":7613000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":7613000000.0,"addKontrak10":7613000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Raditya Dwi Nugraha, S.H.","Lucia Dwi Pujiastuti, S.T."]},{"no":8,"noRuas":"180","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Sringin - Tunggulrejo","dana":"DAK","lokasi":"JUMANTONO","lebarPanjang":"4.28 X 3","pagu":2393000000.0,"hps":2393000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":2393000000.0,"addKontrak10":2393000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Nanang Mardiyanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Daryanto, S.T.","Fajar Mardiyanto, S.T.","Lucia Dwi Pujiastuti, S.T."]},{"no":9,"noRuas":"157","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Tlobosempon - Matesih","dana":"DAK","lokasi":"JATIYOSO/MATESIH","lebarPanjang":"9.78 X 3.7","pagu":3793000000.0,"hps":3793000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":3793000000.0,"addKontrak10":3793000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Nanang Mardiyanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Daryanto, S.T.","Aris Sumantri, S.T.","Ir. Agus Sutrisno, S.T., M.M."]},{"no":10,"noRuas":"22","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Tuban - Jambu","dana":"DAK","lokasi":"GONDANGREJO","lebarPanjang":"2.52 X 3.3","pagu":4081000000.0,"hps":4081000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4081000000.0,"addKontrak10":4081000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Aris Sumantri, S.T.","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Daryanto, S.T.","Sunandar Priya Karnanta, S.T.","Susilo Tri Cahyo, S.T., M.M."]},{"no":11,"noRuas":"185","nama":"Pelebaran Jalan Jumapolo-Jumantono (Ruas 185)","dana":"DAU","lokasi":"JUMAPOLO/JUMANTONO","lebarPanjang":"9.58 X 4","pagu":5337747300.0,"hps":5337747300.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":5337747300.0,"addKontrak10":5337747300.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Nanang Mardiyanto, S.T.","Aris Sumantri, S.T.","Lardi, S.T."]},{"no":12,"noRuas":"141","nama":"Rehabilitasi Jalan Matesih - Tegalgede (Ruas 141)","dana":"DAU","lokasi":"MATESIH/KARANGANYAR","lebarPanjang":"9.64 X 3.3","pagu":4935000000.0,"hps":4935000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4935000000.0,"addKontrak10":4935000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Triyanto, S.T., M.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Ir. Arif Bayu Priyambodo, S.T., M.T.","sekretaris":"Aris Sumantri, S.T.","anggota":["Ikhtiar Ikhwanudin, S.P.W.K","Nanang Mardiyanto, S.T."]},{"no":13,"noRuas":"202","nama":"Pelebaran Jalan Gedong - Kebonagung (Ruas 202)","dana":"DAU","lokasi":"TASIKMADU","lebarPanjang":"5.01 X 2.9","pagu":2660000000.0,"hps":2660000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":2660000000.0,"addKontrak10":2660000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Arif Bayu Priyambodo, S.T., M.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Raditya Dwi Nugraha","Aris Sumantri, S.T.","Fajar Mardiyanto, S.T."]},{"no":14,"noRuas":"183","nama":"Pelebaran Jalan Kebak - Punthuk (Ruas 183)","dana":"DAU","lokasi":"JUMANTONO","lebarPanjang":"2.28 X 3.6","pagu":2040000000.0,"hps":2040000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":2040000000.0,"addKontrak10":2040000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Sunandar Priya Karnanta, S.T.","Ikhtiar Ikhwanudin, S.P.W.K"]},{"no":15,"noRuas":"32","nama":"Pembangunan Talud Dayu - Sangiran","dana":"DAU","lokasi":"GONDANGREJO","lebarPanjang":"1.32 X 2.7","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Fajar Mardiyanto, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Aris Sumantri, S.T.","anggota":["Nanang Mardiyanto, S.T.","Sunandar Priya Karnanta, S.T.","Setyo Yudhi Jatmiko, A.Md"]},{"no":16,"noRuas":"84","nama":"Pembangunan Talud Jalan Gragalan - Blora","dana":"DAU","lokasi":"KARANGPANDAN","lebarPanjang":"5.56 X 2.8","pagu":300000000.0,"hps":300000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":300000000.0,"addKontrak10":300000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Nanang Mardiyanto, S.T.","ketua":"Aris Sumantri, S.T.","sekretaris":"Daryanto, S.T.","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Risdiyanto, S.Sos.","Ibnu Tri Rahmadi"]},{"no":17,"noRuas":"145","nama":"Pembangunan Talud Jalan Matesih - Girilayu","dana":"DAU","lokasi":"MATESIH","lebarPanjang":"3.78 X 5","pagu":250000000.0,"hps":250000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":250000000.0,"addKontrak10":250000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Fajar Mardiyanto, S.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Daryanto, S.T.","Sunandar Priya Karnanta, S.T.","Susyana Yusuf, A.Md"]},{"no":18,"noRuas":"116","nama":"Pembangunan Talud Jalan Ngargoyoso Jenawi","dana":"DAU","lokasi":"NGARGOYOSO/JENAWI","lebarPanjang":"6.4 X 3","pagu":245000000.0,"hps":245000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":245000000.0,"addKontrak10":245000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ikhtiar Ikhwanudin, S.P.W.K","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Aris Sumantri, S.T.","anggota":["Daryanto, S.T.","Sunandar Priya Karnanta, S.T."]},{"no":19,"noRuas":"110","nama":"Pemeliharaan berkala jalan Jenawi - Anggrasmanis, Kecamatan Jenawi (Ruas 110)","dana":"DAU","lokasi":"JENAWI","lebarPanjang":"4.91 X 3.5","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Angga Darmawan, S.T., M.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Nanang Mardiyanto, S.T.","Raditya Dwi Nugraha","Agus Setyatmoko"]},{"no":20,"noRuas":"126","nama":"Pemeliharaan Berkala Jalan Matesih - Tawangmangu (Ruas 126)","dana":"DAU","lokasi":"MATESIH/TAWANGMANGU","lebarPanjang":"9.42 X 4","pagu":4935000000.0,"hps":4935000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4935000000.0,"addKontrak10":4935000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Agus Sutrisno, S.T., M.M.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Nanang Mardiyanto, S.T.","Ikhtiar Ikhwanudin, S.P.W.K"]},{"no":21,"noRuas":"34","nama":"Pemeliharaan Berkala Jalan Mipidan (Ruas 34)","dana":"DAU","lokasi":"GONDANGREJO","lebarPanjang":"0.4 X 4","pagu":600000000.0,"hps":600000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":600000000.0,"addKontrak10":600000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Fajar Mardiyanto, S.T.","Ir. Arif Bayu Priyambodo, S.T., M.T.","Ikhtiar Ikhwanudin, S.P.W.K"]},{"no":22,"noRuas":"115","nama":"Pemeliharaan Berkala Jalan Ngargoyoso - Kadipekso (Ruas 115)","dana":"DAU","lokasi":"NGARGOYOSO/JENAWI","lebarPanjang":"3.42 X 4.3","pagu":510000000.0,"hps":510000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":510000000.0,"addKontrak10":510000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Daryanto, S.T."]},{"no":23,"noRuas":"317","nama":"Pemeliharaan jalan Delingan - Gajahan, Kecamatan Karanganyar (Ruas 317)","dana":"DAU","lokasi":"KARANGANYAR","lebarPanjang":"1.02 X 2.7","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Risdiyanto, S.Sos.","ketua":"Daryanto, S.T.","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Fajar Mardiyanto, S.T.","Raditya Dwi Nugraha","Sartono"]},{"no":24,"noRuas":"71","nama":"Pemeliharaan jalan Pendem - Ngargoyoso, Kecamatan Mojogedang (Ruas 71)","dana":"DAU","lokasi":"MOJOGEDANG","lebarPanjang":"12.45 X 4.1","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Arif Bayu Priyambodo, S.T., M.T.","ketua":"Aris Sumantri, S.T.","sekretaris":"Daryanto, S.T.","anggota":["Nanang Mardiyanto, S.T.","Ibnu Tri Rahmadi","Sunandar Priya Karnanta, S.T."]},{"no":25,"noRuas":"13","nama":"Pemeliharan Berkala Jalan Baturan Klodran (Ruas 13)","dana":"DAU","lokasi":"COLOMADU","lebarPanjang":"1.17 X 4","pagu":960000000.0,"hps":960000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":960000000.0,"addKontrak10":960000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Fajar Mardiyanto, S.T.","Sunandar Priya Karnanta, S.T.","Sartono"]},{"no":26,"noRuas":"241","nama":"Pengaspalan Jalan Bok Pitikan Kel.Lalung, Kec. Karanganyar (Ruas 241)","dana":"DAU","lokasi":"KARANGANYAR","lebarPanjang":"0.89 X 3.8","pagu":200000000.0,"hps":200000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":200000000.0,"addKontrak10":200000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ikhtiar Ikhwanudin, S.P.W.K","ketua":"Daryanto, S.T.","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Agus Setyatmoko","Raditya Dwi Nugraha","Sartono"]},{"no":27,"noRuas":"176","nama":"Pelebaran Jalan Gembong - Blorong (Ruas 176) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"JUMANTONO","lebarPanjang":"6.74 X 3.5","pagu":5000000000.0,"hps":5000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":5000000000.0,"addKontrak10":5000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Aris Sumantri, S.T.","Sulardi, S.T."]},{"no":28,"noRuas":"221","nama":"Rehabilitasi Jalan Kapten Mulyadi (Ruas 221) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"KARANGANYAR","lebarPanjang":"3.4 X 5.1","pagu":3000000000.0,"hps":3000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":3000000000.0,"addKontrak10":3000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Arif Bayu Priyambodo, S.T., M.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ikhtiar Ikhwanudin, S.P.W.K","Nanang Mardiyanto, S.T.","Lucia Dwi Pujiastuti, S.T."]},{"no":29,"noRuas":"223","nama":"Rehabilitasi Jalan Ocak acik - Kayuapak (Ruas 223) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"KARANGANYAR","lebarPanjang":"0.95 X 4","pagu":2000000000.0,"hps":2000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":2000000000.0,"addKontrak10":2000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Nanang Mardiyanto, S.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Daryanto, S.T.","Aris Sumantri, S.T.","Ikhtiar Ikhwanudin, S.P.W.K"]},{"no":30,"noRuas":"133","nama":"Rehabilitasi Jalan Pringgosari (Ruas 133) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"TAWANGMANGU","lebarPanjang":"1.05 X 4.2","pagu":3000000000.0,"hps":3000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":3000000000.0,"addKontrak10":3000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Daryanto, S.T.","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Fajar Mardiyanto, S.T.","Aris Sumantri, S.T.","Ir. Agus Sutrisno, S.T., M.M."]},{"no":31,"noRuas":"88","nama":"Rekontruksi Jalan Srandon - Puntukrejo (Ruas 88) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"KARANGPANDAN","lebarPanjang":"2.07 X 4.2","pagu":6000000000.0,"hps":6000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":6000000000.0,"addKontrak10":6000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Daryanto, S.T.","sekretaris":"Aris Sumantri, S.T.","anggota":["Ikhtiar Ikhwanudin, S.P.W.K","Nanang Mardiyanto, S.T."]},{"no":32,"noRuas":"","nama":"Pembangunan Jembatan Pentuk - Candi Kec. Mojogedang","dana":"Hibah","lokasi":"","lebarPanjang":"","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Juli Kartikawati, S.Pd"]},{"no":33,"noRuas":"","nama":"Penggantian Jembatan Bulu-bulu Ruas Trengguli - Lempong","dana":"Hibah","lokasi":"","lebarPanjang":"","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Angga Darmawan, S.T., M.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Daryanto, S.T.","anggota":["Aris Sumantri, S.T.","Fajar Mardiyanto, S.T.","Sartono"]},{"no":34,"noRuas":"","nama":"Pembangunan Jalan menuju Kebon 9 - 11 Gumeng","dana":"Hibah","lokasi":"","lebarPanjang":"","pagu":1610000000.0,"hps":1610000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":1610000000.0,"addKontrak10":1610000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Fajar Mardiyanto, S.T.","Nanang Mardiyanto, S.T.","Sunandar Priya Karnanta, S.T."]}],"personil":[{"no":1,"nama":"Ir. Brian Adi Setiyawan, S.T.","nip":"198408242010011013","pangkat":"Penata Tingkat I","gol":"III/d","jabatan":"Kepala Bidang Bina Marga"},{"no":2,"nama":"Ir. Tri Wiyono, S.T., M.T.","nip":"197406032005011007","pangkat":"Pembina","gol":"IV/a","jabatan":"Penata Kelola Jalan dan Jembatan Ahli Muda"},{"no":3,"nama":"Ir. Triyanto, S.T., M.T.","nip":"197603232010011023","pangkat":"Penata Tingkat I","gol":"III/d","jabatan":"Penata Kelola Jalan dan Jembatan Ahli Muda"},{"no":4,"nama":"Ir. Arif Bayu Priyambodo, S.T., M.T.","nip":"198201182011011007","pangkat":"Penata Tingkat I","gol":"III/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":5,"nama":"Dr. Ir. Rohmatun S.T., M.T.","nip":"198005272010012018","pangkat":"Pembina","gol":"IV/a","jabatan":"Penelaah Teknis Kebijakan"},{"no":6,"nama":"Daryanto, S.T.","nip":"197112271997031006","pangkat":"Penata Tingkat I","gol":"III/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":7,"nama":"Aris Sumantri, S.T.","nip":"198202152010011002","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":8,"nama":"Risdiyanto, S.Sos.","nip":"197302081995031001","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":9,"nama":"Nanang Mardiyanto, S.T.","nip":"198103302010011005","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":10,"nama":"Awaliyah Cahayaningrum, S.H., M.M.","nip":"198106162010012018","pangkat":"Pembina","gol":"IV/a","jabatan":"Pengelola Layanan Operasional"},{"no":11,"nama":"Agus Setiyatmoko","nip":"197708062010011006","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Pengelola Layanan Operasional"},{"no":12,"nama":"Raditya Dwi Nugraha, S.H.","nip":"198405062010011001","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Pengelola Layanan Operasional"},{"no":13,"nama":"Fajar Mardianto, S.T.","nip":"199404082025051002","pangkat":"Penata Muda","gol":"III/a","jabatan":"Penata Kelola Jalan dan Jembatan Ahli Pertama"},{"no":14,"nama":"Ikhtiar Ikhwanudin, S.P.W.K.","nip":"199703312025051002","pangkat":"Penata Muda","gol":"III/a","jabatan":"Pengawas Jaringan Utilitas"},{"no":15,"nama":"Sunandar Priya Karnanta, S.T., M.T.","nip":"199104172025211106","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":16,"nama":"Ida Miarsih, S.Si.","nip":"198410152025212047","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":17,"nama":"Eni Widayarti, S.Sos.","nip":"197208052025212020","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":18,"nama":"Eko Hari Christanto, S.E.","nip":"198603282025211073","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":19,"nama":"Sri Sapari, S.Pd.","nip":"199008312025212061","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":20,"nama":"Tri Handayani, S.M.","nip":"198906272025212081","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":21,"nama":"Juli Kartikawati, S.Pd.","nip":"198907012025212080","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":22,"nama":"Susyana Yusuf, A.Md.","nip":"198207032025212050","pangkat":"PPPK","gol":"PW","jabatan":"Pengelola Layanan Operasional"},{"no":23,"nama":"Setyo Yudhi Jatmiko, A.Md.","nip":"198508052025211098","pangkat":"PPPK","gol":"PW","jabatan":"Pengelola Layanan Operasional"},{"no":24,"nama":"Vonda Anggorowati, A.Md.","nip":"199307062025212069","pangkat":"PPPK","gol":"PW","jabatan":"Pengelola Layanan Operasional"},{"no":25,"nama":"Sartono","nip":"198105262025211047","pangkat":"PPPK","gol":"PW","jabatan":"Operator Layanan Operasional"},{"no":26,"nama":"Ibnu Tri Rahmadi","nip":"199006282025211059","pangkat":"PPPK","gol":"PW","jabatan":"Operator Layanan Operasional"},{"no":27,"nama":"Murtiana Linda Ekasari","nip":"198005082025212035","pangkat":"PPPK","gol":"PW","jabatan":"Operator Layanan Operasional"},{"no":28,"nama":"Faizal Luqman Sangaji","nip":"-","pangkat":"-","gol":"-","jabatan":""},{"no":29,"nama":"Adityas Pradana Kusuma Aji","nip":"-","pangkat":"-","gol":"-","jabatan":""}]};
 
-// ===== FIREBASE LAYER =====
 // ============================================================
 //  FIREBASE LAYER — Bina Marga 2026
 //  Menggantikan localStorage dengan Firestore realtime
@@ -662,7 +734,6 @@ function applyRoleUI() {
 }
 
 
-// ===== APP LOGIC =====
 // ============================================================
 //  APP.JS — Logika utama aplikasi Bina Marga 2026
 //  Dijalankan setelah firebase_layer.js
@@ -702,6 +773,98 @@ function rMetrics() {
 
 // ── Dashboard progress bars ───────────────────────────────
 function rDashboard() {
+  var danas = ['DAK','DAU','Bankeu','Hibah'];
+  var COLS  = {DAK:'#185FA5',DAU:'#3B6D11',Bankeu:'#BA7517',Hibah:'#7F77DD'};
+  var COLSA = {DAK:'rgba(24,95,165,0.15)',DAU:'rgba(59,109,17,0.15)',Bankeu:'rgba(186,117,23,0.15)',Hibah:'rgba(74,66,168,0.15)'};
+
+  // ── Quick stats in hero ──────────────────────────────────────────────
+  var tK = DATA.reduce(function(s,d){return s+d.kontrak;},0);
+  var phD = DATA.filter(function(d){return d.pho==='Sudah';}).length;
+  var aF  = DATA.length ? DATA.reduce(function(s,d){return s+d.fisik;},0)/DATA.length : 0;
+  var hs = document.getElementById('hero-stats');
+  if (hs) hs.innerHTML = [
+    {l:'Paket',v:DATA.length},
+    {l:'Kontrak',v:'Rp '+(tK/1e9).toFixed(1)+'M'},
+    {l:'Avg Fisik',v:aF.toFixed(0)+'%'},
+    {l:'PHO',v:phD+'/'+DATA.length},
+  ].map(function(s){
+    return '<div style="text-align:center;background:rgba(255,255,255,0.1);border-radius:var(--r);padding:8px 14px;min-width:70px">'
+      +'<div style="font-size:17px;font-weight:700;color:#fff">'+s.v+'</div>'
+      +'<div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px">'+s.l+'</div></div>';
+  }).join('');
+
+  // ── Chart helpers ────────────────────────────────────────────────────
+  if (!window._charts) window._charts = {};
+  function mkChart(id, cfg) {
+    if (window._charts[id]) window._charts[id].destroy();
+    var el = document.getElementById(id);
+    if (!el) return;
+    window._charts[id] = new Chart(el, cfg);
+  }
+  var commonOpts = {responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:10}}},
+            x:{grid:{display:false},ticks:{font:{size:11}}}}};
+
+  // ── Chart 1: Prestasi fisik per dana ────────────────────────────────
+  var fisikByD = danas.map(function(d){
+    var a=DATA.filter(function(x){return x.dana===d;});
+    return a.length?parseFloat((a.reduce(function(s,x){return s+x.fisik;},0)/a.length).toFixed(1)):0;
+  });
+  mkChart('chart-fisik',{type:'bar',
+    data:{labels:danas,datasets:[{data:fisikByD,
+      backgroundColor:danas.map(function(d){return COLS[d];}),
+      borderRadius:6,borderSkipped:false}]},
+    options:Object.assign({},commonOpts,{
+      scales:{y:{max:100,ticks:{callback:function(v){return v+'%';},font:{size:10}},grid:{color:'rgba(0,0,0,0.04)'}},
+              x:{grid:{display:false},ticks:{font:{size:11}}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.parsed.y.toFixed(1)+'%';}}}}
+    })});
+
+  // ── Chart 2: Realisasi per dana ──────────────────────────────────────
+  var realByD = danas.map(function(d){
+    var a=DATA.filter(function(x){return x.dana===d;});
+    return a.length?parseFloat((a.reduce(function(s,x){return s+x.pctReal;},0)/a.length).toFixed(1)):0;
+  });
+  mkChart('chart-real',{type:'bar',
+    data:{labels:danas,datasets:[{data:realByD,
+      backgroundColor:danas.map(function(d){return COLS[d];}),
+      borderRadius:6,borderSkipped:false}]},
+    options:Object.assign({},commonOpts,{
+      scales:{y:{max:100,ticks:{callback:function(v){return v+'%';},font:{size:10}},grid:{color:'rgba(0,0,0,0.04)'}},
+              x:{grid:{display:false},ticks:{font:{size:11}}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.parsed.y.toFixed(1)+'%';}}}}
+    })});
+
+  // ── Chart 3: Nilai kontrak vs realisasi (Rp miliar) ──────────────────
+  var kByD = danas.map(function(d){return parseFloat((DATA.filter(function(x){return x.dana===d;}).reduce(function(s,x){return s+x.kontrak;},0)/1e9).toFixed(2));});
+  var rByD = danas.map(function(d){return parseFloat((DATA.filter(function(x){return x.dana===d;}).reduce(function(s,x){return s+x.realisasi;},0)/1e9).toFixed(2));});
+  mkChart('chart-kontrak',{type:'bar',
+    data:{labels:danas,datasets:[
+      {label:'Kontrak',data:kByD,backgroundColor:danas.map(function(d){return COLSA[d];}),borderColor:danas.map(function(d){return COLS[d];}),borderWidth:1.5,borderRadius:4},
+      {label:'Realisasi',data:rByD,backgroundColor:danas.map(function(d){return COLS[d];}),borderRadius:4}
+    ]},
+    options:Object.assign({},commonOpts,{
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:10},boxWidth:10,padding:8}}},
+      scales:{y:{ticks:{callback:function(v){return v+'M';},font:{size:10}},grid:{color:'rgba(0,0,0,0.04)'}},
+              x:{grid:{display:false},ticks:{font:{size:11}}}}
+    })});
+
+  // ── Chart 4: Status PHO per dana (stacked bar) ───────────────────────
+  var phoSudah = danas.map(function(d){return DATA.filter(function(x){return x.dana===d&&x.pho==='Sudah';}).length;});
+  var phoBelum = danas.map(function(d){return DATA.filter(function(x){return x.dana===d&&x.pho==='Belum';}).length;});
+  mkChart('chart-pho',{type:'bar',
+    data:{labels:danas,datasets:[
+      {label:'Sudah PHO',data:phoSudah,backgroundColor:'#3B6D11',borderRadius:4},
+      {label:'Belum PHO',data:phoBelum,backgroundColor:'#e0ddd5',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:10},boxWidth:10,padding:8}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},
+              y:{stacked:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'rgba(0,0,0,0.04)'}}}
+    }});
+
+  // ── Progress list ────────────────────────────────────────────────────
   var fD = document.getElementById('df-dana').value;
   var fS = document.getElementById('df-sort').value;
   var fP = document.getElementById('df-pho').value;
@@ -778,7 +941,15 @@ function bRow(d) {
 }
 
 function detailRow(d) {
+  var editable = can('canEdit');
+  var editBtn = editable
+    ? '<button class="btn btn-sm edit-only" style="margin-left:8px;font-size:11px" onclick="toggleInlineEdit('+d.no+')">'
+      +'&#x270F; Edit progres</button>'
+    : '';
   var s = '<tr><td colspan="9" style="padding:0"><div style="background:var(--surf2);padding:14px 16px">';
+  s += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<span style="font-size:12px;font-weight:600;color:var(--txt2)">Detail Paket #'+d.no+'</span>'
+    +editBtn+'</div>';
   s += sec('&#x1F4CB; Identitas Paket');
   s += '<div class="det-grid">'
     +di('No. Paket',fv(d.no))+di('No. Ruas',fv(d.noRuas))
@@ -810,11 +981,29 @@ function detailRow(d) {
     +di('Nomor PHO/BAST',fv(d.noPho))+di('Tanggal PHO/BAST',fv(d.tglPho))
     +'</div>';
   s += sec('&#x1F4CA; Progres &amp; Realisasi');
-  s += '<div class="det-grid">'
+  s += '<div class="det-grid" id="prog-disp-'+d.no+'">'
     +di('Prestasi Fisik (%)','<strong style="color:var(--blue)">'+d.fisik.toFixed(1)+'%</strong>')
     +di('Realisasi Pembayaran','<strong>'+rp(d.realisasi)+'</strong>')
     +di('% thd Kontrak','<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong>')
     +'</div>';
+  // Inline edit form (hidden by default)
+  if (editable) {
+    s += '<div class="inline-edit" id="iedit-'+d.no+'" style="display:none">'
+      +'<div class="fg"><label>Prestasi fisik (%)</label>'
+      +'<input type="number" id="ie-fisik-'+d.no+'" min="0" max="100" step="0.1" value="'+d.fisik+'"></div>'
+      +'<div class="fg"><label>Realisasi pembayaran (Rp)</label>'
+      +'<input type="number" id="ie-real-'+d.no+'" value="'+d.realisasi+'"></div>'
+      +'<div class="fg"><label>Status PHO</label>'
+      +'<select id="ie-pho-'+d.no+'"><option value="Sudah"'+(d.pho==='Sudah'?' selected':'')+'>Sudah</option>'
+      +'<option value="Belum"'+(d.pho==='Belum'?' selected':'')+'>Belum</option></select></div>'
+      +'<div class="fg"><label>Nomor PHO/BAST</label>'
+      +'<input type="text" id="ie-nopho-'+d.no+'" value="'+esc(d.noPho||'')+'"></div>'
+      +'<div class="inline-edit-actions">'
+      +'<button class="btn btn-g" onclick="saveInlineEdit('+d.no+')">&#x1F4BE; Simpan</button>'
+      +'<button class="btn" onclick="toggleInlineEdit('+d.no+')">Batal</button>'
+      +'<span class="save-spinner" id="ie-spin-'+d.no+'">Menyimpan...</span>'
+      +'</div></div>';
+  }
   s += sec('&#x1F464; Pelaksana &amp; Tim Teknis');
   s += '<div class="det-grid">';
   var roles=[];
@@ -829,6 +1018,36 @@ function detailRow(d) {
   });
   s+='</div></div></td></tr>';
   return s;
+}
+
+function toggleInlineEdit(no) {
+  var form = document.getElementById('iedit-'+no);
+  if (!form) return;
+  var visible = form.style.display !== 'none';
+  form.style.display = visible ? 'none' : 'grid';
+}
+
+function saveInlineEdit(no) {
+  var d = DATA.filter(function(x){return x.no===no;})[0]; if(!d) return;
+  var spin = document.getElementById('ie-spin-'+no);
+  if (spin) spin.style.display='inline';
+  d.fisik    = parseFloat(document.getElementById('ie-fisik-'+no).value)||0;
+  d.realisasi= parseFloat(document.getElementById('ie-real-'+no).value)||0;
+  d.pho      = document.getElementById('ie-pho-'+no).value;
+  d.noPho    = document.getElementById('ie-nopho-'+no).value;
+  d.pctReal  = d.kontrak>0?parseFloat((d.realisasi/d.kontrak*100).toFixed(1)):0;
+  fbSaveProject(d, function(){
+    if (spin) spin.style.display='none';
+    toggleInlineEdit(no);
+    // Update display without closing detail row
+    var disp = document.getElementById('prog-disp-'+no);
+    if (disp) disp.innerHTML = di('Prestasi Fisik (%)','<strong style="color:var(--blue)">'+d.fisik.toFixed(1)+'%</strong>')
+      +di('Realisasi Pembayaran','<strong>'+rp(d.realisasi)+'</strong>')
+      +di('% thd Kontrak','<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong>');
+    toast('&#x2705; Data tersimpan dan tersinkron ke semua pengguna');
+    rMetrics();
+    rDashboard();
+  });
 }
 function sec(t){return '<div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;margin-top:10px;border-bottom:1px solid var(--bdr);margin-bottom:8px">'+t+'</div>';}
 function di(l,v){return '<div class="det-item"><div class="det-label">'+l+'</div><div class="det-val">'+v+'</div></div>';}
@@ -1162,17 +1381,12 @@ function toast(msg,dur){var t=document.getElementById('toast');t.textContent=msg
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 
-// ===== BOOT =====
 window.addEventListener("DOMContentLoaded", function() {
-  // Sync auth state change: juga load personil & SK
-  var origOnAuth = auth.onAuthStateChanged.bind(auth);
   fbBoot();
-  // After auth resolved, load personil from Firebase
   auth.onAuthStateChanged(function(user) {
     if (user) {
       fbEnsureUserDoc(user);
       document.getElementById("sf-email").textContent = user.email;
-      // Load personil
       fbLoadPersonil(function(arr) {
         PERS = arr.length ? arr : SEED.personil;
         loadAllSK();
@@ -1180,9 +1394,6 @@ window.addEventListener("DOMContentLoaded", function() {
       });
     }
   });
-  // Sync status display
-  var sfStatus = document.getElementById("sf-status");
-  if (sfStatus) sfStatus.textContent = "Menghubungkan...";
 });
 </script>
 </body>
