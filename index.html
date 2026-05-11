@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monitoring Proyek Bina Marga 2026 — Kab. Karanganyar</title>
+
+<!-- Firebase SDK v9 compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- Chart.js & SheetJS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f3f0;--surf:#fff;--surf2:#eeede9;--bdr:#e0ddd5;
+  --txt:#181816;--txt2:#636360;--txt3:#9b9b96;
+  --blue:#185FA5;--bluL:#deeaf8;--bluD:#0C447C;
+  --green:#3B6D11;--grnL:#e5f0d8;
+  --amber:#9a6010;--ambL:#faeeda;
+  --red:#8b2020;--redL:#fce8e8;
+  --purple:#4a42a8;--purL:#eeedfd;
+  --r:8px;--rL:12px
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+
+/* ===== LOADING SCREEN ===== */
+#loading-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);flex-direction:column;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid var(--bdr);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== LOGIN SCREEN ===== */
+#login-screen{display:none;min-height:100vh;background:var(--bg);align-items:center;justify-content:center}
+#login-screen.show{display:flex}
+.login-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rL);padding:32px;width:100%;max-width:380px}
+.login-logo{font-size:28px;margin-bottom:4px}
+.login-title{font-size:18px;font-weight:700;color:var(--bluD);margin-bottom:2px}
+.login-sub{font-size:12px;color:var(--txt2);margin-bottom:24px}
+.login-divider{display:flex;align-items:center;gap:10px;margin:16px 0;font-size:11px;color:var(--txt3)}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.login-error{background:var(--redL);color:var(--red);border-radius:var(--r);padding:8px 12px;font-size:12px;margin-bottom:12px;display:none}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--surf);cursor:pointer;font-size:13px;font-weight:500;transition:.15s}
+.google-btn:hover{background:var(--surf2)}
+.google-icon{width:18px;height:18px}
+
+/* ===== APP SHELL ===== */
+.shell{display:none;min-height:100vh}
+.shell.show{display:flex}
+.sidebar{width:215px;background:var(--surf);border-right:1px solid var(--bdr);position:fixed;top:0;bottom:0;display:flex;flex-direction:column;z-index:20}
+.logo{padding:14px 14px 12px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.logo h1{font-size:13px;font-weight:700;color:var(--bluD);line-height:1.3}
+.logo p{font-size:10px;color:var(--txt2);margin-top:1px}
+nav{padding:8px 6px;flex:1;overflow-y:auto}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r);color:var(--txt2);cursor:pointer;font-size:13px;margin-bottom:1px;transition:.13s;user-select:none}
+.ni:hover{background:var(--surf2);color:var(--txt)}
+.ni.on{background:var(--bluL);color:var(--bluD);font-weight:600}
+.ni .ic{font-size:15px;width:17px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;display:none}
+.sidebar-foot{padding:10px 12px;border-top:1px solid var(--bdr);font-size:10px;color:var(--txt3);line-height:1.6;flex-shrink:0}
+.logout-btn{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:var(--r);font-size:11px;cursor:pointer;color:var(--red);margin-top:6px;transition:.13s}
+.logout-btn:hover{background:var(--redL)}
+.role-badge{padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.role-admin{background:var(--purL);color:var(--purple)}
+.role-editor{background:var(--grnL);color:var(--green)}
+.role-viewer{background:var(--surf2);color:var(--txt2)}
+
+.main{margin-left:215px;padding:22px 24px;flex:1;min-width:0}
+.pg{display:none}.pg.on{display:block}
+.ph{margin-bottom:18px}.ph h2{font-size:19px;font-weight:700}.ph p{font-size:12px;color:var(--txt2);margin-top:3px}
+
+/* METRICS */
+.mg{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+.mc{background:var(--surf2);border-radius:var(--r);padding:13px 14px}
+.mc-l{font-size:10px;color:var(--txt2);margin-bottom:5px;line-height:1.3}
+.mc-v{font-size:22px;font-weight:700;line-height:1}
+.mc-s{font-size:10px;color:var(--txt3);margin-top:3px}
+
+/* CARD */
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rL);padding:14px 16px;margin-bottom:14px}
+.ct{font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.cw{position:relative;width:100%}
+
+/* BADGE */
+.bd{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.dak{background:#deeaf8;color:#0a3d6b}.dau{background:#e5f0d8;color:#244408}
+.bnk{background:#faeeda;color:#5a3800}.hib{background:#eeedfd;color:#2f2880}
+.ok{background:#e5f0d8;color:#244408}.bl{background:#fce8e8;color:#5a1515}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:7px 9px;border-bottom:1px solid var(--bdr);color:var(--txt2);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+td{padding:7px 9px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surf2)}
+
+/* PROGRESS */
+.pgw{background:#ddd;border-radius:20px;height:5px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:3px}
+.pgb{height:100%;border-radius:20px;background:var(--blue)}
+.pgb.g{background:var(--green)}.pgb.a{background:var(--amber)}.pgb.r{background:var(--red)}
+
+/* FILTERS */
+.fr{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+select,input[type=text],input[type=number],input[type=email],input[type=password]{padding:6px 9px;border:1px solid var(--bdr);border-radius:var(--r);font-size:12px;background:var(--surf);color:var(--txt);outline:none;transition:.13s}
+select:focus,input:focus{border-color:var(--blue)}
+
+/* BUTTONS */
+.btn{padding:6px 12px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--surf);color:var(--txt);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:5px;transition:.13s;white-space:nowrap}
+.btn:hover{background:var(--surf2)}.btn:active{transform:scale(.98)}
+.btn-p{background:var(--blue);color:#fff;border-color:var(--blue)}.btn-p:hover{background:var(--bluD)}
+.btn-g{background:var(--green);color:#fff;border-color:var(--green)}.btn-g:hover{background:#2a5009}
+.btn-sm{padding:3px 9px;font-size:11px}
+.btn-xs{padding:2px 7px;font-size:10px}
+.btn-danger{background:var(--redL);color:var(--red);border-color:var(--red)}
+
+/* DETAIL GRID */
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-bottom:4px}
+.det-item{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:7px 10px}
+.det-label{font-size:10px;color:var(--txt2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.3px}
+.det-val{font-size:12px;color:var(--txt);word-break:break-word}
+.det{background:var(--surf2);padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:12px}
+.di span:first-child{color:var(--txt2)}.di span:last-child{font-weight:600}
+.chips{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.chip{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:3px 9px;font-size:11px}
+.chip-role{color:var(--txt2);margin-right:2px}
+
+/* DASHBOARD PROGRESS */
+.dash-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.progress-list{display:flex;flex-direction:column;gap:0}
+.prog-item{padding:10px 14px;border-bottom:1px solid var(--bdr);display:grid;grid-template-columns:30px 1fr 70px;gap:0 10px;align-items:center}
+.prog-item:last-child{border-bottom:none}
+.prog-no{font-size:11px;color:var(--txt3);text-align:right}
+.prog-info{min-width:0}
+.prog-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.prog-bars{display:flex;flex-direction:column;gap:3px}
+.prog-bar-row{display:flex;align-items:center;gap:6px}
+.prog-bar-label{font-size:10px;color:var(--txt2);width:54px;flex-shrink:0}
+.prog-bar-track{flex:1;background:#e4e2db;border-radius:20px;height:7px;overflow:hidden;min-width:60px}
+.prog-bar-fill{height:100%;border-radius:20px;transition:width .4s}
+.prog-pct{font-size:10px;font-weight:600;width:34px;text-align:right;flex-shrink:0}
+.prog-badge{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+
+/* PERSONIL ACCORDION */
+.pers-item{border:1px solid var(--bdr);border-radius:var(--rL);margin-bottom:8px;overflow:hidden;background:var(--surf)}
+.pers-header{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;user-select:none;transition:.13s}
+.pers-header:hover{background:var(--surf2)}
+.pers-avt{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.pers-info{flex:1;min-width:0}
+.pers-nama{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pers-sub{font-size:11px;color:var(--txt2);margin-top:1px}
+.pers-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.pers-chevron{font-size:11px;color:var(--txt3);transition:transform .2s}
+.pers-chevron.open{transform:rotate(180deg)}
+.pers-body{display:none;border-top:1px solid var(--bdr)}
+.pers-body.open{display:block}
+.pers-sk-row{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surf2);border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.pers-sk-label{font-size:11px;color:var(--txt2);flex-shrink:0}
+.pers-sk-val{font-size:11px;font-weight:500;flex:1;min-width:0}
+.pers-kegiatan-list{padding:0}
+.pk-item{display:grid;grid-template-columns:24px 1fr auto;gap:0 8px;padding:9px 14px;border-bottom:1px solid var(--bdr);align-items:start;font-size:12px}
+.pk-item:last-child{border-bottom:none}
+.pk-no{color:var(--txt3);font-size:11px;padding-top:1px}
+.pk-nama{font-weight:500;line-height:1.4;padding-right:4px}
+.pk-role{display:flex;flex-direction:column;gap:2px;align-items:flex-end}
+.role-chip{font-size:10px;padding:1px 7px;border-radius:10px;white-space:nowrap;font-weight:600}
+.role-ppk{background:#deeaf8;color:#0a3d6b}.role-pptk{background:#e5f0d8;color:#244408}
+.role-staf{background:#faeeda;color:#5a3800}.role-ketua{background:#eeedfd;color:#2f2880}
+.role-sekretaris{background:#fce8e8;color:#5a1515}.role-anggota{background:#f0efeb;color:#4a4a45}
+
+/* UPLOAD / EDIT */
+.dropz{border:2px dashed var(--bdr);border-radius:var(--rL);padding:28px;text-align:center;cursor:pointer;color:var(--txt2);transition:.15s}
+.dropz:hover,.dropz.dov{border-color:var(--blue);background:var(--bluL)}
+.eg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fg label{font-size:11px;color:var(--txt2);display:block;margin-bottom:3px}
+.fg input,.fg select{width:100%}
+
+/* NOTIF */
+.ni2{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;border-bottom:1px solid var(--bdr)}
+.ni2:last-child{border-bottom:none}
+.nic{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+
+/* ADMIN USERS TABLE */
+.users-table{width:100%;border-collapse:collapse;font-size:12px}
+.users-table th{text-align:left;padding:7px 10px;border-bottom:1px solid var(--bdr);font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase}
+.users-table td{padding:8px 10px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+
+/* REALTIME INDICATOR */
+.rt-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* LEGEND */
+.leg{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--txt2)}
+.leg span{display:flex;align-items:center;gap:4px}
+.leg-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+#toast{position:fixed;bottom:20px;right:20px;background:#222;color:#fff;padding:9px 16px;border-radius:var(--r);font-size:13px;display:none;z-index:999}
+
+@media(max-width:800px){.sidebar{display:none}.main{margin-left:0}.mg{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.det-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ===== LOADING ===== -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--txt2)">Memeriksa sesi login…</div>
+</div>
+
+<!-- ===== LOGIN ===== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">&#x1F3D7;</div>
+    <div class="login-title">Bina Marga 2026</div>
+    <div class="login-sub">Monitoring Proyek Kab. Karanganyar — Masuk untuk melanjutkan</div>
+    <div class="login-error" id="login-error"></div>
+    <button class="google-btn" onclick="loginGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Masuk dengan Google
+    </button>
+    <div class="login-divider">atau</div>
+    <div class="fg" style="margin-bottom:8px"><label>Email</label><input type="email" id="login-email" placeholder="email@kantor.go.id" style="width:100%"></div>
+    <div class="fg" style="margin-bottom:14px"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" style="width:100%" onkeydown="if(event.key==='Enter')loginEmail()"></div>
+    <button class="btn btn-p" id="btn-login-email" onclick="loginEmail()" style="width:100%;justify-content:center;padding:9px">Masuk</button>
+    <div style="font-size:11px;color:var(--txt3);margin-top:14px;text-align:center">Belum punya akun? Hubungi Admin untuk didaftarkan.</div>
+  </div>
+</div>
+
+<!-- ===== APP SHELL ===== -->
+<div id="shell" class="shell">
+<aside class="sidebar">
+  <div class="logo">
+    <h1>&#x1F3D7; Bina Marga</h1>
+    <p>Kab. Karanganyar &mdash; TA 2026</p>
+  </div>
+  <nav>
+    <div class="ni on"  onclick="go('dashboard',this)"><span class="ic">&#x1F4CA;</span>Dashboard</div>
+    <div class="ni" onclick="go('proyek',this)"><span class="ic">&#x1F6E3;</span>Daftar Proyek</div>
+    <div class="ni" onclick="go('personil',this)"><span class="ic">&#x1F465;</span>Personil</div>
+    <div class="ni" onclick="go('notifikasi',this)"><span class="ic">&#x1F514;</span>Notifikasi<span class="nbadge" id="nb"></span></div>
+    <div class="ni edit-only" onclick="go('upload',this)"><span class="ic">&#x2B06;</span>Update Data</div>
+    <div class="ni admin-only" id="nav-admin" onclick="go('admin',this)" style="display:none"><span class="ic">&#x1F511;</span>Admin Users</div>
+  </nav>
+  <div class="sidebar-foot" id="sf">
+    <span class="rt-dot"></span><span id="sf-status">Menghubungkan…</span><br>
+    <span id="sf-email" style="color:var(--txt3)"></span><br>
+    Peran: <span class="role-badge" id="role-badge">viewer</span>
+    <div class="logout-btn" onclick="fbLogout()">&#x2192; Keluar</div>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- DASHBOARD -->
+<div id="pg-dashboard" class="pg on">
+  <div class="ph"><h2>Dashboard Monitoring</h2><p>Progress fisik dan realisasi seluruh paket &mdash; <span class="rt-dot"></span>realtime</p></div>
+  <div class="mg" id="metrics"></div>
+  <div class="dash-filters">
+    <select id="df-dana" onchange="rDashboard()"><option value="">Semua sumber dana</option><option>DAK</option><option>DAU</option><option>Bankeu</option><option>Hibah</option></select>
+    <select id="df-sort" onchange="rDashboard()"><option value="no">Urut: Nomor</option><option value="fisik_desc">Fisik tertinggi</option><option value="fisik_asc">Fisik terendah</option><option value="real_desc">Realisasi tertinggi</option></select>
+    <select id="df-pho" onchange="rDashboard()"><option value="">Semua PHO</option><option value="Sudah">Sudah PHO</option><option value="Belum">Belum PHO</option></select>
+    <input type="text" id="df-search" placeholder="Cari nama paket..." oninput="rDashboard()" style="flex:1;min-width:150px">
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="display:flex;gap:16px;padding:10px 14px;border-bottom:1px solid var(--bdr);font-size:11px;color:var(--txt2);flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:7px;border-radius:4px;background:var(--blue);display:inline-block"></span>Prestasi Fisik (%)</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:28px;height:7px;border-radius:4px;background:var(--green);display:inline-block"></span>Realisasi Pembayaran (%)</span>
+    </div>
+    <div class="progress-list" id="prog-list"></div>
+  </div>
+</div>
+
+<!-- PROYEK -->
+<div id="pg-proyek" class="pg">
+  <div class="ph"><h2>Daftar Paket Pekerjaan</h2><p id="pcnt"></p></div>
+  <div class="fr">
+    <select id="fd" onchange="fp()"><option value="">Semua sumber dana</option><option>DAK</option><option>DAU</option><option>Bankeu</option><option>Hibah</option></select>
+    <select id="fp2" onchange="fp()"><option value="">Semua status PHO</option><option value="Sudah">Sudah PHO</option><option value="Belum">Belum PHO</option></select>
+    <input type="text" id="fs" placeholder="Cari nama / lokasi..." oninput="fp()" style="flex:1;min-width:160px">
+    <button class="btn btn-p" onclick="exportCSV()">&#x2B07; Export CSV</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tw"><table><thead><tr>
+      <th>No</th><th>Nama paket pekerjaan</th><th>Dana</th><th>Lokasi</th>
+      <th>Nilai kontrak</th><th>Fisik</th><th>Realisasi</th><th>PHO</th><th></th>
+    </tr></thead><tbody id="tb"></tbody></table></div>
+  </div>
+</div>
+
+<!-- PERSONIL -->
+<div id="pg-personil" class="pg">
+  <div class="ph"><h2>Daftar Personil</h2><p>Klik nama untuk melihat detail kegiatan dan peran</p></div>
+  <div class="fr">
+    <input type="text" id="fpers" placeholder="Cari nama personil..." oninput="rPersonil()" style="min-width:220px">
+    <select id="fpers-role" onchange="rPersonil()">
+      <option value="">Semua peran</option>
+      <option value="PPK">PPK</option><option value="PPTK">PPTK</option>
+      <option value="Staf">Staf/Pengawas</option><option value="Ketua">Tim Teknis Ketua</option>
+      <option value="Sekretaris">Tim Teknis Sekretaris</option><option value="Anggota">Tim Teknis Anggota</option>
+    </select>
+  </div>
+  <div id="pers-list"></div>
+</div>
+
+<!-- NOTIFIKASI -->
+<div id="pg-notifikasi" class="pg">
+  <div class="ph"><h2>Notifikasi &amp; Peringatan</h2><p>Proyek yang memerlukan perhatian khusus</p></div>
+  <div class="card" style="padding:0;overflow:hidden" id="ncard"></div>
+</div>
+
+<!-- UPDATE DATA -->
+<div id="pg-upload" class="pg edit-only">
+  <div class="ph"><h2>Update Data</h2><p>Upload Excel, edit manual, atau download data terkini</p></div>
+  <div class="two">
+    <div class="card upload-only">
+      <div class="ct">&#x2B06; Upload file Excel (.xlsx) <span style="font-size:9px;background:var(--purL);color:var(--purple);padding:1px 6px;border-radius:8px;margin-left:4px">Admin only</span></div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:12px">Upload .xlsx untuk memperbarui semua data sekaligus. Akan tersinkron ke semua pengguna secara realtime.</p>
+      <div class="dropz" id="dz" onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDov(event)" ondragleave="onDlv(event)">
+        <div style="font-size:28px;margin-bottom:7px">&#x1F4C2;</div>
+        <div style="font-weight:600;font-size:13px">Klik atau drag &amp; drop file Excel</div>
+        <div style="font-size:11px;margin-top:4px;color:var(--txt3)">Sheet: Rekap / DAK_26 / DAU_26 / Bankeu_26 / Hibah_26 / Personil</div>
+      </div>
+      <input type="file" id="fi" accept=".xlsx" style="display:none" onchange="onFile(event)">
+      <div id="umsg" style="margin-top:10px;font-size:12px"></div>
+    </div>
+    <div class="card">
+      <div class="ct">&#x2B07; Download data terkini (.xlsx)</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Download Excel berisi data terkini sebagai dasar update berikutnya.</p>
+      <button class="btn btn-p" style="width:100%;justify-content:center;padding:10px" onclick="downloadExcel()">&#x1F4E5; Download Excel Data Terkini</button>
+      <div style="margin-top:8px;font-size:11px;color:var(--txt3)">Sheet: Rekap, DAK_26, DAU_26, Bankeu_26, Hibah_26, Personil</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">&#x270F; Edit manual per paket</div>
+    <div class="fr" style="margin-bottom:10px">
+      <select id="esel" onchange="loadEdit()" style="width:100%;max-width:500px"><option value="">Pilih paket pekerjaan...</option></select>
+    </div>
+    <div id="eform" style="display:none">
+      <div class="eg">
+        <div class="fg"><label>Prestasi fisik (%)</label><input type="number" id="ef" min="0" max="100" step="0.1"></div>
+        <div class="fg"><label>Realisasi pembayaran (Rp)</label><input type="number" id="er"></div>
+        <div class="fg"><label>Status PHO</label><select id="ep"><option value="Sudah">Sudah</option><option value="Belum">Belum</option></select></div>
+        <div class="fg"><label>Nomor PHO/BAST</label><input type="text" id="en"></div>
+      </div>
+      <button class="btn btn-g" onclick="saveEdit()">&#x1F4BE; Simpan ke Firebase</button>
+      <span id="sok" style="font-size:11px;color:var(--green);margin-left:8px"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN USERS -->
+<div id="pg-admin" class="pg admin-only">
+  <div class="ph"><h2>Manajemen Pengguna</h2><p>Kelola hak akses pengguna yang sudah pernah login</p></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="ct" style="margin:0">Daftar pengguna terdaftar</div>
+      <button class="btn btn-sm" onclick="loadAdminUsers()">&#x21BA; Refresh</button>
+    </div>
+    <div class="tw">
+      <table class="users-table">
+        <thead><tr><th>Email</th><th>Nama</th><th>Peran saat ini</th><th>Ubah peran</th></tr></thead>
+        <tbody id="users-tbody"><tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:20px">Klik Refresh untuk memuat daftar pengguna</td></tr></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--txt3)">
+      &#x2139; Pengguna muncul di sini setelah mereka pertama kali login. Atur peran sesuai kebutuhan.
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Panduan peran</div>
+    <div style="font-size:12px;color:var(--txt2);line-height:2">
+      <span class="role-badge role-viewer">Viewer</span> &mdash; Hanya bisa melihat semua data, tidak bisa mengedit.<br>
+      <span class="role-badge role-editor">Editor</span> &mdash; Bisa update fisik, realisasi, PHO per paket.<br>
+      <span class="role-badge role-admin">Admin</span> &mdash; Akses penuh: upload Excel, kelola pengguna, semua fitur.
+    </div>
+  </div>
+</div>
+
+</main>
+</div><!-- end shell -->
+
+<div id="toast"></div>
+<script>
+// ===== DATA BAWAAN EXCEL =====
+var SEED = {"projects":[{"no":1,"noRuas":"72","nama":"Penanganan Long Segment (pemeliharaan berkala,peningkatan/rekonstruksi) Ruas Jalan Bendungan - Jenggrik","dana":"DAK","lokasi":"MOJOGEDANG","lebarPanjang":"5.25 X 3","pagu":5893000000.0,"hps":5893000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":5893000000.0,"addKontrak10":5893000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Margono, S.T., M.M.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Daryanto, S.T.","Aris Sumantri, S.T.","Ir. Angga Darmawan, S.T., M.T."]},{"no":2,"noRuas":"4","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Colomadu - Banyuanyar","dana":"DAK","lokasi":"COLOMADU","lebarPanjang":"5.28 X 5","pagu":4913000000.0,"hps":4913000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4913000000.0,"addKontrak10":4913000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Daryanto, S.T.","Susilo Tri Cahyo, S.T., M.M."]},{"no":3,"noRuas":"162","nama":"Penanganan Long Segment (pemeliharaan berkala, Peningkatan/rekonstruksi) Ruas Jalan Jatipuro - Klerong","dana":"DAK","lokasi":"JATIPURO","lebarPanjang":"4.4 X 4","pagu":1813000000.0,"hps":1813000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":1813000000.0,"addKontrak10":1813000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Triyanto, S.T., M.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Daryanto, S.T.","anggota":["Nanang Mardiyanto, S.T.","Ir. Arif Bayu Priyambodo, S.T., M.T.","Lardi, S.T."]},{"no":4,"noRuas":"148","nama":"Penanganan Long Segment (pemeliharaan berkala,peningkatan/rekonstruksi) Ruas Jalan Jatiyoso - Beruk","dana":"DAK","lokasi":"JATIYOSO","lebarPanjang":"12.94 X 3.8","pagu":4423000000.0,"hps":4423000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4423000000.0,"addKontrak10":4423000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Margono, S.T., M.M.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Dr. Ir. Rohmatun, S.T., M.T., IPM","Raditya Dwi Nugraha, S.H.","Lardi, S.T."]},{"no":5,"noRuas":"159","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Jumapolo - Jatipuro","dana":"DAK","lokasi":"JATIPURO","lebarPanjang":"9.26 X 2.9","pagu":9301000000.0,"hps":9301000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":9301000000.0,"addKontrak10":9301000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Asihno Purwadi, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Ir. Tri Wiyono, S.T., M.T.","anggota":["Dr. Ir. Rohmatun, S.T., M.T., IPM","Ir. Arif Bayu Priyambodo, S.T., M.T.","Nanang Mardiyanto, S.T."]},{"no":6,"noRuas":"144","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Matesih - Plosorejo","dana":"DAK","lokasi":"MATESIH","lebarPanjang":"2.86 X 3","pagu":4003000000.0,"hps":4003000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4003000000.0,"addKontrak10":4003000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Triyanto, S.T., M.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Ir. Arif Bayu Priyambodo, S.T., M.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Daryanto, S.T.","Aris Sumantri, S.T.","Ir. Agus Sutrisno, S.T., M.M."]},{"no":7,"noRuas":"81","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan MGR. Sugiyopranoto","dana":"DAK","lokasi":"KARANGANYAR/KARANGPANDAN","lebarPanjang":"11.73 X 3.6","pagu":7613000000.0,"hps":7613000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":7613000000.0,"addKontrak10":7613000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Raditya Dwi Nugraha, S.H.","Lucia Dwi Pujiastuti, S.T."]},{"no":8,"noRuas":"180","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Sringin - Tunggulrejo","dana":"DAK","lokasi":"JUMANTONO","lebarPanjang":"4.28 X 3","pagu":2393000000.0,"hps":2393000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":2393000000.0,"addKontrak10":2393000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Nanang Mardiyanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Daryanto, S.T.","Fajar Mardiyanto, S.T.","Lucia Dwi Pujiastuti, S.T."]},{"no":9,"noRuas":"157","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Tlobosempon - Matesih","dana":"DAK","lokasi":"JATIYOSO/MATESIH","lebarPanjang":"9.78 X 3.7","pagu":3793000000.0,"hps":3793000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":3793000000.0,"addKontrak10":3793000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Nanang Mardiyanto, S.T.","ketua":"Ir. Triyanto, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Daryanto, S.T.","Aris Sumantri, S.T.","Ir. Agus Sutrisno, S.T., M.M."]},{"no":10,"noRuas":"22","nama":"Penanganan Long Segment (pemeliharaan berkala, peningkatan/rekonstruksi) Ruas Jalan Tuban - Jambu","dana":"DAK","lokasi":"GONDANGREJO","lebarPanjang":"2.52 X 3.3","pagu":4081000000.0,"hps":4081000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4081000000.0,"addKontrak10":4081000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Aris Sumantri, S.T.","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Daryanto, S.T.","Sunandar Priya Karnanta, S.T.","Susilo Tri Cahyo, S.T., M.M."]},{"no":11,"noRuas":"185","nama":"Pelebaran Jalan Jumapolo-Jumantono (Ruas 185)","dana":"DAU","lokasi":"JUMAPOLO/JUMANTONO","lebarPanjang":"9.58 X 4","pagu":5337747300.0,"hps":5337747300.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":5337747300.0,"addKontrak10":5337747300.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Nanang Mardiyanto, S.T.","Aris Sumantri, S.T.","Lardi, S.T."]},{"no":12,"noRuas":"141","nama":"Rehabilitasi Jalan Matesih - Tegalgede (Ruas 141)","dana":"DAU","lokasi":"MATESIH/KARANGANYAR","lebarPanjang":"9.64 X 3.3","pagu":4935000000.0,"hps":4935000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4935000000.0,"addKontrak10":4935000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Triyanto, S.T., M.T.","pptk":"Ir. Tri Wiyono, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Ir. Arif Bayu Priyambodo, S.T., M.T.","sekretaris":"Aris Sumantri, S.T.","anggota":["Ikhtiar Ikhwanudin, S.P.W.K","Nanang Mardiyanto, S.T."]},{"no":13,"noRuas":"202","nama":"Pelebaran Jalan Gedong - Kebonagung (Ruas 202)","dana":"DAU","lokasi":"TASIKMADU","lebarPanjang":"5.01 X 2.9","pagu":2660000000.0,"hps":2660000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":2660000000.0,"addKontrak10":2660000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Arif Bayu Priyambodo, S.T., M.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Raditya Dwi Nugraha","Aris Sumantri, S.T.","Fajar Mardiyanto, S.T."]},{"no":14,"noRuas":"183","nama":"Pelebaran Jalan Kebak - Punthuk (Ruas 183)","dana":"DAU","lokasi":"JUMANTONO","lebarPanjang":"2.28 X 3.6","pagu":2040000000.0,"hps":2040000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":2040000000.0,"addKontrak10":2040000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Sunandar Priya Karnanta, S.T.","Ikhtiar Ikhwanudin, S.P.W.K"]},{"no":15,"noRuas":"32","nama":"Pembangunan Talud Dayu - Sangiran","dana":"DAU","lokasi":"GONDANGREJO","lebarPanjang":"1.32 X 2.7","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Fajar Mardiyanto, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Aris Sumantri, S.T.","anggota":["Nanang Mardiyanto, S.T.","Sunandar Priya Karnanta, S.T.","Setyo Yudhi Jatmiko, A.Md"]},{"no":16,"noRuas":"84","nama":"Pembangunan Talud Jalan Gragalan - Blora","dana":"DAU","lokasi":"KARANGPANDAN","lebarPanjang":"5.56 X 2.8","pagu":300000000.0,"hps":300000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":300000000.0,"addKontrak10":300000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Nanang Mardiyanto, S.T.","ketua":"Aris Sumantri, S.T.","sekretaris":"Daryanto, S.T.","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Risdiyanto, S.Sos.","Ibnu Tri Rahmadi"]},{"no":17,"noRuas":"145","nama":"Pembangunan Talud Jalan Matesih - Girilayu","dana":"DAU","lokasi":"MATESIH","lebarPanjang":"3.78 X 5","pagu":250000000.0,"hps":250000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":250000000.0,"addKontrak10":250000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Fajar Mardiyanto, S.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Daryanto, S.T.","Sunandar Priya Karnanta, S.T.","Susyana Yusuf, A.Md"]},{"no":18,"noRuas":"116","nama":"Pembangunan Talud Jalan Ngargoyoso Jenawi","dana":"DAU","lokasi":"NGARGOYOSO/JENAWI","lebarPanjang":"6.4 X 3","pagu":245000000.0,"hps":245000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":245000000.0,"addKontrak10":245000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ikhtiar Ikhwanudin, S.P.W.K","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Aris Sumantri, S.T.","anggota":["Daryanto, S.T.","Sunandar Priya Karnanta, S.T."]},{"no":19,"noRuas":"110","nama":"Pemeliharaan berkala jalan Jenawi - Anggrasmanis, Kecamatan Jenawi (Ruas 110)","dana":"DAU","lokasi":"JENAWI","lebarPanjang":"4.91 X 3.5","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Angga Darmawan, S.T., M.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Nanang Mardiyanto, S.T.","Raditya Dwi Nugraha","Agus Setyatmoko"]},{"no":20,"noRuas":"126","nama":"Pemeliharaan Berkala Jalan Matesih - Tawangmangu (Ruas 126)","dana":"DAU","lokasi":"MATESIH/TAWANGMANGU","lebarPanjang":"9.42 X 4","pagu":4935000000.0,"hps":4935000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":4935000000.0,"addKontrak10":4935000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Agus Sutrisno, S.T., M.M.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Nanang Mardiyanto, S.T.","Ikhtiar Ikhwanudin, S.P.W.K"]},{"no":21,"noRuas":"34","nama":"Pemeliharaan Berkala Jalan Mipidan (Ruas 34)","dana":"DAU","lokasi":"GONDANGREJO","lebarPanjang":"0.4 X 4","pagu":600000000.0,"hps":600000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":600000000.0,"addKontrak10":600000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Fajar Mardiyanto, S.T.","Ir. Arif Bayu Priyambodo, S.T., M.T.","Ikhtiar Ikhwanudin, S.P.W.K"]},{"no":22,"noRuas":"115","nama":"Pemeliharaan Berkala Jalan Ngargoyoso - Kadipekso (Ruas 115)","dana":"DAU","lokasi":"NGARGOYOSO/JENAWI","lebarPanjang":"3.42 X 4.3","pagu":510000000.0,"hps":510000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":510000000.0,"addKontrak10":510000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Daryanto, S.T."]},{"no":23,"noRuas":"317","nama":"Pemeliharaan jalan Delingan - Gajahan, Kecamatan Karanganyar (Ruas 317)","dana":"DAU","lokasi":"KARANGANYAR","lebarPanjang":"1.02 X 2.7","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Risdiyanto, S.Sos.","ketua":"Daryanto, S.T.","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Fajar Mardiyanto, S.T.","Raditya Dwi Nugraha","Sartono"]},{"no":24,"noRuas":"71","nama":"Pemeliharaan jalan Pendem - Ngargoyoso, Kecamatan Mojogedang (Ruas 71)","dana":"DAU","lokasi":"MOJOGEDANG","lebarPanjang":"12.45 X 4.1","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Arif Bayu Priyambodo, S.T., M.T.","ketua":"Aris Sumantri, S.T.","sekretaris":"Daryanto, S.T.","anggota":["Nanang Mardiyanto, S.T.","Ibnu Tri Rahmadi","Sunandar Priya Karnanta, S.T."]},{"no":25,"noRuas":"13","nama":"Pemeliharan Berkala Jalan Baturan Klodran (Ruas 13)","dana":"DAU","lokasi":"COLOMADU","lebarPanjang":"1.17 X 4","pagu":960000000.0,"hps":960000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":960000000.0,"addKontrak10":960000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Fajar Mardiyanto, S.T.","Sunandar Priya Karnanta, S.T.","Sartono"]},{"no":26,"noRuas":"241","nama":"Pengaspalan Jalan Bok Pitikan Kel.Lalung, Kec. Karanganyar (Ruas 241)","dana":"DAU","lokasi":"KARANGANYAR","lebarPanjang":"0.89 X 3.8","pagu":200000000.0,"hps":200000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":200000000.0,"addKontrak10":200000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ikhtiar Ikhwanudin, S.P.W.K","ketua":"Daryanto, S.T.","sekretaris":"Nanang Mardiyanto, S.T.","anggota":["Agus Setyatmoko","Raditya Dwi Nugraha","Sartono"]},{"no":27,"noRuas":"176","nama":"Pelebaran Jalan Gembong - Blorong (Ruas 176) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"JUMANTONO","lebarPanjang":"6.74 X 3.5","pagu":5000000000.0,"hps":5000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":5000000000.0,"addKontrak10":5000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Daryanto, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Aris Sumantri, S.T.","Sulardi, S.T."]},{"no":28,"noRuas":"221","nama":"Rehabilitasi Jalan Kapten Mulyadi (Ruas 221) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"KARANGANYAR","lebarPanjang":"3.4 X 5.1","pagu":3000000000.0,"hps":3000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":3000000000.0,"addKontrak10":3000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Arif Bayu Priyambodo, S.T., M.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ikhtiar Ikhwanudin, S.P.W.K","Nanang Mardiyanto, S.T.","Lucia Dwi Pujiastuti, S.T."]},{"no":29,"noRuas":"223","nama":"Rehabilitasi Jalan Ocak acik - Kayuapak (Ruas 223) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"KARANGANYAR","lebarPanjang":"0.95 X 4","pagu":2000000000.0,"hps":2000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":2000000000.0,"addKontrak10":2000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Nanang Mardiyanto, S.T.","ketua":"Dr. Ir. Rohmatun, S.T., M.T., IPM","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Daryanto, S.T.","Aris Sumantri, S.T.","Ikhtiar Ikhwanudin, S.P.W.K"]},{"no":30,"noRuas":"133","nama":"Rehabilitasi Jalan Pringgosari (Ruas 133) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"TAWANGMANGU","lebarPanjang":"1.05 X 4.2","pagu":3000000000.0,"hps":3000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":3000000000.0,"addKontrak10":3000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Daryanto, S.T.","sekretaris":"Ir. Arif Bayu Priyambodo, S.T., M.T.","anggota":["Fajar Mardiyanto, S.T.","Aris Sumantri, S.T.","Ir. Agus Sutrisno, S.T., M.M."]},{"no":31,"noRuas":"88","nama":"Rekontruksi Jalan Srandon - Puntukrejo (Ruas 88) KAB. KARANGANYAR","dana":"Bankeu","lokasi":"KARANGPANDAN","lebarPanjang":"2.07 X 4.2","pagu":6000000000.0,"hps":6000000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":6000000000.0,"addKontrak10":6000000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Tri Wiyono, S.T., M.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Dr. Ir. Rohmatun, S.T., M.T., IPM","ketua":"Daryanto, S.T.","sekretaris":"Aris Sumantri, S.T.","anggota":["Ikhtiar Ikhwanudin, S.P.W.K","Nanang Mardiyanto, S.T."]},{"no":32,"noRuas":"","nama":"Pembangunan Jembatan Pentuk - Candi Kec. Mojogedang","dana":"Hibah","lokasi":"","lebarPanjang":"","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Ir. Arif Bayu Priyambodo, S.T., M.T.","Juli Kartikawati, S.Pd"]},{"no":33,"noRuas":"","nama":"Penggantian Jembatan Bulu-bulu Ruas Trengguli - Lempong","dana":"Hibah","lokasi":"","lebarPanjang":"","pagu":400000000.0,"hps":400000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":400000000.0,"addKontrak10":400000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Ir. Angga Darmawan, S.T., M.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Daryanto, S.T.","anggota":["Aris Sumantri, S.T.","Fajar Mardiyanto, S.T.","Sartono"]},{"no":34,"noRuas":"","nama":"Pembangunan Jalan menuju Kebon 9 - 11 Gumeng","dana":"Hibah","lokasi":"","lebarPanjang":"","pagu":1610000000.0,"hps":1610000000.0,"penyedia":"CV. PUTRA CAKRA BERSAUDARA","noKontrak":"01.6/MK/PPK.4/X/2025","tglKontrak":"2025-10-09","kontrak":1610000000.0,"addKontrak10":1610000000.0,"addKe":"2","noAdd":"01.6/MK/PPK.4/X/2025","tglAdd":"2025-10-09","nilaiAdd":5337747300.0,"jaWaktu":"75","mulai":"2025-09-10","selesai":"2025-12-23","pho":"Sudah","noPho":"600.1.9.3/29.6.11.PPK/XII/2025","tglPho":"2025-12-29","fisik":0.1,"realisasi":5893000000.0,"pctReal":100.0,"metode":"E- Katalog","jenisKontrak":"Harga Satuan","jenisKontrakLong":"Harga Satuan","jenisBelanja":"","jenisInfra":"","ppk":"Ir. Brian Adi Setiyawan, S.T.","pptk":"Ir. Triyanto, S.T., M.T.","staf":"Aris Sumantri, S.T.","ketua":"Ir. Tri Wiyono, S.T., M.T.","sekretaris":"Dr. Ir. Rohmatun, S.T., M.T., IPM","anggota":["Fajar Mardiyanto, S.T.","Nanang Mardiyanto, S.T.","Sunandar Priya Karnanta, S.T."]}],"personil":[{"no":1,"nama":"Ir. Brian Adi Setiyawan, S.T.","nip":"198408242010011013","pangkat":"Penata Tingkat I","gol":"III/d","jabatan":"Kepala Bidang Bina Marga"},{"no":2,"nama":"Ir. Tri Wiyono, S.T., M.T.","nip":"197406032005011007","pangkat":"Pembina","gol":"IV/a","jabatan":"Penata Kelola Jalan dan Jembatan Ahli Muda"},{"no":3,"nama":"Ir. Triyanto, S.T., M.T.","nip":"197603232010011023","pangkat":"Penata Tingkat I","gol":"III/d","jabatan":"Penata Kelola Jalan dan Jembatan Ahli Muda"},{"no":4,"nama":"Ir. Arif Bayu Priyambodo, S.T., M.T.","nip":"198201182011011007","pangkat":"Penata Tingkat I","gol":"III/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":5,"nama":"Dr. Ir. Rohmatun S.T., M.T.","nip":"198005272010012018","pangkat":"Pembina","gol":"IV/a","jabatan":"Penelaah Teknis Kebijakan"},{"no":6,"nama":"Daryanto, S.T.","nip":"197112271997031006","pangkat":"Penata Tingkat I","gol":"III/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":7,"nama":"Aris Sumantri, S.T.","nip":"198202152010011002","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":8,"nama":"Risdiyanto, S.Sos.","nip":"197302081995031001","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":9,"nama":"Nanang Mardiyanto, S.T.","nip":"198103302010011005","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Penelaah Teknis Kebijakan"},{"no":10,"nama":"Awaliyah Cahayaningrum, S.H., M.M.","nip":"198106162010012018","pangkat":"Pembina","gol":"IV/a","jabatan":"Pengelola Layanan Operasional"},{"no":11,"nama":"Agus Setiyatmoko","nip":"197708062010011006","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Pengelola Layanan Operasional"},{"no":12,"nama":"Raditya Dwi Nugraha, S.H.","nip":"198405062010011001","pangkat":"Pengatur Tingkat I","gol":"II/d","jabatan":"Pengelola Layanan Operasional"},{"no":13,"nama":"Fajar Mardianto, S.T.","nip":"199404082025051002","pangkat":"Penata Muda","gol":"III/a","jabatan":"Penata Kelola Jalan dan Jembatan Ahli Pertama"},{"no":14,"nama":"Ikhtiar Ikhwanudin, S.P.W.K.","nip":"199703312025051002","pangkat":"Penata Muda","gol":"III/a","jabatan":"Pengawas Jaringan Utilitas"},{"no":15,"nama":"Sunandar Priya Karnanta, S.T., M.T.","nip":"199104172025211106","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":16,"nama":"Ida Miarsih, S.Si.","nip":"198410152025212047","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":17,"nama":"Eni Widayarti, S.Sos.","nip":"197208052025212020","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":18,"nama":"Eko Hari Christanto, S.E.","nip":"198603282025211073","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":19,"nama":"Sri Sapari, S.Pd.","nip":"199008312025212061","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":20,"nama":"Tri Handayani, S.M.","nip":"198906272025212081","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":21,"nama":"Juli Kartikawati, S.Pd.","nip":"198907012025212080","pangkat":"PPPK","gol":"PW","jabatan":"Penata Layanan Operasional"},{"no":22,"nama":"Susyana Yusuf, A.Md.","nip":"198207032025212050","pangkat":"PPPK","gol":"PW","jabatan":"Pengelola Layanan Operasional"},{"no":23,"nama":"Setyo Yudhi Jatmiko, A.Md.","nip":"198508052025211098","pangkat":"PPPK","gol":"PW","jabatan":"Pengelola Layanan Operasional"},{"no":24,"nama":"Vonda Anggorowati, A.Md.","nip":"199307062025212069","pangkat":"PPPK","gol":"PW","jabatan":"Pengelola Layanan Operasional"},{"no":25,"nama":"Sartono","nip":"198105262025211047","pangkat":"PPPK","gol":"PW","jabatan":"Operator Layanan Operasional"},{"no":26,"nama":"Ibnu Tri Rahmadi","nip":"199006282025211059","pangkat":"PPPK","gol":"PW","jabatan":"Operator Layanan Operasional"},{"no":27,"nama":"Murtiana Linda Ekasari","nip":"198005082025212035","pangkat":"PPPK","gol":"PW","jabatan":"Operator Layanan Operasional"},{"no":28,"nama":"Faizal Luqman Sangaji","nip":"-","pangkat":"-","gol":"-","jabatan":""},{"no":29,"nama":"Adityas Pradana Kusuma Aji","nip":"-","pangkat":"-","gol":"-","jabatan":""}]};
+
+// ===== FIREBASE LAYER =====
+// ============================================================
+//  FIREBASE LAYER — Bina Marga 2026
+//  Menggantikan localStorage dengan Firestore realtime
+// ============================================================
+
+// ── Konfigurasi Firebase ──────────────────────────────────
+// GANTI nilai-nilai di bawah ini dengan config project Firebase Anda
+// (Lihat: Firebase Console → Project Settings → Your apps → SDK setup)
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAD-FQkdqFrG9GApgtC8GJTG3RYXBluSb0",
+  authDomain: "binamarga-2026.firebaseapp.com",
+  projectId: "binamarga-2026",
+  storageBucket: "binamarga-2026.firebasestorage.app",
+  messagingSenderId: "911221341234",
+  appId: "1:911221341234:web:5155ac99ec752ea888502b",
+  measurementId: "G-M8NLQ7ZV19"
+};
+
+// ── Inisialisasi Firebase SDK ─────────────────────────────
+firebase.initializeApp(FIREBASE_CONFIG);
+var db   = firebase.firestore();
+var auth = firebase.auth();
+
+// ── State autentikasi global ──────────────────────────────
+var CURRENT_USER  = null;   // objek user Firebase
+var CURRENT_ROLE  = null;   // 'admin' | 'editor' | 'viewer'
+var FB_LISTENER   = null;   // unsubscribe realtime listener
+
+// ── Peran & izin ─────────────────────────────────────────
+var ROLE_PERMS = {
+  admin:  {canEdit:true,  canUpload:true,  canManageUsers:true},
+  editor: {canEdit:true,  canUpload:false, canManageUsers:false},
+  viewer: {canEdit:false, canUpload:false, canManageUsers:false}
+};
+function can(action) {
+  var r = ROLE_PERMS[CURRENT_ROLE];
+  return r ? !!r[action] : false;
+}
+
+// ── Boot: cek sesi aktif ──────────────────────────────────
+function fbBoot() {
+  showScreen('loading');
+  auth.onAuthStateChanged(function(user) {
+    if (user) {
+      CURRENT_USER = user;
+      loadUserRole(user.uid, function(role) {
+        CURRENT_ROLE = role;
+        showScreen('app');
+        fbStartSync();
+        applyRoleUI();
+      });
+    } else {
+      CURRENT_USER = null;
+      CURRENT_ROLE = null;
+      showScreen('login');
+    }
+  });
+}
+
+// ── Load role user dari Firestore ─────────────────────────
+function loadUserRole(uid, cb) {
+  db.collection('users').doc(uid).get().then(function(snap) {
+    var role = 'viewer';
+    if (snap.exists && snap.data().role) role = snap.data().role;
+    cb(role);
+  }).catch(function() { cb('viewer'); });
+}
+
+// ── Login dengan Google ───────────────────────────────────
+function loginGoogle() {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(function(e) {
+    showLoginError(e.message);
+  });
+}
+
+// ── Login dengan Email/Password ───────────────────────────
+function loginEmail() {
+  var email = document.getElementById('login-email').value.trim();
+  var pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) { showLoginError('Isi email dan password.'); return; }
+  document.getElementById('btn-login-email').disabled = true;
+  auth.signInWithEmailAndPassword(email, pass).catch(function(e) {
+    document.getElementById('btn-login-email').disabled = false;
+    var msg = e.code === 'auth/wrong-password' ? 'Password salah.'
+            : e.code === 'auth/user-not-found'  ? 'Email tidak terdaftar.'
+            : e.message;
+    showLoginError(msg);
+  });
+}
+
+function showLoginError(msg) {
+  var el = document.getElementById('login-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+// ── Logout ────────────────────────────────────────────────
+function fbLogout() {
+  if (FB_LISTENER) { FB_LISTENER(); FB_LISTENER = null; }
+  auth.signOut();
+}
+
+// ── Realtime listener: projects collection ────────────────
+function fbStartSync() {
+  if (FB_LISTENER) FB_LISTENER();
+  showSyncStatus('Menyambung…');
+
+  FB_LISTENER = db.collection('projects')
+    .orderBy('no')
+    .onSnapshot(function(snap) {
+      if (snap.empty) {
+        // Koleksi kosong — seed dari data bawaan
+        seedFirestore();
+      } else {
+        DATA = [];
+        snap.forEach(function(doc) { DATA.push(doc.data()); });
+        rAll();
+        showSyncStatus('● Terhubung realtime');
+      }
+    }, function(err) {
+      showSyncStatus('⚠ Gagal: ' + err.message);
+    });
+}
+
+// ── Seed Firestore dari data Excel bawaan (hanya sekali) ──
+function seedFirestore() {
+  showSyncStatus('Menyiapkan data awal…');
+  var batch = db.batch();
+  SEED.projects.forEach(function(p) {
+    var ref = db.collection('projects').doc(String(p.no));
+    batch.set(ref, p);
+  });
+  SEED.personil.forEach(function(p) {
+    var ref = db.collection('personil').doc(String(p.no));
+    batch.set(ref, p);
+  });
+  batch.commit().then(function() {
+    showSyncStatus('Data awal berhasil dimuat');
+  }).catch(function(e) {
+    showSyncStatus('Gagal seed: ' + e.message);
+  });
+}
+
+// ── Simpan satu proyek ke Firestore ──────────────────────
+function fbSaveProject(d, cb) {
+  if (!can('canEdit')) { toast('Anda tidak punya izin edit'); return; }
+  db.collection('projects').doc(String(d.no)).set(d)
+    .then(function() { if (cb) cb(); })
+    .catch(function(e) { toast('Gagal simpan: ' + e.message); });
+}
+
+// ── Upload massal dari Excel ke Firestore ─────────────────
+function fbUploadAll(projects, personilArr, cb) {
+  if (!can('canUpload')) { toast('Hanya Admin yang bisa upload Excel'); return; }
+  var CHUNK = 400;
+  function writeChunk(items, col, idx, done) {
+    if (idx >= items.length) { done(); return; }
+    var batch = db.batch();
+    var end = Math.min(idx + CHUNK, items.length);
+    for (var i = idx; i < end; i++) {
+      batch.set(db.collection(col).doc(String(items[i].no)), items[i]);
+    }
+    batch.commit().then(function() { writeChunk(items, col, end, done); })
+      .catch(function(e) { toast('Upload gagal: ' + e.message); });
+  }
+  writeChunk(projects, 'projects', 0, function() {
+    writeChunk(personilArr, 'personil', 0, function() {
+      if (cb) cb();
+    });
+  });
+}
+
+// ── SK Personil: simpan URL ke Firestore ──────────────────
+function fbSaveSK(no, url) {
+  db.collection('sk_personil').doc(String(no)).set({url: url})
+    .catch(function(e) { toast('Gagal simpan SK: ' + e.message); });
+}
+function fbGetSK(no, cb) {
+  db.collection('sk_personil').doc(String(no)).get()
+    .then(function(snap) { cb(snap.exists ? (snap.data().url||'') : ''); })
+    .catch(function() { cb(''); });
+}
+
+// ── Admin: kelola user ────────────────────────────────────
+function fbLoadUsers(cb) {
+  db.collection('users').get().then(function(snap) {
+    var users = [];
+    snap.forEach(function(doc) { users.push(Object.assign({uid: doc.id}, doc.data())); });
+    cb(users);
+  }).catch(function(e) { toast('Gagal load users: ' + e.message); });
+}
+function fbSetUserRole(uid, role, cb) {
+  db.collection('users').doc(uid).set({role: role}, {merge: true})
+    .then(function() { if (cb) cb(); })
+    .catch(function(e) { toast('Gagal set role: ' + e.message); });
+}
+// Panggil ini sekali saat user pertama kali login (otomatis set role viewer)
+function fbEnsureUserDoc(user) {
+  db.collection('users').doc(user.uid).get().then(function(snap) {
+    if (!snap.exists) {
+      db.collection('users').doc(user.uid).set({
+        email: user.email,
+        displayName: user.displayName || '',
+        role: 'viewer',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  });
+}
+
+// ── Personil dari Firestore ───────────────────────────────
+function fbLoadPersonil(cb) {
+  db.collection('personil').orderBy('no').get()
+    .then(function(snap) {
+      var arr = [];
+      snap.forEach(function(doc) { arr.push(doc.data()); });
+      cb(arr);
+    }).catch(function() { cb(SEED.personil); });
+}
+
+// ── Status indikator ──────────────────────────────────────
+function showSyncStatus(msg) {
+  var el = document.getElementById('sf');
+  if (el) el.innerHTML = msg + '<br><small style="color:var(--txt3)">'
+    + (CURRENT_USER ? CURRENT_USER.email : '') + '</small>'
+    + '<br><small style="color:var(--txt3)">Peran: '
+    + (CURRENT_ROLE||'?') + '</small>';
+}
+
+// ── UI: tampilkan layar login/loading/app ─────────────────
+function showScreen(s) {
+  var screens = ['login-screen', 'loading-screen', 'shell'];
+  screens.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var target = s === 'login'   ? 'login-screen'
+             : s === 'loading' ? 'loading-screen'
+             : 'shell';
+  var el = document.getElementById(target);
+  if (el) el.style.display = s === 'app' ? 'flex' : 'block';
+}
+
+// ── Terapkan batasan UI sesuai role ───────────────────────
+function applyRoleUI() {
+  var canEdit   = can('canEdit');
+  var canUpload = can('canUpload');
+  var isAdmin   = CURRENT_ROLE === 'admin';
+
+  // Sembunyikan tombol edit kalau bukan editor/admin
+  document.querySelectorAll('.edit-only').forEach(function(el) {
+    el.style.display = canEdit ? '' : 'none';
+  });
+  document.querySelectorAll('.upload-only').forEach(function(el) {
+    el.style.display = canUpload ? '' : 'none';
+  });
+  document.querySelectorAll('.admin-only').forEach(function(el) {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+
+  // Update info badge
+  var badge = document.getElementById('role-badge');
+  if (badge) {
+    badge.textContent = CURRENT_ROLE || 'viewer';
+    badge.className = 'role-badge role-' + (CURRENT_ROLE||'viewer');
+  }
+
+  // Tampilkan menu admin
+  var adminNav = document.getElementById('nav-admin');
+  if (adminNav) adminNav.style.display = isAdmin ? '' : 'none';
+}
+
+
+// ===== APP LOGIC =====
+// ============================================================
+//  APP.JS — Logika utama aplikasi Bina Marga 2026
+//  Dijalankan setelah firebase_layer.js
+// ============================================================
+
+var DATA = [], PERS = [], openRow = null;
+var DC   = {DAK:'dak', DAU:'dau', Bankeu:'bnk', Hibah:'hib'};
+var AVC  = ['#378ADD','#1D9E75','#D4537E','#BA7517','#7F77DD','#D85A30','#639922','#C45AB3'];
+var COLS = {DAK:'#185FA5', DAU:'#3B6D11', Bankeu:'#BA7517', Hibah:'#7F77DD'};
+
+// ── Render semua halaman ──────────────────────────────────
+function rAll() {
+  rMetrics();
+  rDashboard();
+  fp();
+  rPersonil();
+  rNotif();
+  initEsel();
+}
+
+// ── Metric cards ──────────────────────────────────────────
+function rMetrics() {
+  var tK = DATA.reduce(function(s,d){return s+d.kontrak;},0);
+  var tR = DATA.reduce(function(s,d){return s+d.realisasi;},0);
+  var aF = DATA.length ? DATA.reduce(function(s,d){return s+d.fisik;},0)/DATA.length : 0;
+  var phD = DATA.filter(function(d){return d.pho==='Sudah';}).length;
+  document.getElementById('metrics').innerHTML = [
+    {l:'Total paket',    v:DATA.length+' paket',            s:'4 sumber dana'},
+    {l:'Total kontrak',  v:'Rp '+(tK/1e9).toFixed(1)+' M', s:'seluruh paket'},
+    {l:'Total realisasi',v:'Rp '+(tR/1e9).toFixed(1)+' M', s:'pembayaran'},
+    {l:'Rata-rata fisik',v:aF.toFixed(1)+'%',               s:'seluruh paket'},
+    {l:'PHO selesai',    v:phD+'/'+DATA.length,              s:'paket'},
+  ].map(function(c){
+    return '<div class="mc"><div class="mc-l">'+c.l+'</div><div class="mc-v">'+c.v+'</div><div class="mc-s">'+c.s+'</div></div>';
+  }).join('');
+}
+
+// ── Dashboard progress bars ───────────────────────────────
+function rDashboard() {
+  var fD = document.getElementById('df-dana').value;
+  var fS = document.getElementById('df-sort').value;
+  var fP = document.getElementById('df-pho').value;
+  var fQ = (document.getElementById('df-search').value||'').toLowerCase();
+  var rows = DATA.filter(function(d){
+    if (fD && d.dana!==fD) return false;
+    if (fP && d.pho!==fP)  return false;
+    if (fQ && d.nama.toLowerCase().indexOf(fQ)<0) return false;
+    return true;
+  }).slice().sort(function(a,b){
+    if (fS==='fisik_desc') return b.fisik-a.fisik;
+    if (fS==='fisik_asc')  return a.fisik-b.fisik;
+    if (fS==='real_desc')  return b.pctReal-a.pctReal;
+    return a.no-b.no;
+  });
+  document.getElementById('prog-list').innerHTML = rows.map(function(d){
+    var fp = Math.min(100,Math.max(0,d.fisik));
+    var rp = Math.min(100,Math.max(0,d.pctReal));
+    var fc = fp>=80?'var(--green)':fp<30?'var(--red)':'var(--blue)';
+    var rc = rp>=80?'var(--green)':rp<30?'var(--amber)':'var(--blue)';
+    return '<div class="prog-item">'
+      +'<div class="prog-no">'+d.no+'</div>'
+      +'<div class="prog-info">'
+      +  '<div class="prog-name" title="'+esc(d.nama)+'">'+esc(d.nama)+'</div>'
+      +  '<div class="prog-bars">'
+      +    '<div class="prog-bar-row"><div class="prog-bar-label">Fisik</div>'
+      +      '<div class="prog-bar-track"><div class="prog-bar-fill" style="width:'+fp+'%;background:'+fc+'"></div></div>'
+      +      '<div class="prog-pct" style="color:'+fc+'">'+d.fisik.toFixed(1)+'%</div></div>'
+      +    '<div class="prog-bar-row"><div class="prog-bar-label">Realisasi</div>'
+      +      '<div class="prog-bar-track"><div class="prog-bar-fill" style="width:'+rp+'%;background:'+rc+'"></div></div>'
+      +      '<div class="prog-pct" style="color:'+rc+'">'+d.pctReal.toFixed(0)+'%</div></div>'
+      +  '</div>'
+      +'</div>'
+      +'<div class="prog-badge">'
+      +  '<span class="bd '+(DC[d.dana]||'dak')+'">'+d.dana+'</span>'
+      +  '<span class="bd '+(d.pho==='Sudah'?'ok':'bl')+'">'+d.pho+'</span>'
+      +'</div></div>';
+  }).join('') || '<div style="padding:24px;text-align:center;color:var(--txt3);font-size:13px">Tidak ada data.</div>';
+}
+
+// ── Proyek table ──────────────────────────────────────────
+function fp() {
+  var fd  = document.getElementById('fd').value;
+  var fpv = document.getElementById('fp2').value;
+  var fs  = document.getElementById('fs').value.toLowerCase();
+  var rows = DATA.filter(function(d){
+    if (fd  && d.dana!==fd)  return false;
+    if (fpv && d.pho!==fpv)  return false;
+    if (fs  && d.nama.toLowerCase().indexOf(fs)<0 && (d.lokasi||'').toLowerCase().indexOf(fs)<0) return false;
+    return true;
+  });
+  document.getElementById('pcnt').textContent = 'Menampilkan '+rows.length+' dari '+DATA.length+' paket';
+  document.getElementById('tb').innerHTML = rows.map(bRow).join('');
+}
+
+function bRow(d) {
+  var fp2  = Math.min(100,d.fisik);
+  var rp   = Math.min(100,d.pctReal);
+  var bc   = fp2>=80?'g':fp2<30?'r':'';
+  var open = openRow===d.no;
+  var h = '<tr>'
+    +'<td style="color:var(--txt2);font-size:11px">'+d.no+'</td>'
+    +'<td style="max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px" title="'+esc(d.nama)+'">'+esc(d.nama)+'</div></td>'
+    +'<td><span class="bd '+(DC[d.dana]||'dak')+'">'+d.dana+'</span></td>'
+    +'<td style="font-size:11px;color:var(--txt2)">'+fv(d.lokasi)+'</td>'
+    +'<td style="font-size:11px;white-space:nowrap">'+(d.kontrak/1e9).toFixed(2)+' M</td>'
+    +'<td><div class="pgw" style="width:60px"><div class="pgb '+bc+'" style="width:'+fp2+'%"></div></div><span style="font-size:10px">'+d.fisik.toFixed(1)+'%</span></td>'
+    +'<td><div class="pgw" style="width:60px"><div class="pgb g" style="width:'+rp+'%"></div></div><span style="font-size:10px">'+d.pctReal.toFixed(0)+'%</span></td>'
+    +'<td><span class="bd '+(d.pho==='Sudah'?'ok':'bl')+'">'+d.pho+'</span></td>'
+    +'<td><button class="btn btn-sm" onclick="tog('+d.no+')">'+(open?'Tutup':'Detail')+'</button></td>'
+    +'</tr>';
+  if (open) h += detailRow(d);
+  return h;
+}
+
+function detailRow(d) {
+  var s = '<tr><td colspan="9" style="padding:0"><div style="background:var(--surf2);padding:14px 16px">';
+  s += sec('&#x1F4CB; Identitas Paket');
+  s += '<div class="det-grid">'
+    +di('No. Paket',fv(d.no))+di('No. Ruas',fv(d.noRuas))
+    +di('Sumber Dana',fv(d.dana))+di('Lokasi',fv(d.lokasi))
+    +di('Lebar &times; Panjang',fv(d.lebarPanjang))+di('Jenis Infrastruktur',fv(d.jenisInfra))
+    +'</div>';
+  s += sec('&#x1F4B0; Anggaran');
+  s += '<div class="det-grid">'+di('Nilai Pagu APBD-P',rp(d.pagu))+di('Nilai HPS (Rp)',rp(d.hps))+'</div>';
+  s += sec('&#x1F4DC; Kontrak / Surat Pesanan');
+  s += '<div class="det-grid">'
+    +di('Pelaksana / Penyedia Jasa','<strong>'+fv(d.penyedia)+'</strong>')
+    +di('Nomor Kontrak',fv(d.noKontrak))+di('Tanggal Kontrak',fv(d.tglKontrak))
+    +di('Nilai Kontrak (Rp)','<strong>'+rp(d.kontrak)+'</strong>')
+    +di('Add Kontrak + 10%',rp(d.addKontrak10))
+    +di('Metode Pengadaan',fv(d.metode))
+    +di('Jenis Kontrak',fv(d.jenisKontrak))
+    +di('Jenis Belanja',fv(d.jenisBelanja))
+    +'</div>';
+  s += sec('&#x1F4DD; Addendum Terakhir');
+  s += '<div class="det-grid">'
+    +di('Addendum Ke-',fv(d.addKe))+di('Nomor Addendum',fv(d.noAdd))
+    +di('Tanggal Addendum',fv(d.tglAdd))+di('Nilai Kontrak Addendum','<strong>'+rp(d.nilaiAdd)+'</strong>')
+    +'</div>';
+  s += sec('&#x1F4C5; Jangka Waktu Kontrak');
+  s += '<div class="det-grid">'+di('Jangka Waktu (Hari)',fv(d.jaWaktu))+di('Tanggal Mulai',fv(d.mulai))+di('Tanggal Selesai',fv(d.selesai))+'</div>';
+  s += sec('&#x2705; PHO / BAST');
+  s += '<div class="det-grid">'
+    +di('Status PHO','<span class="bd '+(d.pho==='Sudah'?'ok':'bl')+'">'+d.pho+'</span>')
+    +di('Nomor PHO/BAST',fv(d.noPho))+di('Tanggal PHO/BAST',fv(d.tglPho))
+    +'</div>';
+  s += sec('&#x1F4CA; Progres &amp; Realisasi');
+  s += '<div class="det-grid">'
+    +di('Prestasi Fisik (%)','<strong style="color:var(--blue)">'+d.fisik.toFixed(1)+'%</strong>')
+    +di('Realisasi Pembayaran','<strong>'+rp(d.realisasi)+'</strong>')
+    +di('% thd Kontrak','<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong>')
+    +'</div>';
+  s += sec('&#x1F464; Pelaksana &amp; Tim Teknis');
+  s += '<div class="det-grid">';
+  var roles=[];
+  if(d.ppk)roles.push({r:'PPK',n:d.ppk,cls:'role-ppk'});
+  if(d.pptk)roles.push({r:'PPTK',n:d.pptk,cls:'role-pptk'});
+  if(d.staf)roles.push({r:'Staf/Pengawas',n:d.staf,cls:'role-staf'});
+  if(d.ketua)roles.push({r:'Tim Teknis Ketua',n:d.ketua,cls:'role-ketua'});
+  if(d.sekretaris)roles.push({r:'Tim Teknis Sekretaris',n:d.sekretaris,cls:'role-sekretaris'});
+  (d.anggota||[]).forEach(function(a,i){if(a)roles.push({r:'Tim Teknis Anggota '+(i+1),n:a,cls:'role-anggota'});});
+  roles.forEach(function(r){
+    s+='<div class="det-item"><div class="det-label">'+r.r+'</div><div class="det-val"><span class="role-chip '+r.cls+'">'+esc(r.n)+'</span></div></div>';
+  });
+  s+='</div></div></td></tr>';
+  return s;
+}
+function sec(t){return '<div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;margin-top:10px;border-bottom:1px solid var(--bdr);margin-bottom:8px">'+t+'</div>';}
+function di(l,v){return '<div class="det-item"><div class="det-label">'+l+'</div><div class="det-val">'+v+'</div></div>';}
+function tog(no){openRow=openRow===no?null:no;fp();}
+function fv(v){return(v===undefined||v===null||v===''||v==='0'||v===0)?'&mdash;':esc(String(v));}
+function rp(v){if(!v&&v!==0)return'&mdash;';return'Rp '+Number(v).toLocaleString('id-ID');}
+
+// ── Personil accordion ────────────────────────────────────
+function getRoles(p) {
+  var nm = p.nama.replace(/^(Ir\.|Dr\.|Dr\. Ir\.)\s*/i,'').split(',')[0].toLowerCase().trim();
+  var list=[];
+  DATA.forEach(function(d){
+    var roles=[];
+    if(d.ppk&&d.ppk.toLowerCase().indexOf(nm)>=0)roles.push('PPK');
+    if(d.pptk&&d.pptk.toLowerCase().indexOf(nm)>=0)roles.push('PPTK');
+    if(d.staf&&d.staf.toLowerCase().indexOf(nm)>=0)roles.push('Staf/Pengawas');
+    if(d.ketua&&d.ketua.toLowerCase().indexOf(nm)>=0)roles.push('Tim Teknis Ketua');
+    if(d.sekretaris&&d.sekretaris.toLowerCase().indexOf(nm)>=0)roles.push('Tim Teknis Sekretaris');
+    (d.anggota||[]).forEach(function(a,i){if(a&&a.toLowerCase().indexOf(nm)>=0)roles.push('Tim Teknis Anggota '+(i+1));});
+    if(roles.length)list.push({d:d,roles:roles});
+  });
+  return list;
+}
+function roleClass(r){
+  if(r==='PPK')return'role-ppk';if(r==='PPTK')return'role-pptk';
+  if(r.indexOf('Staf')>=0)return'role-staf';if(r.indexOf('Ketua')>=0)return'role-ketua';
+  if(r.indexOf('Sekretaris')>=0)return'role-sekretaris';return'role-anggota';
+}
+function rPersonil(){
+  var q=document.getElementById('fpers').value.toLowerCase();
+  var qR=document.getElementById('fpers-role').value;
+  var list=PERS.filter(function(p){return!q||p.nama.toLowerCase().indexOf(q)>=0;});
+  if(qR)list=list.filter(function(p){
+    return getRoles(p).some(function(k){return k.roles.some(function(r){
+      if(qR==='PPK')return r==='PPK';if(qR==='PPTK')return r==='PPTK';
+      if(qR==='Staf')return r.indexOf('Staf')>=0;if(qR==='Ketua')return r.indexOf('Ketua')>=0;
+      if(qR==='Sekretaris')return r.indexOf('Sekretaris')>=0;
+      if(qR==='Anggota')return r.indexOf('Anggota')>=0;return false;
+    });});
+  });
+  document.getElementById('pers-list').innerHTML=list.map(buildPersItem).join('');
+}
+function buildPersItem(p){
+  var kg=getRoles(p);
+  var ini=p.nama.replace(/^(Ir\.|Dr\.|Dr\. Ir\.)\s*/i,'').split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
+  var col=AVC[p.no%AVC.length];
+  var skUrl=window._skCache&&window._skCache[p.no]||'';
+  var skRow='<div class="pers-sk-row">'
+    +'<span class="pers-sk-label">&#x1F4C4; SK Personil:</span>'
+    +(skUrl
+      ?'<a href="'+esc(skUrl)+'" target="_blank" style="color:var(--blue);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(skUrl)+'">'
+        +esc(skUrl.length>50?skUrl.slice(0,50)+'...':skUrl)+'</a>'
+        +'<button class="btn btn-xs btn-p edit-only" onclick="openSK(\''+esc(skUrl)+'\')">&#x1F441; Lihat</button>'
+        +'<button class="btn btn-xs edit-only" onclick="editSKUrl('+p.no+')" style="margin-left:3px">&#x270F; Edit</button>'
+        +'<button class="btn btn-xs edit-only" onclick="deleteSKUrl('+p.no+')" style="margin-left:3px;border-color:#c0392b;color:var(--red)">&#x2715; Hapus</button>'
+      :'<span class="pers-sk-val" style="color:var(--txt3);font-style:italic;flex:1">Belum ada link SK</span>'
+        +'<button class="btn btn-xs btn-p edit-only" onclick="addSKUrl('+p.no+')" style="margin-left:6px">+ Tambah Link</button>'
+    )+'</div>';
+  var kgRows=kg.length
+    ?kg.map(function(k,i){
+        return'<div class="pk-item"><div class="pk-no">'+(i+1)+'</div>'
+          +'<div class="pk-nama">'+esc(k.d.nama)
+          +(k.d.noRuas?'<span style="font-size:10px;color:var(--txt3);margin-left:5px">Ruas '+esc(k.d.noRuas)+'</span>':'')
+          +'<br><span class="bd '+(DC[k.d.dana]||'dak')+'" style="font-size:9px">'+k.d.dana+'</span>'
+          +(k.d.lokasi?'<span style="font-size:10px;color:var(--txt2);margin-left:5px">'+esc(k.d.lokasi)+'</span>':'')
+          +'</div><div class="pk-role">'+k.roles.map(function(r){return'<span class="role-chip '+roleClass(r)+'">'+r+'</span>';}).join('')+'</div></div>';
+      }).join('')
+    :'<div style="padding:12px 14px;font-size:12px;color:var(--txt3)">Tidak ada kegiatan tercatat.</div>';
+  return'<div class="pers-item" id="pers-item-'+p.no+'">'
+    +'<div class="pers-header" onclick="togglePers('+p.no+')">'
+    +'<div class="pers-avt" style="background:'+col+'22;color:'+col+'">'+ini+'</div>'
+    +'<div class="pers-info"><div class="pers-nama">'+esc(p.nama)+'</div>'
+    +'<div class="pers-sub">'+esc(p.jabatan||'&mdash;')+'</div></div>'
+    +'<div class="pers-meta">'
+    +'<span style="font-size:10px;color:var(--txt3)">'+kg.length+' kegiatan</span>'
+    +'<span style="font-size:10px;background:var(--surf2);border-radius:var(--r);padding:1px 7px;color:var(--txt2)">Gol. '+esc(p.gol||'?')+'</span>'
+    +'</div>'
+    +'<div class="pers-chevron" id="chev-'+p.no+'">&#x25BC;</div></div>'
+    +'<div class="pers-body" id="body-'+p.no+'">'+skRow
+    +'<div class="pers-kegiatan-list">'+kgRows+'</div></div></div>';
+}
+function togglePers(no){
+  var b=document.getElementById('body-'+no);var c=document.getElementById('chev-'+no);
+  if(b.classList.contains('open')){b.classList.remove('open');c.classList.remove('open');}
+  else{b.classList.add('open');c.classList.add('open');}
+}
+
+// SK URL — Firebase-backed
+function addSKUrl(no){
+  var url=prompt('Masukkan URL Google Drive untuk SK Personil:','https://drive.google.com/');
+  if(!url||!url.trim())return;
+  url=url.trim();
+  if(!window._skCache)window._skCache={};
+  window._skCache[no]=url;
+  fbSaveSK(no,url);
+  refreshPersItem(no);
+  toast('Link SK berhasil disimpan');
+}
+function editSKUrl(no){
+  var cur=(window._skCache&&window._skCache[no])||'';
+  var url=prompt('Edit URL Google Drive SK Personil:',cur);
+  if(url===null)return;
+  url=url.trim();
+  if(!window._skCache)window._skCache={};
+  window._skCache[no]=url;
+  fbSaveSK(no,url);
+  refreshPersItem(no);
+  toast(url?'Link SK diperbarui':'Link SK dihapus');
+}
+function deleteSKUrl(no){
+  if(!confirm('Hapus link SK personil ini?'))return;
+  if(!window._skCache)window._skCache={};
+  window._skCache[no]='';
+  fbSaveSK(no,'');
+  refreshPersItem(no);
+  toast('Link SK dihapus');
+}
+function openSK(url){if(url)window.open(url,'_blank');}
+function refreshPersItem(no){
+  var p=PERS.filter(function(x){return x.no===no;})[0];if(!p)return;
+  var item=document.getElementById('pers-item-'+no);
+  if(item){var wasOpen=document.getElementById('body-'+no).classList.contains('open');
+    item.outerHTML=buildPersItem(p);applyRoleUI();
+    if(wasOpen){var nb=document.getElementById('body-'+no);var nc=document.getElementById('chev-'+no);
+      if(nb)nb.classList.add('open');if(nc)nc.classList.add('open');}}
+}
+function loadAllSK(){
+  if(!PERS.length)return;
+  window._skCache={};
+  PERS.forEach(function(p){
+    fbGetSK(p.no,function(url){
+      window._skCache[p.no]=url||'';
+    });
+  });
+}
+
+// ── Notifikasi ────────────────────────────────────────────
+function rNotif(){
+  var today=new Date(),items=[];
+  DATA.forEach(function(d){
+    if(d.selesai){var sel=new Date(d.selesai);var diff=Math.round((sel-today)/86400000);
+      if(diff<0)items.push({t:'r',ic:'&#x26A0;',lab:'Melewati batas waktu kontrak',nama:d.nama,info:'Terlambat '+Math.abs(diff)+' hari',dana:d.dana});
+      else if(diff<=30)items.push({t:'a',ic:'&#x23F0;',lab:'Mendekati deadline',nama:d.nama,info:'Sisa '+diff+' hari',dana:d.dana});}
+    if(d.fisik<30&&d.pho!=='Sudah')items.push({t:'b',ic:'&#x1F4C9;',lab:'Prestasi fisik rendah',nama:d.nama,info:'Fisik '+d.fisik.toFixed(1)+'%',dana:d.dana});
+  });
+  var nb=document.getElementById('nb');
+  if(items.length){nb.style.display='inline';nb.textContent=items.length;}else{nb.style.display='none';}
+  var bgm={r:'#fce8e8',a:'#faeeda',b:'#deeaf8'},clm={r:'#5a1515',a:'#5a3800',b:'#0a3d6b'};
+  document.getElementById('ncard').innerHTML=items.length
+    ?items.map(function(it){return'<div class="ni2"><div class="nic" style="background:'+bgm[it.t]+';color:'+clm[it.t]+'">'+it.ic+'</div>'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+esc(it.nama)+'</div>'
+        +'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+it.lab+' &mdash; '+it.info+'</div></div>'
+        +'<span class="bd '+(DC[it.dana]||'dak')+'" style="flex-shrink:0">'+it.dana+'</span></div>';}).join('')
+    :'<div style="padding:28px;text-align:center;color:var(--txt2)">&#x2705; Tidak ada notifikasi aktif.</div>';
+}
+
+// ── Edit manual ───────────────────────────────────────────
+function initEsel(){
+  var s=document.getElementById('esel');if(!s)return;
+  s.innerHTML='<option value="">Pilih paket pekerjaan...</option>';
+  DATA.forEach(function(d){var o=document.createElement('option');o.value=d.no;o.textContent=d.no+'. '+d.nama.slice(0,60);s.appendChild(o);});
+}
+function loadEdit(){
+  var no=parseInt(document.getElementById('esel').value);
+  var d=DATA.filter(function(x){return x.no===no;})[0];
+  if(!d){document.getElementById('eform').style.display='none';return;}
+  document.getElementById('ef').value=d.fisik;
+  document.getElementById('er').value=d.realisasi;
+  document.getElementById('ep').value=d.pho;
+  document.getElementById('en').value=d.noPho||'';
+  document.getElementById('eform').style.display='block';
+  document.getElementById('sok').textContent='';
+}
+function saveEdit(){
+  var no=parseInt(document.getElementById('esel').value);
+  var d=DATA.filter(function(x){return x.no===no;})[0];if(!d)return;
+  d.fisik=parseFloat(document.getElementById('ef').value)||0;
+  d.realisasi=parseFloat(document.getElementById('er').value)||0;
+  d.pho=document.getElementById('ep').value;
+  d.noPho=document.getElementById('en').value;
+  d.pctReal=d.kontrak>0?parseFloat((d.realisasi/d.kontrak*100).toFixed(1)):0;
+  document.getElementById('sok').textContent='Menyimpan…';
+  fbSaveProject(d,function(){
+    document.getElementById('sok').textContent='&#x2713; Tersimpan & tersinkron!';
+    setTimeout(function(){document.getElementById('sok').textContent='';},3000);
+    toast('Data tersimpan dan tersinkron ke semua pengguna');
+  });
+}
+
+// ── Admin: kelola users ───────────────────────────────────
+function loadAdminUsers(){
+  var tb=document.getElementById('users-tbody');
+  if(!tb)return;
+  tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:16px">Memuat…</td></tr>';
+  fbLoadUsers(function(users){
+    if(!users.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:16px">Belum ada pengguna terdaftar.</td></tr>';return;}
+    tb.innerHTML=users.map(function(u){
+      var roles=['viewer','editor','admin'];
+      var opts=roles.map(function(r){return'<option value="'+r+'"'+(u.role===r?' selected':'')+'>'+r+'</option>';}).join('');
+      return'<tr>'
+        +'<td style="font-size:12px">'+esc(u.email||'')+'</td>'
+        +'<td style="font-size:12px">'+esc(u.displayName||'')+'</td>'
+        +'<td><span class="role-badge role-'+(u.role||'viewer')+'">'+esc(u.role||'viewer')+'</span></td>'
+        +'<td><select onchange="changeRole(\''+u.uid+'\',this.value)" style="font-size:11px;padding:3px 6px">'+opts+'</select></td>'
+        +'</tr>';
+    }).join('');
+  });
+}
+function changeRole(uid,role){
+  fbSetUserRole(uid,role,function(){
+    toast('Peran pengguna berhasil diubah ke: '+role);
+    loadAdminUsers();
+  });
+}
+
+// ── Upload Excel ──────────────────────────────────────────
+var DANA_MAP={'Dana Alokasi Khusus (DAK)':'DAK','Dana Alokasi Umum (DAU)':'DAU','Bantuan Provinsi (Banprov)':'Bankeu','Belanja Barang untuk dijual/Diserahkan kepada Masyarakat':'Hibah'};
+var SHEET_DANA={DAK_26:'DAK',DAU_26:'DAU',Bankeu_26:'Bankeu',Hibah_26:'Hibah'};
+function sv(v){if(v===null||v===undefined)return'';var s=String(v).trim();return(s==='undefined'||s==='null')?'':s;}
+function fn(v,fb){var n=parseFloat(v);return isNaN(n)?(fb||0):n;}
+function fmtDate(v){if(!v)return'';if(v instanceof Date)return v.toISOString().slice(0,10);if(typeof v==='string'&&/\d{4}-\d{2}-\d{2}/.test(v))return v.slice(0,10);return'';}
+function parseRows(ws,danaKey){
+  var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  var hIdx=-1;
+  for(var i=0;i<Math.min(rows.length,10);i++){if(rows[i].some(function(v){return String(v).trim()==='No';})&&rows[i].some(function(v){return String(v).indexOf('Nama Paket')>=0;})){hIdx=i;break;}}
+  if(hIdx<0)return[];
+  var hdrs=rows[hIdx].map(function(v){return String(v).trim();});
+  function gi(n){return hdrs.indexOf(n);}
+  var result=[];
+  for(var r=hIdx+1;r<rows.length;r++){
+    var row=rows[r];var no=parseInt(row[gi('No')]);if(!no||isNaN(no))continue;
+    var kontrak=fn(row[gi('Nilai Kontrak (Rp)')])||fn(row[gi('Nilai HPS (Rp)')]);
+    var real=fn(row[gi('Realisasi Pembayaran (Rp)')]);var fisik=fn(row[gi('Prestasi Fisik %')]);
+    var pct=fn(row[gi('% thd Kontrak')])||(kontrak>0?parseFloat((real/kontrak*100).toFixed(1)):0);
+    var danaRaw=sv(row[gi('Sumber Dana')]);var dana=DANA_MAP[danaRaw]||danaKey||'DAK';
+    var pho=sv(row[gi('Belum')]);if(pho!=='Sudah'&&pho!=='Belum')pho='Belum';
+    var a=[sv(row[gi('Tim Teknis Anggota 1')]),sv(row[gi('Tim Teknis Anggota 2')]),sv(row[gi('Tim Teknis Anggota 3')])].filter(Boolean);
+    var ki=gi('Tim Teknis Ketua ');if(ki<0)ki=gi('Tim Teknis Ketua');
+    result.push({no:no,noRuas:sv(row[gi('No. Ruas')]),nama:sv(row[gi('Nama Paket Pekerjaan')]),dana:dana,lokasi:sv(row[gi('Lokasi')]),
+      lebarPanjang:sv(row[gi('Lebar dan Panjang Jalan')]),pagu:fn(row[gi('Nilai Pagu APBD-P')]),hps:fn(row[gi('Nilai HPS (Rp)')]),
+      penyedia:sv(row[gi('Pelaksana/ Penyedia Jasa')]),noKontrak:sv(row[gi('Nomor Kontrak')]),tglKontrak:fmtDate(row[gi('Tanggal Kontrak')]),
+      kontrak:kontrak,addKontrak10:fn(row[gi('Add Kontrak + 10%')]),addKe:sv(row[gi('Addendum Ke-')]),noAdd:sv(row[gi('Nomor Add')]),
+      tglAdd:fmtDate(row[gi('Tanggal Add')]),nilaiAdd:fn(row[gi('Nilai Kontrak Add (Rp)')]),jaWaktu:sv(row[gi('Jangka Waktu Kontrak (Hari)')]),
+      mulai:fmtDate(row[gi('Tanggal Mulai Kontrak')]),selesai:fmtDate(row[gi('Tanggal Selesai Kontrak')]),
+      pho:pho,noPho:sv(row[gi('Nomor PHO/BAST')]),tglPho:fmtDate(row[gi('Tanggal PHO/BAST')]),
+      fisik:fisik,realisasi:real,pctReal:pct,metode:sv(row[gi('Metode Pengadaan Barang/Jasa (PL, Lelang, Swakelola, atau E-katalog)')]),
+      jenisKontrak:sv(row[gi('Jenis Kontrak (Harga satuan atau Lumpsum)')]),
+      jenisBelanja:sv(row[gi('Jenis Belanja (Belanja Barang dan Jasa, Belanja Modal Gedung dan Bangunan atau Belanja Modal Jalan Irigasi dan Jaringan')]),
+      jenisInfra:sv(row[gi('Jenis Infrastruktur (Diisi: Jalan, Irigasi, Jaringan, Gedung atau Bangunan)')]),
+      ppk:sv(row[gi('PPK')]),pptk:sv(row[gi('PPTK')]),staf:sv(row[gi('Staf/Pengawas Taknis')]),
+      ketua:sv(row[ki]),sekretaris:sv(row[gi('Tim Teknis Sekretaris')]),anggota:a});
+  }
+  return result;
+}
+function processFile(file){
+  var msg=document.getElementById('umsg');
+  msg.innerHTML='<span style="color:var(--txt2)">&#x23F3; Membaca file...</span>';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      var newP=[],newPer=[];
+      if(wb.Sheets['Rekap'])newP=parseRows(wb.Sheets['Rekap'],'DAK');
+      if(!newP.length){Object.keys(SHEET_DANA).forEach(function(sn){if(wb.Sheets[sn]){var r=parseRows(wb.Sheets[sn],SHEET_DANA[sn]);r.forEach(function(x){newP.push(x);});}});}
+      if(wb.Sheets['Personil']){
+        var pr=XLSX.utils.sheet_to_json(wb.Sheets['Personil'],{header:1,defval:''});
+        var hi=-1;for(var i=0;i<Math.min(pr.length,10);i++){if(pr[i].some(function(v){return String(v).trim()==='No';})&&pr[i].some(function(v){return String(v).trim()==='Nama';})){hi=i;break;}}
+        if(hi>=0){var ph2=pr[hi].map(function(v){return String(v).trim();});
+          for(var r2=hi+1;r2<pr.length;r2++){var prow=pr[r2];var pno=parseInt(prow[ph2.indexOf('No')]);if(!pno||isNaN(pno))continue;
+            var pnm=sv(prow[ph2.indexOf('Nama')]);if(!pnm)continue;
+            newPer.push({no:pno,nama:pnm,nip:sv(prow[ph2.indexOf('NIP')]),pangkat:sv(prow[ph2.indexOf('Pangkat')]),gol:sv(prow[ph2.indexOf('Golongan')]),jabatan:sv(prow[ph2.indexOf('Jabatan')])});}}
+      }
+      if(!newP.length){msg.innerHTML='<span style="color:var(--red)">&#x274C; Tidak ada data terbaca.</span>';return;}
+      msg.innerHTML='<span style="color:var(--txt2)">&#x23F3; Mengupload '+newP.length+' paket ke Firebase...</span>';
+      fbUploadAll(newP,newPer,function(){
+        PERS=newPer.length?newPer:PERS;
+        msg.innerHTML='<span style="color:var(--green)">&#x2705; Berhasil! '+newP.length+' paket &amp; '+newPer.length+' personil diupload dan tersinkron ke semua pengguna.</span>';
+        toast('Upload Excel berhasil!');
+      });
+    }catch(err){msg.innerHTML='<span style="color:var(--red)">&#x274C; Gagal: '+esc(err.message)+'</span>';}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function onFile(e){var f=e.target.files[0];if(f)processFile(f);}
+function onDrop(e){e.preventDefault();document.getElementById('dz').classList.remove('dov');var f=e.dataTransfer.files[0];if(f&&f.name.endsWith('.xlsx'))processFile(f);}
+function onDov(e){e.preventDefault();document.getElementById('dz').classList.add('dov');}
+function onDlv(){document.getElementById('dz').classList.remove('dov');}
+
+// ── Download Excel ────────────────────────────────────────
+function downloadExcel(){
+  var wb=XLSX.utils.book_new();
+  var hdr=['No','No. Ruas','Nama Paket Pekerjaan','Sumber Dana','Lokasi','Lebar dan Panjang Jalan',
+    'Nilai Pagu APBD-P','Nilai HPS (Rp)','Pelaksana/ Penyedia Jasa','Nomor Kontrak','Tanggal Kontrak',
+    'Nilai Kontrak (Rp)','Add Kontrak + 10%','Addendum Ke-','Nomor Add','Tanggal Add','Nilai Kontrak Add (Rp)',
+    'Jangka Waktu Kontrak (Hari)','Tanggal Mulai Kontrak','Tanggal Selesai Kontrak','Belum','Nomor PHO/BAST',
+    'Tanggal PHO/BAST','Prestasi Fisik %','Realisasi Pembayaran (Rp)','% thd Kontrak',
+    'Metode Pengadaan Barang/Jasa (PL, Lelang, Swakelola, atau E-katalog)','Jenis Kontrak (Harga satuan atau Lumpsum)',
+    'Jenis Belanja (Belanja Barang dan Jasa, Belanja Modal Gedung dan Bangunan atau Belanja Modal Jalan Irigasi dan Jaringan',
+    'Jenis Infrastruktur (Diisi: Jalan, Irigasi, Jaringan, Gedung atau Bangunan)',
+    'PPK','PPTK','Staf/Pengawas Taknis','Tim Teknis Ketua ','Tim Teknis Sekretaris',
+    'Tim Teknis Anggota 1','Tim Teknis Anggota 2','Tim Teknis Anggota 3'];
+  var DL={'DAK':'Dana Alokasi Khusus (DAK)','DAU':'Dana Alokasi Umum (DAU)','Bankeu':'Bantuan Provinsi (Banprov)','Hibah':'Belanja Barang untuk dijual/Diserahkan kepada Masyarakat'};
+  function mkR(fd){var rows=fd?DATA.filter(function(d){return d.dana===fd;}):DATA;
+    return[hdr].concat(rows.map(function(d){return[d.no,d.noRuas||'',d.nama,DL[d.dana]||d.dana,d.lokasi||'',d.lebarPanjang||'',d.pagu||'',d.hps||'',d.penyedia||'',d.noKontrak||'',d.tglKontrak||'',d.kontrak,d.addKontrak10||'',d.addKe||'',d.noAdd||'',d.tglAdd||'',d.nilaiAdd||'',d.jaWaktu||'',d.mulai||'',d.selesai||'',d.pho,d.noPho||'',d.tglPho||'',d.fisik,d.realisasi,d.pctReal,d.metode||'',d.jenisKontrak||'',d.jenisBelanja||'',d.jenisInfra||'',d.ppk||'',d.pptk||'',d.staf||'',d.ketua||'',d.sekretaris||'',(d.anggota&&d.anggota[0])||'',(d.anggota&&d.anggota[1])||'',(d.anggota&&d.anggota[2])||''];}));}
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mkR(null)),'Rekap');
+  ['DAK','DAU','Bankeu','Hibah'].forEach(function(d){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mkR(d)),d+'_26');});
+  var phdr=['No','Nama','NIP','Pangkat','Golongan','Jabatan'];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([phdr].concat(PERS.map(function(p){return[p.no,p.nama,p.nip||'',p.pangkat||'',p.gol||'',p.jabatan||''];}))),'Personil');
+  var ts=new Date();var fn='BinaMarga2026_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())+'_'+pad(ts.getHours())+pad(ts.getMinutes())+'.xlsx';
+  XLSX.writeFile(wb,fn);toast('Excel didownload: '+fn);
+}
+function pad(n){return n<10?'0'+n:String(n);}
+
+// ── Export CSV ────────────────────────────────────────────
+function exportCSV(){
+  var h=['No','Nama Paket','Sumber Dana','Lokasi','Nilai Kontrak (Rp)','Fisik (%)','Realisasi (Rp)','% Realisasi','PHO'];
+  var lines=[h.map(function(v){return'"'+v+'"';}).join(',')];
+  DATA.forEach(function(d){lines.push([d.no,d.nama,d.dana,d.lokasi,d.kontrak,d.fisik,d.realisasi,d.pctReal,d.pho].map(function(v){return'"'+String(v||'').replace(/"/g,'""')+'"';}).join(','));});
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'}));a.download='rekap_bm2026.csv';a.click();
+}
+
+// ── Nav & util ────────────────────────────────────────────
+function go(id,el){
+  document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
+  document.getElementById('pg-'+id).classList.add('on');
+  el.classList.add('on');
+  if(id==='admin')loadAdminUsers();
+}
+function toast(msg,dur){var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(function(){t.style.display='none';},dur||3000);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+
+// ===== BOOT =====
+window.addEventListener("DOMContentLoaded", function() {
+  // Sync auth state change: juga load personil & SK
+  var origOnAuth = auth.onAuthStateChanged.bind(auth);
+  fbBoot();
+  // After auth resolved, load personil from Firebase
+  auth.onAuthStateChanged(function(user) {
+    if (user) {
+      fbEnsureUserDoc(user);
+      document.getElementById("sf-email").textContent = user.email;
+      // Load personil
+      fbLoadPersonil(function(arr) {
+        PERS = arr.length ? arr : SEED.personil;
+        loadAllSK();
+        rPersonil();
+      });
+    }
+  });
+  // Sync status display
+  var sfStatus = document.getElementById("sf-status");
+  if (sfStatus) sfStatus.textContent = "Menghubungkan...";
+});
+</script>
+</body>
+</html>
