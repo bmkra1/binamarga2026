@@ -209,6 +209,18 @@ select:focus,input:focus{border-color:var(--blue)}
 .inline-edit-actions{grid-column:1/-1;display:flex;gap:8px;margin-top:4px}
 .save-spinner{display:none;font-size:11px;color:var(--txt2)}
 
+
+/* ── Edit form ──────────────────────────────────────── */
+.edit-form-wrap{background:#fff;border:1.5px solid var(--blue);border-radius:var(--rL);padding:16px 18px}
+.ef-section-title{font-size:11px;font-weight:700;color:var(--bluD);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;margin-top:12px;border-bottom:1px solid var(--bdr);margin-bottom:10px}
+.ef-section-title:first-child{margin-top:0}
+.ef-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.ef-group{display:flex;flex-direction:column;gap:3px}
+.ef-group label{font-size:11px;color:var(--txt2);font-weight:500}
+.ef-group input,.ef-group select{font-size:12px;padding:7px 9px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff;color:var(--txt);transition:.13s}
+.ef-group input:focus,.ef-group select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 2px rgba(24,95,165,.1)}
+@media(max-width:600px){.ef-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -288,7 +300,7 @@ select:focus,input:focus{border-color:var(--blue)}
     </div>
     <!-- TEXT -->
     <div style="z-index:1;flex:1;min-width:0">
-      <div style="font-size:11px;color:rgba(255,255,255,0.65);letter-spacing:.8px;text-transform:uppercase;margin-bottom:2px">Dinas Pekerjaan Umum &amp; Penataan Ruang</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.65);letter-spacing:.8px;text-transform:uppercase;margin-bottom:2px">Dinas Pekerjaan Umum &amp; Perumahan Rakyat</div>
       <div style="font-size:20px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:1px">Bidang Bina Marga</div>
       <div style="font-size:13px;color:rgba(255,255,255,0.8)">Kabupaten Karanganyar &mdash; Tahun Anggaran 2026</div>
       <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.65)">
@@ -945,113 +957,207 @@ function detailRow(d) {
   var s = '<tr id="drow-'+d.no+'"><td colspan="9" style="padding:0">'
     +'<div style="background:var(--surf2);padding:14px 16px">';
 
-  // ── Header bar with Edit toggle ──────────────────────────────────────
+  // ── Header ────────────────────────────────────────────────────────────
   s += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-    +'<span style="font-size:12px;font-weight:600;color:var(--txt2)">&#x1F4CB; Detail Paket #'+d.no+'</span>'
-    +'<span id="det-btn-wrap-'+d.no+'">'
-    +'<button class="btn btn-sm edit-only" id="btn-edit-'+d.no+'" '
-    +'style="font-size:11px;background:var(--blue);color:#fff;border-color:var(--blue)" '
-    +'onclick="openInlineEdit('+d.no+')">&#x270F; Edit</button>'
-    +'</span>'
+    +'<span style="font-size:12px;font-weight:600;color:var(--bluD)">&#x1F4CB; Detail Paket #'+d.no+' &mdash; '+esc(d.nama)+'</span>'
+    +'<button id="btn-edit-'+d.no+'" '
+    +'style="padding:6px 14px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px" '
+    +'onclick="openInlineEdit('+d.no+')">&#x270F; Edit semua field</button>'
     +'</div>';
 
-  // ── READ VIEW (id=det-read-N) ────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // READ VIEW
+  // ══════════════════════════════════════════════════════════════════════
   s += '<div id="det-read-'+d.no+'">';
-  s += sec('Identitas Paket');
+
+  s += sec('&#x1F4CB; Identitas Paket');
   s += '<div class="det-grid">'
     +di('No. Paket',fv(d.no))+di('No. Ruas',fv(d.noRuas))
-    +di('Sumber Dana',fv(d.dana))+di('Lokasi',fv(d.lokasi))
-    +di('Lebar &times; Panjang',fv(d.lebarPanjang))+di('Jenis Infrastruktur',fv(d.jenisInfra))
+    +di('Sumber Dana','<span class="bd '+(DC[d.dana]||'dak')+'">'+fv(d.dana)+'</span>')
+    +di('Lokasi',fv(d.lokasi))
+    +di('Lebar &times; Panjang Jalan',fv(d.lebarPanjang))
+    +di('Jenis Infrastruktur',fv(d.jenisInfra))
     +'</div>';
-  s += sec('Anggaran');
-  s += '<div class="det-grid">'+di('Nilai Pagu APBD-P',rp(d.pagu))+di('Nilai HPS (Rp)',rp(d.hps))+'</div>';
-  s += sec('Kontrak');
+
+  s += sec('&#x1F4B0; Anggaran');
+  s += '<div class="det-grid">'
+    +di('Nilai Pagu APBD-P',rp(d.pagu))
+    +di('Nilai HPS (Rp)',rp(d.hps))
+    +'</div>';
+
+  s += sec('&#x1F4DC; Kontrak');
   s += '<div class="det-grid">'
     +di('Pelaksana / Penyedia Jasa','<strong>'+fv(d.penyedia)+'</strong>')
-    +di('Nomor Kontrak',fv(d.noKontrak))+di('Tanggal Kontrak',fv(d.tglKontrak))
+    +di('Nomor Kontrak',fv(d.noKontrak))
+    +di('Tanggal Kontrak',fv(d.tglKontrak))
     +di('Nilai Kontrak (Rp)','<strong>'+rp(d.kontrak)+'</strong>')
-    +di('Add Kontrak + 10%',rp(d.addKontrak10))
+    +di('Add Kontrak + 10% (Rp)',rp(d.addKontrak10))
     +di('Metode Pengadaan',fv(d.metode))
     +di('Jenis Kontrak',fv(d.jenisKontrak))
     +di('Jenis Belanja',fv(d.jenisBelanja))
     +'</div>';
-  s += sec('Addendum Terakhir');
+
+  s += sec('&#x1F4DD; Addendum Terakhir');
   s += '<div class="det-grid">'
-    +di('Addendum Ke-',fv(d.addKe))+di('Nomor Addendum',fv(d.noAdd))
-    +di('Tanggal Addendum',fv(d.tglAdd))+di('Nilai Kontrak Addendum','<strong>'+rp(d.nilaiAdd)+'</strong>')
+    +di('Addendum Ke-',fv(d.addKe))
+    +di('Nomor Addendum',fv(d.noAdd))
+    +di('Tanggal Addendum',fv(d.tglAdd))
+    +di('Nilai Kontrak Addendum (Rp)','<strong>'+rp(d.nilaiAdd)+'</strong>')
     +'</div>';
-  s += sec('Jangka Waktu Kontrak');
-  s += '<div class="det-grid">'+di('Jangka Waktu (Hari)',fv(d.jaWaktu))+di('Tanggal Mulai',fv(d.mulai))+di('Tanggal Selesai',fv(d.selesai))+'</div>';
-  s += sec('PHO / BAST');
+
+  s += sec('&#x1F4C5; Jangka Waktu Kontrak');
+  s += '<div class="det-grid">'
+    +di('Jangka Waktu (Hari)',fv(d.jaWaktu))
+    +di('Tanggal Mulai Kontrak',fv(d.mulai))
+    +di('Tanggal Selesai Kontrak',fv(d.selesai))
+    +'</div>';
+
+  s += sec('&#x2705; PHO / BAST');
   s += '<div class="det-grid">'
     +di('Status PHO','<span class="bd '+(d.pho==='Sudah'?'ok':'bl')+'">'+d.pho+'</span>')
-    +di('Nomor PHO/BAST',fv(d.noPho))+di('Tanggal PHO/BAST',fv(d.tglPho))
+    +di('Nomor PHO/BAST',fv(d.noPho))
+    +di('Tanggal PHO/BAST',fv(d.tglPho))
     +'</div>';
-  s += sec('Progres &amp; Realisasi');
+
+  s += sec('&#x1F4CA; Progres &amp; Realisasi');
   s += '<div class="det-grid">'
     +di('Prestasi Fisik (%)','<strong style="color:var(--blue)">'+d.fisik.toFixed(1)+'%</strong>')
-    +di('Realisasi Pembayaran','<strong>'+rp(d.realisasi)+'</strong>')
+    +di('Realisasi Pembayaran (Rp)','<strong>'+rp(d.realisasi)+'</strong>')
     +di('% thd Kontrak','<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong>')
     +'</div>';
-  s += sec('Pelaksana &amp; Tim Teknis');
+
+  s += sec('&#x1F464; Pelaksana &amp; Tim Teknis <span style="font-size:10px;font-weight:400;color:var(--txt3)">(tidak dapat diedit)</span>');
   s += '<div class="det-grid">';
   var roles=[];
-  if(d.ppk)roles.push({r:'PPK',n:d.ppk,cls:'role-ppk'});
-  if(d.pptk)roles.push({r:'PPTK',n:d.pptk,cls:'role-pptk'});
-  if(d.staf)roles.push({r:'Staf/Pengawas',n:d.staf,cls:'role-staf'});
-  if(d.ketua)roles.push({r:'Tim Teknis Ketua',n:d.ketua,cls:'role-ketua'});
+  if(d.ppk)       roles.push({r:'PPK',              n:d.ppk,        cls:'role-ppk'});
+  if(d.pptk)      roles.push({r:'PPTK',             n:d.pptk,       cls:'role-pptk'});
+  if(d.staf)      roles.push({r:'Staf/Pengawas',    n:d.staf,       cls:'role-staf'});
+  if(d.ketua)     roles.push({r:'Tim Teknis Ketua', n:d.ketua,      cls:'role-ketua'});
   if(d.sekretaris)roles.push({r:'Tim Teknis Sekretaris',n:d.sekretaris,cls:'role-sekretaris'});
   (d.anggota||[]).forEach(function(a,i){if(a)roles.push({r:'Tim Teknis Anggota '+(i+1),n:a,cls:'role-anggota'});});
   roles.forEach(function(r){
     s+='<div class="det-item"><div class="det-label">'+r.r+'</div><div class="det-val"><span class="role-chip '+r.cls+'">'+esc(r.n)+'</span></div></div>';
   });
-  s+='</div>';
-  s+='</div>'; // end det-read
+  s += '</div>';
+  s += '</div>'; // end det-read
 
-  // ── EDIT VIEW (id=det-edit-N, hidden by default) ─────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // EDIT VIEW
+  // ══════════════════════════════════════════════════════════════════════
   s += '<div id="det-edit-'+d.no+'" style="display:none">';
-  s += '<div style="background:var(--bluL);border:1px solid var(--blue);border-radius:var(--r);padding:14px;margin-bottom:10px">';
-  s += '<div style="font-size:12px;font-weight:600;color:var(--bluD);margin-bottom:12px">&#x270F; Edit data progres &amp; PHO</div>';
-  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-  // Field 1: fisik
-  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Prestasi Fisik (%)</label>'
-    +'<input type="number" id="ie-fisik-'+d.no+'" min="0" max="100" step="0.1" value="'+d.fisik+'" '
-    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
-  // Field 2: realisasi
-  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Realisasi Pembayaran (Rp)</label>'
-    +'<input type="number" id="ie-real-'+d.no+'" value="'+d.realisasi+'" '
-    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
-  // Field 3: PHO status
-  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Status PHO</label>'
-    +'<select id="ie-pho-'+d.no+'" '
-    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff">'
-    +'<option value="Sudah"'+(d.pho==='Sudah'?' selected':'')+'>Sudah PHO</option>'
-    +'<option value="Belum"'+(d.pho==='Belum'?' selected':'')+'>Belum PHO</option>'
-    +'</select></div>';
-  // Field 4: nomor PHO
-  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Nomor PHO / BAST</label>'
-    +'<input type="text" id="ie-nopho-'+d.no+'" value="'+esc(d.noPho||'')+'" '
-    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
-  // Field 5: tanggal PHO
-  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Tanggal PHO / BAST</label>'
-    +'<input type="date" id="ie-tglpho-'+d.no+'" value="'+(d.tglPho||'')+'" '
-    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
-  // Field 6: addendum ke
-  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Addendum Ke-</label>'
-    +'<input type="text" id="ie-addke-'+d.no+'" value="'+esc(d.addKe||'')+'" '
-    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
-  s += '</div>'; // end grid
+
+  function ef(label, id, val, type) {
+    type = type || 'text';
+    return '<div class="ef-group">'
+      +'<label>'+label+'</label>'
+      +'<input type="'+type+'" id="'+id+'" value="'+esc(String(val||''))+'">'
+      +'</div>';
+  }
+  function ef_sel(label, id, val, opts) {
+    var optHTML = opts.map(function(o){
+      return '<option value="'+o.v+'"'+(val===o.v?' selected':'')+'>'+o.l+'</option>';
+    }).join('');
+    return '<div class="ef-group"><label>'+label+'</label><select id="'+id+'">'+optHTML+'</select></div>';
+  }
+  function ef_num(label, id, val) {
+    return '<div class="ef-group">'
+      +'<label>'+label+'</label>'
+      +'<input type="number" id="'+id+'" value="'+(val||0)+'" min="0">'
+      +'</div>';
+  }
+
+  s += '<div class="edit-form-wrap">';
+
+  // Section: Identitas
+  s += '<div class="ef-section-title">&#x1F4CB; Identitas Paket</div>';
+  s += '<div class="ef-grid">'
+    +ef('No. Ruas','ef-noruas-'+d.no, d.noRuas)
+    +ef('Lokasi','ef-lokasi-'+d.no, d.lokasi)
+    +ef('Lebar &times; Panjang Jalan','ef-lebar-'+d.no, d.lebarPanjang)
+    +ef_sel('Sumber Dana','ef-dana-'+d.no, d.dana,[
+        {v:'DAK',l:'DAK — Dana Alokasi Khusus'},
+        {v:'DAU',l:'DAU — Dana Alokasi Umum'},
+        {v:'Bankeu',l:'Bankeu — Bantuan Provinsi'},
+        {v:'Hibah',l:'Hibah'}
+      ])
+    +ef_sel('Jenis Infrastruktur','ef-infra-'+d.no, d.jenisInfra,[
+        {v:'Jalan',l:'Jalan'},{v:'Jembatan',l:'Jembatan'},
+        {v:'Irigasi',l:'Irigasi'},{v:'Jaringan',l:'Jaringan'},
+        {v:'Gedung',l:'Gedung'},{v:'Bangunan',l:'Bangunan'},
+        {v:d.jenisInfra||'',l:d.jenisInfra||'Lainnya'}
+      ])
+    +'</div>';
+
+  // Section: Anggaran
+  s += '<div class="ef-section-title">&#x1F4B0; Anggaran</div>';
+  s += '<div class="ef-grid">'
+    +ef_num('Nilai Pagu APBD-P (Rp)','ef-pagu-'+d.no, d.pagu)
+    +ef_num('Nilai HPS (Rp)','ef-hps-'+d.no, d.hps)
+    +'</div>';
+
+  // Section: Kontrak
+  s += '<div class="ef-section-title">&#x1F4DC; Kontrak</div>';
+  s += '<div class="ef-grid">'
+    +ef('Pelaksana / Penyedia Jasa','ef-penyedia-'+d.no, d.penyedia)
+    +ef('Nomor Kontrak','ef-nokontrak-'+d.no, d.noKontrak)
+    +ef('Tanggal Kontrak','ef-tglkontrak-'+d.no, d.tglKontrak, 'date')
+    +ef_num('Nilai Kontrak (Rp)','ef-kontrak-'+d.no, d.kontrak)
+    +ef_num('Add Kontrak + 10% (Rp)','ef-add10-'+d.no, d.addKontrak10)
+    +ef('Metode Pengadaan','ef-metode-'+d.no, d.metode)
+    +ef('Jenis Kontrak','ef-jeniskontrak-'+d.no, d.jenisKontrak)
+    +ef('Jenis Belanja','ef-jenisbelanja-'+d.no, d.jenisBelanja)
+    +'</div>';
+
+  // Section: Addendum
+  s += '<div class="ef-section-title">&#x1F4DD; Addendum</div>';
+  s += '<div class="ef-grid">'
+    +ef('Addendum Ke-','ef-addke-'+d.no, d.addKe)
+    +ef('Nomor Addendum','ef-noadd-'+d.no, d.noAdd)
+    +ef('Tanggal Addendum','ef-tgladd-'+d.no, d.tglAdd, 'date')
+    +ef_num('Nilai Kontrak Addendum (Rp)','ef-nilaiadd-'+d.no, d.nilaiAdd)
+    +'</div>';
+
+  // Section: Jangka Waktu
+  s += '<div class="ef-section-title">&#x1F4C5; Jangka Waktu Kontrak</div>';
+  s += '<div class="ef-grid">'
+    +ef('Jangka Waktu (Hari)','ef-jawaktu-'+d.no, d.jaWaktu)
+    +ef('Tanggal Mulai Kontrak','ef-mulai-'+d.no, d.mulai, 'date')
+    +ef('Tanggal Selesai Kontrak','ef-selesai-'+d.no, d.selesai, 'date')
+    +'</div>';
+
+  // Section: PHO
+  s += '<div class="ef-section-title">&#x2705; PHO / BAST</div>';
+  s += '<div class="ef-grid">'
+    +ef_sel('Status PHO','ef-pho-'+d.no, d.pho,[{v:'Sudah',l:'Sudah PHO'},{v:'Belum',l:'Belum PHO'}])
+    +ef('Nomor PHO/BAST','ef-nopho-'+d.no, d.noPho)
+    +ef('Tanggal PHO/BAST','ef-tglpho-'+d.no, d.tglPho, 'date')
+    +'</div>';
+
+  // Section: Progres
+  s += '<div class="ef-section-title">&#x1F4CA; Progres &amp; Realisasi</div>';
+  s += '<div class="ef-grid">'
+    +'<div class="ef-group"><label>Prestasi Fisik (%) <span style="color:var(--red)">*</span></label>'
+    +'<input type="number" id="ef-fisik-'+d.no+'" value="'+d.fisik+'" min="0" max="100" step="0.1"></div>'
+    +ef_num('Realisasi Pembayaran (Rp)','ef-realisasi-'+d.no, d.realisasi)
+    +'</div>';
+
+  // Note about tim teknis
+  s += '<div style="margin-top:4px;padding:8px 12px;background:#f0efeb;border-radius:var(--r);font-size:11px;color:var(--txt2)">'
+    +'&#x2139; Data <strong>Pelaksana &amp; Tim Teknis</strong> tidak dapat diubah dari sini. Perubahan data personil dilakukan melalui upload Excel baru.'
+    +'</div>';
+
   // Action buttons
-  s += '<div style="display:flex;gap:8px;margin-top:12px;align-items:center">'
-    +'<button onclick="saveInlineEdit('+d.no+')" id="ie-save-btn-'+d.no+'" '
-    +'style="padding:8px 18px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer">'
+  s += '<div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap">'
+    +'<button id="ef-save-'+d.no+'" onclick="saveInlineEdit('+d.no+')" '
+    +'style="padding:9px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer">'
     +'&#x1F4BE; Simpan &amp; Sinkron</button>'
     +'<button onclick="closeInlineEdit('+d.no+')" '
-    +'style="padding:8px 14px;background:transparent;border:1px solid var(--bdr);border-radius:var(--r);font-size:13px;cursor:pointer">'
-    +'Batal</button>'
-    +'<span id="ie-status-'+d.no+'" style="font-size:12px;color:var(--txt2)"></span>'
+    +'style="padding:9px 16px;background:transparent;border:1px solid var(--bdr);border-radius:var(--r);font-size:13px;cursor:pointer">'
+    +'&#x2715; Batal</button>'
+    +'<span id="ef-status-'+d.no+'" style="font-size:12px"></span>'
     +'</div>';
-  s += '</div>'; // end edit box
+
+  s += '</div>'; // end edit-form-wrap
   s += '</div>'; // end det-edit
   s += '</div></td></tr>';
   return s;
@@ -1065,10 +1171,13 @@ function openInlineEdit(no) {
   if (!editDiv) return;
   if (readDiv) readDiv.style.display = 'none';
   editDiv.style.display = 'block';
-  if (btn) { btn.textContent = '✕ Batal edit'; btn.style.background='var(--amber)'; btn.style.borderColor='var(--amber)'; btn.onclick = function(){ closeInlineEdit(no); }; }
-  // Focus first field
-  var f = document.getElementById('ie-fisik-'+no);
-  if (f) setTimeout(function(){ f.focus(); f.select(); }, 50);
+  if (btn) {
+    btn.innerHTML = '&#x2715; Tutup form edit';
+    btn.style.background = 'var(--amber)';
+    btn.onclick = function(){ closeInlineEdit(no); };
+  }
+  var f = document.getElementById('ef-fisik-'+no);
+  if (f) setTimeout(function(){ f.focus(); }, 60);
 }
 
 function closeInlineEdit(no) {
@@ -1077,47 +1186,79 @@ function closeInlineEdit(no) {
   var btn     = document.getElementById('btn-edit-'+no);
   if (readDiv) readDiv.style.display = 'block';
   if (editDiv) editDiv.style.display = 'none';
-  if (btn) { btn.innerHTML = '&#x270F; Edit'; btn.style.background='var(--blue)'; btn.style.borderColor='var(--blue)'; btn.onclick = function(){ openInlineEdit(no); }; }
+  if (btn) {
+    btn.innerHTML = '&#x270F; Edit semua field';
+    btn.style.background = 'var(--blue)';
+    btn.onclick = function(){ openInlineEdit(no); };
+  }
+}
+
+function gv(id) {
+  var el = document.getElementById(id);
+  return el ? el.value : '';
+}
+function gn(id) {
+  var v = parseFloat(gv(id));
+  return isNaN(v) ? 0 : v;
 }
 
 function saveInlineEdit(no) {
+  if (!isEditor()) { toast('Anda tidak punya izin edit.'); return; }
   var d = DATA.filter(function(x){return x.no===no;})[0];
   if (!d) { toast('Data tidak ditemukan'); return; }
-  var saveBtn = document.getElementById('ie-save-btn-'+no);
-  var status  = document.getElementById('ie-status-'+no);
-  // Read values
-  var fisik    = parseFloat(document.getElementById('ie-fisik-'+no).value);
-  var realisasi= parseFloat(document.getElementById('ie-real-'+no).value);
-  var pho      = document.getElementById('ie-pho-'+no).value;
-  var noPho    = document.getElementById('ie-nopho-'+no).value;
-  var tglPho   = document.getElementById('ie-tglpho-'+no).value;
-  var addKe    = document.getElementById('ie-addke-'+no).value;
-  // Validate
-  if (isNaN(fisik)||fisik<0||fisik>100){ toast('Prestasi fisik harus 0–100'); return; }
-  if (isNaN(realisasi)||realisasi<0){ toast('Realisasi tidak valid'); return; }
-  // Update object
-  d.fisik    = fisik;
-  d.realisasi= realisasi;
-  d.pctReal  = d.kontrak>0?parseFloat((realisasi/d.kontrak*100).toFixed(1)):0;
-  d.pho      = pho;
-  d.noPho    = noPho;
-  d.tglPho   = tglPho;
-  d.addKe    = addKe;
-  // UI feedback
-  if (saveBtn) { saveBtn.disabled=true; saveBtn.textContent='Menyimpan...'; }
-  if (status)  status.textContent = '⏳ Menghubungi Firebase...';
-  // Save to Firebase
+
+  var fisik = gn('ef-fisik-'+no);
+  if (fisik < 0 || fisik > 100) { toast('Prestasi fisik harus antara 0 – 100'); return; }
+  var realisasi = gn('ef-realisasi-'+no);
+  var kontrak   = gn('ef-kontrak-'+no);
+
+  // Update semua field
+  d.noRuas       = gv('ef-noruas-'+no);
+  d.lokasi       = gv('ef-lokasi-'+no);
+  d.lebarPanjang = gv('ef-lebar-'+no);
+  d.dana         = gv('ef-dana-'+no);
+  d.jenisInfra   = gv('ef-infra-'+no);
+  d.pagu         = gn('ef-pagu-'+no);
+  d.hps          = gn('ef-hps-'+no);
+  d.penyedia     = gv('ef-penyedia-'+no);
+  d.noKontrak    = gv('ef-nokontrak-'+no);
+  d.tglKontrak   = gv('ef-tglkontrak-'+no);
+  d.kontrak      = kontrak;
+  d.addKontrak10 = gn('ef-add10-'+no);
+  d.metode       = gv('ef-metode-'+no);
+  d.jenisKontrak = gv('ef-jeniskontrak-'+no);
+  d.jenisBelanja = gv('ef-jenisbelanja-'+no);
+  d.addKe        = gv('ef-addke-'+no);
+  d.noAdd        = gv('ef-noadd-'+no);
+  d.tglAdd       = gv('ef-tgladd-'+no);
+  d.nilaiAdd     = gn('ef-nilaiadd-'+no);
+  d.jaWaktu      = gv('ef-jawaktu-'+no);
+  d.mulai        = gv('ef-mulai-'+no);
+  d.selesai      = gv('ef-selesai-'+no);
+  d.pho          = gv('ef-pho-'+no);
+  d.noPho        = gv('ef-nopho-'+no);
+  d.tglPho       = gv('ef-tglpho-'+no);
+  d.fisik        = fisik;
+  d.realisasi    = realisasi;
+  d.pctReal      = kontrak > 0 ? parseFloat((realisasi/kontrak*100).toFixed(1)) : 0;
+
+  var saveBtn = document.getElementById('ef-save-'+no);
+  var status  = document.getElementById('ef-status-'+no);
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Menyimpan...'; }
+  if (status)  status.innerHTML = '<span style="color:var(--txt2)">&#x23F3; Menghubungi Firebase...</span>';
+
   fbSaveProject(d, function(){
-    if (saveBtn) { saveBtn.disabled=false; saveBtn.innerHTML='&#x1F4BE; Simpan &amp; Sinkron'; }
-    if (status)  { status.textContent='✅ Tersimpan!'; setTimeout(function(){status.textContent='';},3000); }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '&#x1F4BE; Simpan &amp; Sinkron'; }
+    if (status)  { status.innerHTML = '<span style="color:var(--green)">&#x2705; Tersimpan!</span>'; setTimeout(function(){ status.innerHTML=''; }, 3000); }
     closeInlineEdit(no);
-    // Re-render this detail row in-place
     fp();
     rMetrics();
     rDashboard();
-    toast('✅ Data paket #'+no+' berhasil disimpan dan tersinkron');
+    toast('&#x2705; Paket #'+no+' berhasil disimpan dan tersinkron ke semua pengguna');
   });
 }
+
+
 
 
 function sec(t){return '<div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;margin-top:10px;border-bottom:1px solid var(--bdr);margin-bottom:8px">'+t+'</div>';}
