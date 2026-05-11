@@ -499,6 +499,7 @@ function can(action) {
   var r = ROLE_PERMS[CURRENT_ROLE];
   return r ? !!r[action] : false;
 }
+function isEditor() { return CURRENT_ROLE === 'admin' || CURRENT_ROLE === 'editor'; }
 
 // ── Boot: cek sesi aktif ──────────────────────────────────
 function fbBoot() {
@@ -941,24 +942,30 @@ function bRow(d) {
 }
 
 function detailRow(d) {
-  var editable = can('canEdit');
-  var editBtn = editable
-    ? '<button class="btn btn-sm edit-only" style="margin-left:8px;font-size:11px" onclick="toggleInlineEdit('+d.no+')">'
-      +'&#x270F; Edit progres</button>'
-    : '';
-  var s = '<tr><td colspan="9" style="padding:0"><div style="background:var(--surf2);padding:14px 16px">';
-  s += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-    +'<span style="font-size:12px;font-weight:600;color:var(--txt2)">Detail Paket #'+d.no+'</span>'
-    +editBtn+'</div>';
-  s += sec('&#x1F4CB; Identitas Paket');
+  var s = '<tr id="drow-'+d.no+'"><td colspan="9" style="padding:0">'
+    +'<div style="background:var(--surf2);padding:14px 16px">';
+
+  // ── Header bar with Edit toggle ──────────────────────────────────────
+  s += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    +'<span style="font-size:12px;font-weight:600;color:var(--txt2)">&#x1F4CB; Detail Paket #'+d.no+'</span>'
+    +'<span id="det-btn-wrap-'+d.no+'">'
+    +'<button class="btn btn-sm edit-only" id="btn-edit-'+d.no+'" '
+    +'style="font-size:11px;background:var(--blue);color:#fff;border-color:var(--blue)" '
+    +'onclick="openInlineEdit('+d.no+')">&#x270F; Edit</button>'
+    +'</span>'
+    +'</div>';
+
+  // ── READ VIEW (id=det-read-N) ────────────────────────────────────────
+  s += '<div id="det-read-'+d.no+'">';
+  s += sec('Identitas Paket');
   s += '<div class="det-grid">'
     +di('No. Paket',fv(d.no))+di('No. Ruas',fv(d.noRuas))
     +di('Sumber Dana',fv(d.dana))+di('Lokasi',fv(d.lokasi))
     +di('Lebar &times; Panjang',fv(d.lebarPanjang))+di('Jenis Infrastruktur',fv(d.jenisInfra))
     +'</div>';
-  s += sec('&#x1F4B0; Anggaran');
+  s += sec('Anggaran');
   s += '<div class="det-grid">'+di('Nilai Pagu APBD-P',rp(d.pagu))+di('Nilai HPS (Rp)',rp(d.hps))+'</div>';
-  s += sec('&#x1F4DC; Kontrak / Surat Pesanan');
+  s += sec('Kontrak');
   s += '<div class="det-grid">'
     +di('Pelaksana / Penyedia Jasa','<strong>'+fv(d.penyedia)+'</strong>')
     +di('Nomor Kontrak',fv(d.noKontrak))+di('Tanggal Kontrak',fv(d.tglKontrak))
@@ -968,43 +975,25 @@ function detailRow(d) {
     +di('Jenis Kontrak',fv(d.jenisKontrak))
     +di('Jenis Belanja',fv(d.jenisBelanja))
     +'</div>';
-  s += sec('&#x1F4DD; Addendum Terakhir');
+  s += sec('Addendum Terakhir');
   s += '<div class="det-grid">'
     +di('Addendum Ke-',fv(d.addKe))+di('Nomor Addendum',fv(d.noAdd))
     +di('Tanggal Addendum',fv(d.tglAdd))+di('Nilai Kontrak Addendum','<strong>'+rp(d.nilaiAdd)+'</strong>')
     +'</div>';
-  s += sec('&#x1F4C5; Jangka Waktu Kontrak');
+  s += sec('Jangka Waktu Kontrak');
   s += '<div class="det-grid">'+di('Jangka Waktu (Hari)',fv(d.jaWaktu))+di('Tanggal Mulai',fv(d.mulai))+di('Tanggal Selesai',fv(d.selesai))+'</div>';
-  s += sec('&#x2705; PHO / BAST');
+  s += sec('PHO / BAST');
   s += '<div class="det-grid">'
     +di('Status PHO','<span class="bd '+(d.pho==='Sudah'?'ok':'bl')+'">'+d.pho+'</span>')
     +di('Nomor PHO/BAST',fv(d.noPho))+di('Tanggal PHO/BAST',fv(d.tglPho))
     +'</div>';
-  s += sec('&#x1F4CA; Progres &amp; Realisasi');
-  s += '<div class="det-grid" id="prog-disp-'+d.no+'">'
+  s += sec('Progres &amp; Realisasi');
+  s += '<div class="det-grid">'
     +di('Prestasi Fisik (%)','<strong style="color:var(--blue)">'+d.fisik.toFixed(1)+'%</strong>')
     +di('Realisasi Pembayaran','<strong>'+rp(d.realisasi)+'</strong>')
     +di('% thd Kontrak','<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong>')
     +'</div>';
-  // Inline edit form (hidden by default)
-  if (editable) {
-    s += '<div class="inline-edit" id="iedit-'+d.no+'" style="display:none">'
-      +'<div class="fg"><label>Prestasi fisik (%)</label>'
-      +'<input type="number" id="ie-fisik-'+d.no+'" min="0" max="100" step="0.1" value="'+d.fisik+'"></div>'
-      +'<div class="fg"><label>Realisasi pembayaran (Rp)</label>'
-      +'<input type="number" id="ie-real-'+d.no+'" value="'+d.realisasi+'"></div>'
-      +'<div class="fg"><label>Status PHO</label>'
-      +'<select id="ie-pho-'+d.no+'"><option value="Sudah"'+(d.pho==='Sudah'?' selected':'')+'>Sudah</option>'
-      +'<option value="Belum"'+(d.pho==='Belum'?' selected':'')+'>Belum</option></select></div>'
-      +'<div class="fg"><label>Nomor PHO/BAST</label>'
-      +'<input type="text" id="ie-nopho-'+d.no+'" value="'+esc(d.noPho||'')+'"></div>'
-      +'<div class="inline-edit-actions">'
-      +'<button class="btn btn-g" onclick="saveInlineEdit('+d.no+')">&#x1F4BE; Simpan</button>'
-      +'<button class="btn" onclick="toggleInlineEdit('+d.no+')">Batal</button>'
-      +'<span class="save-spinner" id="ie-spin-'+d.no+'">Menyimpan...</span>'
-      +'</div></div>';
-  }
-  s += sec('&#x1F464; Pelaksana &amp; Tim Teknis');
+  s += sec('Pelaksana &amp; Tim Teknis');
   s += '<div class="det-grid">';
   var roles=[];
   if(d.ppk)roles.push({r:'PPK',n:d.ppk,cls:'role-ppk'});
@@ -1016,39 +1005,121 @@ function detailRow(d) {
   roles.forEach(function(r){
     s+='<div class="det-item"><div class="det-label">'+r.r+'</div><div class="det-val"><span class="role-chip '+r.cls+'">'+esc(r.n)+'</span></div></div>';
   });
-  s+='</div></div></td></tr>';
+  s+='</div>';
+  s+='</div>'; // end det-read
+
+  // ── EDIT VIEW (id=det-edit-N, hidden by default) ─────────────────────
+  s += '<div id="det-edit-'+d.no+'" style="display:none">';
+  s += '<div style="background:var(--bluL);border:1px solid var(--blue);border-radius:var(--r);padding:14px;margin-bottom:10px">';
+  s += '<div style="font-size:12px;font-weight:600;color:var(--bluD);margin-bottom:12px">&#x270F; Edit data progres &amp; PHO</div>';
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  // Field 1: fisik
+  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Prestasi Fisik (%)</label>'
+    +'<input type="number" id="ie-fisik-'+d.no+'" min="0" max="100" step="0.1" value="'+d.fisik+'" '
+    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
+  // Field 2: realisasi
+  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Realisasi Pembayaran (Rp)</label>'
+    +'<input type="number" id="ie-real-'+d.no+'" value="'+d.realisasi+'" '
+    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
+  // Field 3: PHO status
+  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Status PHO</label>'
+    +'<select id="ie-pho-'+d.no+'" '
+    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff">'
+    +'<option value="Sudah"'+(d.pho==='Sudah'?' selected':'')+'>Sudah PHO</option>'
+    +'<option value="Belum"'+(d.pho==='Belum'?' selected':'')+'>Belum PHO</option>'
+    +'</select></div>';
+  // Field 4: nomor PHO
+  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Nomor PHO / BAST</label>'
+    +'<input type="text" id="ie-nopho-'+d.no+'" value="'+esc(d.noPho||'')+'" '
+    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
+  // Field 5: tanggal PHO
+  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Tanggal PHO / BAST</label>'
+    +'<input type="date" id="ie-tglpho-'+d.no+'" value="'+(d.tglPho||'')+'" '
+    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
+  // Field 6: addendum ke
+  s += '<div><label style="font-size:11px;color:var(--txt2);display:block;margin-bottom:3px">Addendum Ke-</label>'
+    +'<input type="text" id="ie-addke-'+d.no+'" value="'+esc(d.addKe||'')+'" '
+    +'style="width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:#fff"></div>';
+  s += '</div>'; // end grid
+  // Action buttons
+  s += '<div style="display:flex;gap:8px;margin-top:12px;align-items:center">'
+    +'<button onclick="saveInlineEdit('+d.no+')" id="ie-save-btn-'+d.no+'" '
+    +'style="padding:8px 18px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer">'
+    +'&#x1F4BE; Simpan &amp; Sinkron</button>'
+    +'<button onclick="closeInlineEdit('+d.no+')" '
+    +'style="padding:8px 14px;background:transparent;border:1px solid var(--bdr);border-radius:var(--r);font-size:13px;cursor:pointer">'
+    +'Batal</button>'
+    +'<span id="ie-status-'+d.no+'" style="font-size:12px;color:var(--txt2)"></span>'
+    +'</div>';
+  s += '</div>'; // end edit box
+  s += '</div>'; // end det-edit
+  s += '</div></td></tr>';
   return s;
 }
 
-function toggleInlineEdit(no) {
-  var form = document.getElementById('iedit-'+no);
-  if (!form) return;
-  var visible = form.style.display !== 'none';
-  form.style.display = visible ? 'none' : 'grid';
+function openInlineEdit(no) {
+  if (!isEditor()) { toast('Anda tidak punya izin edit. Hubungi Admin.'); return; }
+  var readDiv = document.getElementById('det-read-'+no);
+  var editDiv = document.getElementById('det-edit-'+no);
+  var btn     = document.getElementById('btn-edit-'+no);
+  if (!editDiv) return;
+  if (readDiv) readDiv.style.display = 'none';
+  editDiv.style.display = 'block';
+  if (btn) { btn.textContent = '✕ Batal edit'; btn.style.background='var(--amber)'; btn.style.borderColor='var(--amber)'; btn.onclick = function(){ closeInlineEdit(no); }; }
+  // Focus first field
+  var f = document.getElementById('ie-fisik-'+no);
+  if (f) setTimeout(function(){ f.focus(); f.select(); }, 50);
+}
+
+function closeInlineEdit(no) {
+  var readDiv = document.getElementById('det-read-'+no);
+  var editDiv = document.getElementById('det-edit-'+no);
+  var btn     = document.getElementById('btn-edit-'+no);
+  if (readDiv) readDiv.style.display = 'block';
+  if (editDiv) editDiv.style.display = 'none';
+  if (btn) { btn.innerHTML = '&#x270F; Edit'; btn.style.background='var(--blue)'; btn.style.borderColor='var(--blue)'; btn.onclick = function(){ openInlineEdit(no); }; }
 }
 
 function saveInlineEdit(no) {
-  var d = DATA.filter(function(x){return x.no===no;})[0]; if(!d) return;
-  var spin = document.getElementById('ie-spin-'+no);
-  if (spin) spin.style.display='inline';
-  d.fisik    = parseFloat(document.getElementById('ie-fisik-'+no).value)||0;
-  d.realisasi= parseFloat(document.getElementById('ie-real-'+no).value)||0;
-  d.pho      = document.getElementById('ie-pho-'+no).value;
-  d.noPho    = document.getElementById('ie-nopho-'+no).value;
-  d.pctReal  = d.kontrak>0?parseFloat((d.realisasi/d.kontrak*100).toFixed(1)):0;
+  var d = DATA.filter(function(x){return x.no===no;})[0];
+  if (!d) { toast('Data tidak ditemukan'); return; }
+  var saveBtn = document.getElementById('ie-save-btn-'+no);
+  var status  = document.getElementById('ie-status-'+no);
+  // Read values
+  var fisik    = parseFloat(document.getElementById('ie-fisik-'+no).value);
+  var realisasi= parseFloat(document.getElementById('ie-real-'+no).value);
+  var pho      = document.getElementById('ie-pho-'+no).value;
+  var noPho    = document.getElementById('ie-nopho-'+no).value;
+  var tglPho   = document.getElementById('ie-tglpho-'+no).value;
+  var addKe    = document.getElementById('ie-addke-'+no).value;
+  // Validate
+  if (isNaN(fisik)||fisik<0||fisik>100){ toast('Prestasi fisik harus 0–100'); return; }
+  if (isNaN(realisasi)||realisasi<0){ toast('Realisasi tidak valid'); return; }
+  // Update object
+  d.fisik    = fisik;
+  d.realisasi= realisasi;
+  d.pctReal  = d.kontrak>0?parseFloat((realisasi/d.kontrak*100).toFixed(1)):0;
+  d.pho      = pho;
+  d.noPho    = noPho;
+  d.tglPho   = tglPho;
+  d.addKe    = addKe;
+  // UI feedback
+  if (saveBtn) { saveBtn.disabled=true; saveBtn.textContent='Menyimpan...'; }
+  if (status)  status.textContent = '⏳ Menghubungi Firebase...';
+  // Save to Firebase
   fbSaveProject(d, function(){
-    if (spin) spin.style.display='none';
-    toggleInlineEdit(no);
-    // Update display without closing detail row
-    var disp = document.getElementById('prog-disp-'+no);
-    if (disp) disp.innerHTML = di('Prestasi Fisik (%)','<strong style="color:var(--blue)">'+d.fisik.toFixed(1)+'%</strong>')
-      +di('Realisasi Pembayaran','<strong>'+rp(d.realisasi)+'</strong>')
-      +di('% thd Kontrak','<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong>');
-    toast('&#x2705; Data tersimpan dan tersinkron ke semua pengguna');
+    if (saveBtn) { saveBtn.disabled=false; saveBtn.innerHTML='&#x1F4BE; Simpan &amp; Sinkron'; }
+    if (status)  { status.textContent='✅ Tersimpan!'; setTimeout(function(){status.textContent='';},3000); }
+    closeInlineEdit(no);
+    // Re-render this detail row in-place
+    fp();
     rMetrics();
     rDashboard();
+    toast('✅ Data paket #'+no+' berhasil disimpan dan tersinkron');
   });
 }
+
+
 function sec(t){return '<div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;margin-top:10px;border-bottom:1px solid var(--bdr);margin-bottom:8px">'+t+'</div>';}
 function di(l,v){return '<div class="det-item"><div class="det-label">'+l+'</div><div class="det-val">'+v+'</div></div>';}
 function tog(no){openRow=openRow===no?null:no;fp();}
