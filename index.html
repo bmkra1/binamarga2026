@@ -200,7 +200,37 @@ select:focus,input:focus{border-color:var(--blue)}
 
 #toast{position:fixed;bottom:20px;right:20px;background:#222;color:#fff;padding:9px 16px;border-radius:var(--r);font-size:13px;display:none;z-index:999}
 
-@media(max-width:800px){.sidebar{display:none}.main{margin-left:0}.mg{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.det-grid{grid-template-columns:1fr}}
+@media(max-width:800px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:14px 14px 80px}
+  .mg{grid-template-columns:repeat(2,1fr)}
+  .two{grid-template-columns:1fr}
+  .det-grid{grid-template-columns:1fr}
+  .ef-grid{grid-template-columns:1fr}
+  #dash-hero{flex-wrap:wrap;padding:16px}
+  #hero-stats{flex-wrap:wrap;gap:8px;width:100%;justify-content:flex-start}
+  #hero-stats>div{min-width:60px;flex:1}
+  .prog-item{grid-template-columns:24px 1fr 60px}
+  .login-card{margin:16px;padding:24px}
+  #loading-screen{padding:20px}
+}
+@media(max-width:400px){
+  .mg{grid-template-columns:1fr 1fr}
+  .mc-v{font-size:18px}
+}
+/* ── Mobile bottom navigation ── */
+#mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--bdr);z-index:100;padding:4px 0 env(safe-area-inset-bottom,4px)}
+#mobile-nav .mn-list{display:flex;justify-content:space-around;align-items:stretch}
+#mobile-nav .mn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 4px;flex:1;cursor:pointer;border-radius:var(--r);transition:.13s;color:var(--txt3);font-size:10px;position:relative}
+#mobile-nav .mn-item:active{background:var(--surf2)}
+#mobile-nav .mn-item.on{color:var(--blue)}
+#mobile-nav .mn-item .mn-icon{font-size:20px;line-height:1}
+#mobile-nav .mn-item .mn-label{font-size:9px;line-height:1;text-align:center}
+#mobile-nav .mn-item .mn-dot{position:absolute;top:4px;right:calc(50% - 14px);width:8px;height:8px;border-radius:50%;background:var(--red);display:none}
+@media(max-width:800px){
+  #mobile-nav{display:block}
+  .shell>.sidebar{display:none!important}
+}
 
 /* inline edit form */
 .inline-edit{background:var(--surf);border:1px solid var(--blue);border-radius:var(--r);padding:14px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -305,7 +335,7 @@ select:focus,input:focus{border-color:var(--blue)}
       <div style="font-size:13px;color:rgba(255,255,255,0.8)">Kabupaten Karanganyar &mdash; Tahun Anggaran 2026</div>
       <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.65)">
         <span style="width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 2s infinite"></span>
-        Realtime &bull; Data tersinkron otomatis
+        Realtime &bull; Data Update
       </div>
     </div>
     <!-- QUICK STATS -->
@@ -467,6 +497,34 @@ select:focus,input:focus{border-color:var(--blue)}
 </div>
 
 </main>
+
+<!-- ── Mobile bottom navigation ── -->
+<nav id="mobile-nav" role="navigation" aria-label="Navigasi utama">
+  <div class="mn-list">
+    <div class="mn-item on" id="mn-dashboard" onclick="goMobile('dashboard','mn-dashboard')">
+      <span class="mn-icon">&#x1F4CA;</span>
+      <span class="mn-label">Dashboard</span>
+    </div>
+    <div class="mn-item" id="mn-proyek" onclick="goMobile('proyek','mn-proyek')">
+      <span class="mn-icon">&#x1F6E3;</span>
+      <span class="mn-label">Proyek</span>
+    </div>
+    <div class="mn-item" id="mn-personil" onclick="goMobile('personil','mn-personil')">
+      <span class="mn-icon">&#x1F465;</span>
+      <span class="mn-label">Personil</span>
+    </div>
+    <div class="mn-item" id="mn-notifikasi" onclick="goMobile('notifikasi','mn-notifikasi')">
+      <span class="mn-icon">&#x1F514;</span>
+      <span class="mn-label">Notifikasi</span>
+      <span class="mn-dot" id="mn-dot-notif"></span>
+    </div>
+    <div class="mn-item edit-only" id="mn-upload" onclick="goMobile('upload','mn-upload')">
+      <span class="mn-icon">&#x2B06;</span>
+      <span class="mn-label">Update</span>
+    </div>
+  </div>
+</nav>
+
 </div><!-- end shell -->
 
 <div id="toast"></div>
@@ -1143,7 +1201,7 @@ function detailRow(d) {
 
   // Note about tim teknis
   s += '<div style="margin-top:4px;padding:8px 12px;background:#f0efeb;border-radius:var(--r);font-size:11px;color:var(--txt2)">'
-    +'&#x2139; Data <strong>Pelaksana &amp; Tim Teknis</strong> adalah Tim Tetap. Perubahan data personil dilakukan melalui addendum.'
+    +'&#x2139; Data <strong>Pelaksana &amp; Tim Teknis</strong> tetap. Perubahan data personil dilakukan melalui Addendum.'
     +'</div>';
 
   // Action buttons
@@ -1407,6 +1465,8 @@ function rNotif(){
   });
   var nb=document.getElementById('nb');
   if(items.length){nb.style.display='inline';nb.textContent=items.length;}else{nb.style.display='none';}
+  var dot=document.getElementById('mn-dot-notif');
+  if(dot) dot.style.display=items.length?'block':'none';
   var bgm={r:'#fce8e8',a:'#faeeda',b:'#deeaf8'},clm={r:'#5a1515',a:'#5a3800',b:'#0a3d6b'};
   document.getElementById('ncard').innerHTML=items.length
     ?items.map(function(it){return'<div class="ni2"><div class="nic" style="background:'+bgm[it.t]+';color:'+clm[it.t]+'">'+it.ic+'</div>'
@@ -1588,6 +1648,33 @@ function go(id,el){
   document.getElementById('pg-'+id).classList.add('on');
   el.classList.add('on');
   if(id==='admin')loadAdminUsers();
+  syncMobileNav(id);
+}
+
+function goMobile(id, elId) {
+  // Switch page
+  document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
+  var pg = document.getElementById('pg-'+id);
+  if (pg) pg.classList.add('on');
+  // Sync sidebar
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
+  // Sync mobile nav
+  syncMobileNav(id);
+  // Scroll to top
+  window.scrollTo(0,0);
+  if (id==='admin') loadAdminUsers();
+}
+
+function syncMobileNav(id) {
+  var items = ['dashboard','proyek','personil','notifikasi','upload'];
+  items.forEach(function(item){
+    var el = document.getElementById('mn-'+item);
+    if (el) el.classList.toggle('on', item===id);
+  });
+  // Also sync notif dot
+  var dot = document.getElementById('mn-dot-notif');
+  var nb  = document.getElementById('nb');
+  if (dot && nb) dot.style.display = (nb.style.display==='inline') ? 'block' : 'none';
 }
 function toast(msg,dur){var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(function(){t.style.display='none';},dur||3000);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
