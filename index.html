@@ -335,7 +335,7 @@ select:focus,input:focus{border-color:var(--blue)}
       <div style="font-size:13px;color:rgba(255,255,255,0.8)">Kabupaten Karanganyar &mdash; Tahun Anggaran 2026</div>
       <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.65)">
         <span style="width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 2s infinite"></span>
-        Realtime &bull; Data Update
+        Realtime &bull; Data tersinkron otomatis
       </div>
     </div>
     <!-- QUICK STATS -->
@@ -706,8 +706,9 @@ function fbUploadAll(projects, personilArr, cb) {
 
 // ── SK Personil: simpan URL ke Firestore ──────────────────
 function fbSaveSK(no, url) {
-  db.collection('sk_personil').doc(String(no)).set({url: url})
-    .catch(function(e) { toast('Gagal simpan SK: ' + e.message); });
+  db.collection('sk_personil').doc(String(no)).set({url: url, updatedBy: CURRENT_USER ? CURRENT_USER.email : '', updatedAt: firebase.firestore.FieldValue.serverTimestamp()})
+    .then(function() { console.log('SK saved for personil', no); })
+    .catch(function(e) { toast('❌ Gagal simpan SK: ' + e.message); });
 }
 function fbGetSK(no, cb) {
   db.collection('sk_personil').doc(String(no)).get()
@@ -1084,7 +1085,7 @@ function detailRow(d) {
     +di('% thd Kontrak','<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong>')
     +'</div>';
 
-  s += sec('&#x1F464; Pelaksana &amp; Tim Teknis <span style="font-size:10px;font-weight:400;color:var(--txt3)">(SK dapat didownload pada menu Personil)</span>');
+  s += sec('&#x1F464; Pelaksana &amp; Tim Teknis <span style="font-size:10px;font-weight:400;color:var(--txt3)">(Download SK dimenu Personil)</span>');
   s += '<div class="det-grid">';
   var roles=[];
   if(d.ppk)       roles.push({r:'PPK',              n:d.ppk,        cls:'role-ppk'});
@@ -1201,7 +1202,7 @@ function detailRow(d) {
 
   // Note about tim teknis
   s += '<div style="margin-top:4px;padding:8px 12px;background:#f0efeb;border-radius:var(--r);font-size:11px;color:var(--txt2)">'
-    +'&#x2139; Data <strong>Pelaksana &amp; Tim Teknis</strong> tetap. Perubahan data personil dilakukan melalui Addendum.'
+    +'&#x2139; Data <strong>Pelaksana &amp; Tim Teknis</strong> . Perubahan data personil dilakukan melalui Addendum.'
     +'</div>';
 
   // Action buttons
@@ -1222,7 +1223,7 @@ function detailRow(d) {
 }
 
 function openInlineEdit(no) {
-  if (!isEditor()) { toast('Silahkan Hubungi PPK/PPTK.'); return; }
+  if (!isEditor()) { toast('Anda tidak punya izin edit. Hubungi PPK/PPTK.'); return; }
   var readDiv = document.getElementById('det-read-'+no);
   var editDiv = document.getElementById('det-edit-'+no);
   var btn     = document.getElementById('btn-edit-'+no);
@@ -1364,18 +1365,26 @@ function buildPersItem(p){
   var kg=getRoles(p);
   var ini=p.nama.replace(/^(Ir\.|Dr\.|Dr\. Ir\.)\s*/i,'').split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
   var col=AVC[p.no%AVC.length];
-  var skUrl=window._skCache&&window._skCache[p.no]||'';
-  var skRow='<div class="pers-sk-row">'
-    +'<span class="pers-sk-label">&#x1F4C4; SK Personil:</span>'
-    +(skUrl
-      ?'<a href="'+esc(skUrl)+'" target="_blank" style="color:var(--blue);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(skUrl)+'">'
-        +esc(skUrl.length>50?skUrl.slice(0,50)+'...':skUrl)+'</a>'
-        +'<button class="btn btn-xs btn-p edit-only" onclick="openSK(\''+esc(skUrl)+'\')">&#x1F441; Lihat</button>'
-        +'<button class="btn btn-xs edit-only" onclick="editSKUrl('+p.no+')" style="margin-left:3px">&#x270F; Edit</button>'
-        +'<button class="btn btn-xs edit-only" onclick="deleteSKUrl('+p.no+')" style="margin-left:3px;border-color:#c0392b;color:var(--red)">&#x2715; Hapus</button>'
-      :'<span class="pers-sk-val" style="color:var(--txt3);font-style:italic;flex:1">Belum ada link SK</span>'
-        +'<button class="btn btn-xs btn-p edit-only" onclick="addSKUrl('+p.no+')" style="margin-left:6px">+ Tambah Link</button>'
-    )+'</div>';
+  var skUrl = (window._skCache && window._skCache[p.no]) || '';
+  var isAdm = (CURRENT_ROLE === 'admin');
+  var skRow = '<div class="pers-sk-row">'
+    + '<span class="pers-sk-label">&#x1F4C4; SK Personil:</span>'
+    + (skUrl
+        ? '<a href="' + esc(skUrl) + '" target="_blank" '
+          + 'style="color:var(--blue);font-size:11px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 6px" '
+          + 'title="' + esc(skUrl) + '">'
+          + esc(skUrl.length > 55 ? skUrl.slice(0,55)+'...' : skUrl)
+          + '</a>'
+          + '<button class="btn btn-xs btn-p" onclick="openSK(\'' + esc(skUrl) + '\')" style="flex-shrink:0">&#x1F441; Lihat</button>'
+          + (isAdm
+              ? '<button class="btn btn-xs" onclick="editSKUrl(' + p.no + ')" style="margin-left:4px;flex-shrink:0">&#x270F; Edit</button>'
+                + '<button class="btn btn-xs" onclick="deleteSKUrl(' + p.no + ')" style="margin-left:4px;flex-shrink:0;border-color:#c0392b;color:var(--red)">&#x2715;</button>'
+              : '')
+        : '<span class="pers-sk-val" style="color:var(--txt3);font-style:italic;flex:1;font-size:11px">Belum ada link SK</span>'
+          + (isAdm
+              ? '<button class="btn btn-xs btn-p" onclick="addSKUrl(' + p.no + ')" style="margin-left:6px;flex-shrink:0">+ Tambah Link</button>'
+              : '')
+    ) + '</div>';
   var kgRows=kg.length
     ?kg.map(function(k,i){
         return'<div class="pk-item"><div class="pk-no">'+(i+1)+'</div>'
@@ -1407,31 +1416,34 @@ function togglePers(no){
 
 // SK URL — Firebase-backed
 function addSKUrl(no){
-  var url=prompt('Masukkan URL Google Drive untuk SK Personil:','https://drive.google.com/');
-  if(!url||!url.trim())return;
-  url=url.trim();
-  if(!window._skCache)window._skCache={};
-  window._skCache[no]=url;
-  fbSaveSK(no,url);
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya Admin yang dapat menambahkan link SK'); return; }
+  var url = prompt('Masukkan URL Google Drive SK Personil\n(pastikan sudah dibagikan - Anyone with link can view):', 'https://drive.google.com/');
+  if (!url || !url.trim()) return;
+  url = url.trim();
+  if (!window._skCache) window._skCache = {};
+  window._skCache[no] = url;
+  fbSaveSK(no, url);
   refreshPersItem(no);
-  toast('Link SK berhasil disimpan');
+  toast('✅ Link SK berhasil disimpan ke Firebase');
 }
 function editSKUrl(no){
-  var cur=(window._skCache&&window._skCache[no])||'';
-  var url=prompt('Edit URL Google Drive SK Personil:',cur);
-  if(url===null)return;
-  url=url.trim();
-  if(!window._skCache)window._skCache={};
-  window._skCache[no]=url;
-  fbSaveSK(no,url);
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya Admin yang dapat mengubah link SK'); return; }
+  var cur = (window._skCache && window._skCache[no]) || '';
+  var url = prompt('Edit URL Google Drive SK Personil:', cur);
+  if (url === null) return;
+  url = url.trim();
+  if (!window._skCache) window._skCache = {};
+  window._skCache[no] = url;
+  fbSaveSK(no, url);
   refreshPersItem(no);
-  toast(url?'Link SK diperbarui':'Link SK dihapus');
+  toast(url ? '✅ Link SK diperbarui' : 'Link SK dihapus');
 }
-function deleteSKUrl(no){
-  if(!confirm('Hapus link SK personil ini?'))return;
-  if(!window._skCache)window._skCache={};
-  window._skCache[no]='';
-  fbSaveSK(no,'');
+function deleteSKUrl(no) {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya Admin yang dapat menghapus link SK'); return; }
+  if (!confirm('Hapus link SK personil ini?')) return;
+  if (!window._skCache) window._skCache = {};
+  window._skCache[no] = '';
+  fbSaveSK(no, '');
   refreshPersItem(no);
   toast('Link SK dihapus');
 }
@@ -1444,12 +1456,22 @@ function refreshPersItem(no){
     if(wasOpen){var nb=document.getElementById('body-'+no);var nc=document.getElementById('chev-'+no);
       if(nb)nb.classList.add('open');if(nc)nc.classList.add('open');}}
 }
-function loadAllSK(){
-  if(!PERS.length)return;
-  window._skCache={};
-  PERS.forEach(function(p){
-    fbGetSK(p.no,function(url){
-      window._skCache[p.no]=url||'';
+function loadAllSK(onDone) {
+  if (!PERS.length) { rPersonil(); if (onDone) onDone(); return; }
+  window._skCache = {};
+  var total = PERS.length;
+  var done  = 0;
+  function checkDone() {
+    done++;
+    if (done >= total) {
+      rPersonil();
+      if (onDone) onDone();
+    }
+  }
+  PERS.forEach(function(p) {
+    fbGetSK(p.no, function(url) {
+      window._skCache[p.no] = url || '';
+      checkDone();
     });
   });
 }
@@ -1688,8 +1710,7 @@ window.addEventListener("DOMContentLoaded", function() {
       document.getElementById("sf-email").textContent = user.email;
       fbLoadPersonil(function(arr) {
         PERS = arr.length ? arr : SEED.personil;
-        loadAllSK();
-        rPersonil();
+        loadAllSK(); // loads SK from Firebase then re-renders personil
       });
     }
   });
