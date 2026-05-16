@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Info Jalan & Bina Marga 2026 — DPUPR Kab. Karanganyar</title>
+<title>SIJAKA & Bina Marga 2026 — DPUPR Kab. Karanganyar</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -476,8 +476,8 @@ tr:hover td{background:var(--gray1);}
       Masuk dengan Google
     </button>
     <div class="login-divider">atau</div>
-    <input class="login-inp" type="email" id="login-email" placeholder="Alamat email" autocomplete="email">
-    <input class="login-inp" type="password" id="login-pass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginEmail()">
+    <input class="login-inp" type="email" id="login-email" placeholder="Alamat email" autocomplete="off" onfocus="this.removeAttribute('readonly')" readonly>
+    <input class="login-inp" type="password" id="login-pass" placeholder="Password" autocomplete="new-password" onfocus="this.removeAttribute('readonly')" readonly onkeydown="if(event.key==='Enter')loginEmail()">
     <button id="btn-login-email" onclick="loginEmail()">Masuk dengan Email</button>
   </div>
 </div>
@@ -1076,12 +1076,7 @@ function initDetMap(r){
   }else if(r.lat&&r.lng){mapDet.setView([r.lat,r.lng],15);}
 }
 
-// ── showScreen override (called by Firebase layer) ─────────────────
-function showScreen(s){
-  if(s==='loading')return;
-  if(s==='app'){sijakaOnLogin();return;}
-  if(s==='login'){sijakaOnLogout();return;}
-}
+// showScreen is defined in BM JS layer below
 
 // ── Init ──────────────────────────────────────────────────────────
 renderTable();
@@ -1322,17 +1317,9 @@ function showSyncStatus(msg) {
 
 // ── UI: tampilkan layar login/loading/app ─────────────────
 function showScreen(s) {
-  // Integrated SIJAKA mode
-  if (s === 'loading') return; // ignore loading screen
-  if (s === 'app') {
-    closeLoginModal();
-    sijakaOnLogin();
-    return;
-  }
-  if (s === 'login') {
-    sijakaOnLogout();
-    return;
-  }
+  if (s === 'loading') return;
+  if (s === 'app') { if(typeof sijakaOnLogin==='function') sijakaOnLogin(); return; }
+  if (s === 'login') { if(typeof sijakaOnLogout==='function') sijakaOnLogout(); return; }
 }
 
 // ── Terapkan batasan UI sesuai role ───────────────────────
@@ -1866,7 +1853,7 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 
 // ===== BOOT =====
-window.addEventListener("DOMContentLoaded_SKIP", function() {
+window.addEventListener("DOMContentLoaded", function() {
   // Sync auth state change: juga load personil & SK
   var origOnAuth = auth.onAuthStateChanged.bind(auth);
   fbBoot();
@@ -1874,7 +1861,7 @@ window.addEventListener("DOMContentLoaded_SKIP", function() {
   auth.onAuthStateChanged(function(user) {
     if (user) {
       fbEnsureUserDoc(user);
-      var sfEl=document.getElementById("sf-email"); if(sfEl) sfEl.textContent = user.email;
+      var _sfe=document.getElementById("sf-email"); if(_sfe) _sfe.textContent=user.email;
       // Load personil
       fbLoadPersonil(function(arr) {
         PERS = arr.length ? arr : SEED.personil;
