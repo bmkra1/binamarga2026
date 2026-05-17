@@ -795,52 +795,27 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
    MOBILE RESPONSIVE — Sijaka + Bina Marga
    ============================================================ */
 
-/* ── Navbar mobile ────────────────────────────────────────── */
+/* ── Navbar mobile — hamburger approach ──────────────────── */
 @media(max-width:768px) {
   .navbar {
-    padding: 0 12px;
-    flex-wrap: wrap;
-    height: auto;
-    min-height: 56px;
-    gap: 0;
-  }
-  .nav-brand {
-    margin-right: 8px;
-    padding: 8px 0;
-  }
-  .nav-brand-text .t1 { font-size: 12px; }
-  .nav-brand-text .t2 { display: none; }
-
-  /* Login/logout area — compact */
-  #bm-login-btn  { padding: 5px 10px !important; font-size: 11px !important; }
-  #bm-logout-btn { padding: 5px 10px !important; font-size: 11px !important; }
-  #bm-navbar-userinfo { display: none !important; }
-
-  /* Tabs: full-width second row */
-  .nav-tabs {
-    order: 3;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    gap: 0;
-    border-top: 1px solid rgba(255,255,255,.15);
-  }
-  .nav-tabs::-webkit-scrollbar { display: none; }
-  .nav-tab {
     padding: 0 14px;
-    height: 40px;
-    font-size: 12px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    height: 56px;
+    flex-wrap: nowrap;
+  }
+  .nav-brand { margin-right: 0; }
+  .nav-brand-text .t2 { display: none; }
+  .nav-brand-text .t1 { font-size: 12px; }
+
+  /* Hide desktop tabs */
+  .nav-tabs { display: none !important; }
+
+  /* Hide desktop login/logout buttons & userinfo */
+  #bm-login-btn, #bm-logout-btn, #bm-navbar-userinfo {
+    display: none !important;
   }
 
-  /* Login/logout buttons — right side of first row */
-  .navbar > div:last-child {
-    margin-left: auto;
-    gap: 6px !important;
-    padding-right: 0 !important;
-  }
+  /* Show hamburger button */
+  #nav-hamburger { display: flex !important; }
 }
 
 /* ── Sijaka Beranda ───────────────────────────────────────── */
@@ -1027,6 +1002,54 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   .bm-app .ni { padding: 6px 10px !important; font-size: 9px !important; }
 }
 
+
+/* ── Mobile menu dropdown ─────────────────────────────────── */
+.mm-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  color: rgba(255,255,255,.9);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s;
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  letter-spacing: .01em;
+}
+.mm-item:hover, .mm-item:active {
+  background: rgba(255,255,255,.12);
+}
+.mm-item.mm-bm {
+  color: #ffd580;
+}
+.mm-item.mm-login {
+  color: rgba(255,255,255,.75);
+  font-size: 13px;
+}
+.mm-item.mm-logout {
+  flex-direction: column;
+  align-items: flex-start;
+  color: rgba(255,255,255,.7);
+  font-size: 13px;
+  padding: 12px 20px;
+}
+/* Active tab indicator in mobile menu */
+.mm-item.mm-active {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  font-weight: 700;
+}
+/* Overlay backdrop */
+#mobile-menu-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  top: 56px;
+  background: rgba(0,0,0,.3);
+  z-index: 998;
+}
+
 </style>
 </head>
 <body>
@@ -1107,7 +1130,33 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
     <button id="bm-login-btn" onclick="openBmLoginModal()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;color:#fff;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;font-family:inherit" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">🔑 Login</button>
     <button id="bm-logout-btn" onclick="fbLogout()" style="display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:6px;color:rgba(255,255,255,.85);padding:6px 14px;font-size:12px;cursor:pointer;transition:.2s;font-family:inherit" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">Keluar</button>
   </div>
+  <!-- Hamburger button — mobile only -->
+  <button id="nav-hamburger" onclick="toggleMobileMenu()"
+    style="display:none;margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+    border-radius:8px;color:#fff;width:40px;height:40px;font-size:20px;cursor:pointer;
+    align-items:center;justify-content:center;flex-shrink:0;transition:.2s;line-height:1">
+    ☰
+  </button>
 </nav>
+
+<!-- Mobile dropdown menu -->
+<div id="mobile-menu" style="display:none;position:fixed;top:56px;left:0;right:0;
+  background:linear-gradient(160deg,#4a2c0a 0%,#3d2408 100%);
+  z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4);
+  border-bottom:2px solid rgba(255,255,255,.1);">
+  <div style="padding:8px 0">
+    <div class="mm-item" onclick="mobileNav('beranda')">🏠 Beranda</div>
+    <div class="mm-item" onclick="mobileNav('peta')">📍 Peta</div>
+    <div class="mm-item" onclick="mobileNav('jalan')">🛣️ Jalan</div>
+    <div class="mm-item mm-bm" id="mm-binamarga" onclick="mobileNav('binamarga')" style="display:none">🏗️ Bina Marga</div>
+    <div style="height:1px;background:rgba(255,255,255,.12);margin:6px 16px"></div>
+    <div class="mm-item mm-login" id="mm-login-item" onclick="mobileNav('login')">🔑 Login</div>
+    <div class="mm-item mm-logout" id="mm-logout-item" style="display:none">
+      <div id="mm-userinfo" style="font-size:11px;opacity:.7;margin-bottom:2px"></div>
+      <span onclick="fbLogout();closeMobileMenu()">→ Keluar</span>
+    </div>
+  </div>
+</div>
 
 <!-- ===== PAGE: BERANDA ===== -->
 <div class="page active" id="page-beranda">
@@ -1283,7 +1332,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       </div>
     </div>
     <div style="overflow-x:auto;">
-      <table class="jalan-table" class="data-table">
+      <table class="data-table">
         <thead>
           <tr>
             <th onclick="sortTable('no')">NO RUAS <span class="sort-icon" id="sort-no">↕</span></th>
@@ -1919,6 +1968,98 @@ function initDetailMap(r) {
 // ===== INIT =====
 renderTable();
 
+
+
+// ===== MOBILE HAMBURGER MENU =====
+var _mobileMenuOpen = false;
+
+function toggleMobileMenu() {
+  _mobileMenuOpen ? closeMobileMenu() : openMobileMenu();
+}
+
+function openMobileMenu() {
+  _mobileMenuOpen = true;
+  var menu = document.getElementById('mobile-menu');
+  var btn  = document.getElementById('nav-hamburger');
+  var bd   = document.getElementById('mobile-menu-backdrop');
+  if (menu) menu.style.display = 'block';
+  if (btn)  btn.innerHTML = '✕';
+  if (bd)   bd.style.display = 'block';
+  // Update active tab indicator
+  updateMobileMenuActive();
+  // Update BM tab visibility
+  var bmItem = document.getElementById('mm-binamarga');
+  if (bmItem) bmItem.style.display = CURRENT_USER ? '' : 'none';
+  // Update login/logout display
+  var loginItem  = document.getElementById('mm-login-item');
+  var logoutItem = document.getElementById('mm-logout-item');
+  var uinfo      = document.getElementById('mm-userinfo');
+  if (CURRENT_USER) {
+    if (loginItem)  loginItem.style.display  = 'none';
+    if (logoutItem) logoutItem.style.display = 'flex';
+    if (uinfo) uinfo.textContent = CURRENT_USER.email || '';
+  } else {
+    if (loginItem)  loginItem.style.display  = '';
+    if (logoutItem) logoutItem.style.display = 'none';
+  }
+}
+
+function closeMobileMenu() {
+  _mobileMenuOpen = false;
+  var menu = document.getElementById('mobile-menu');
+  var btn  = document.getElementById('nav-hamburger');
+  var bd   = document.getElementById('mobile-menu-backdrop');
+  if (menu) menu.style.display = 'none';
+  if (btn)  btn.innerHTML = '☰';
+  if (bd)   bd.style.display = 'none';
+}
+
+function mobileNav(page) {
+  closeMobileMenu();
+  if (page === 'login') {
+    openBmLoginModal();
+  } else {
+    showPage(page);
+  }
+}
+
+function updateMobileMenuActive() {
+  var pages = ['beranda','peta','jalan','binamarga'];
+  pages.forEach(function(p) {
+    var el = document.querySelector('.mm-item[onclick="mobileNav(\''+p+'\')"]');
+    if (el) {
+      var pageEl = document.getElementById('page-'+p);
+      var isActive = pageEl && pageEl.classList.contains('active');
+      el.classList.toggle('mm-active', isActive);
+    }
+  });
+}
+
+// Close menu when clicking backdrop
+document.addEventListener('click', function(e) {
+  if (_mobileMenuOpen && e.target.id === 'mobile-menu-backdrop') {
+    closeMobileMenu();
+  }
+});
+
+// Close menu on ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && _mobileMenuOpen) closeMobileMenu();
+});
+
+// Update showBmTab/hideBmTab to also update mobile menu BM item
+var _origShowBmTab = showBmTab;
+showBmTab = function() {
+  _origShowBmTab();
+  var bmItem = document.getElementById('mm-binamarga');
+  if (bmItem) bmItem.style.display = '';
+};
+var _origHideBmTab = hideBmTab;
+hideBmTab = function() {
+  _origHideBmTab();
+  var bmItem = document.getElementById('mm-binamarga');
+  if (bmItem) bmItem.style.display = 'none';
+};
 
 // ===== BM MERGE CONTROLLER =====
 function openBmLoginModal() {
@@ -3203,5 +3344,6 @@ window.addEventListener("DOMContentLoaded", function() {
 
 </script>
 
+<div id="mobile-menu-backdrop" onclick="closeMobileMenu()"></div>
 </body>
 </html>
