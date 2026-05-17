@@ -1658,13 +1658,8 @@ function hideBmTab() {
   if (bmPage && bmPage.classList.contains('active')) showPage('beranda');
 }
 
-// Override showLoginError to target modal error div
-function showLoginError(msg) {
-  var el = document.getElementById('bm-login-error');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
-  var btn = document.getElementById('btn-login-email');
-  if (btn) btn.disabled = false;
-}
+// showLoginError is defined in index.js script block (targets bm-login-error)
+// No duplicate needed here.
 
 // Override toast to use bm-toast
 function toast(msg, dur) {
@@ -1776,17 +1771,25 @@ function loginEmail() {
 }
 
 function showLoginError(msg) {
-  var el = document.getElementById('login-error');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
+  // Targets bm-login-modal error div (overrides BM controller version correctly)
+  var el = document.getElementById('bm-login-error');
+  if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+  var btn = document.getElementById('btn-login-email');
+  if (btn) btn.disabled = false;
 }
 
 // ── Logout ────────────────────────────────────────────────
 function fbLogout() {
+  // Stop realtime listener before signing out
   if (FB_LISTENER) { FB_LISTENER(); FB_LISTENER = null; }
   auth.signOut().then(function() {
-    hideBmTab();
     CURRENT_USER = null;
     CURRENT_ROLE = null;
+    hideBmTab();
+    // onAuthStateChanged will fire null → showScreen('login') → openBmLoginModal()
+  }).catch(function(e) {
+    console.error('Logout error:', e);
+    hideBmTab();
   });
 }
 
@@ -1918,15 +1921,23 @@ function showSyncStatus(msg) {
 function showScreen(s) {
   var loadEl = document.getElementById('bm-loading-overlay');
   var modal  = document.getElementById('bm-login-modal');
+  // Always hide loading overlay first
+  if (loadEl) loadEl.style.display = 'none';
   if (s === 'loading') {
-    if (loadEl) loadEl.style.display = 'flex';
-    if (modal)  modal.style.display  = 'none';
+    // Show briefly only when first checking session (page load)
+    if (loadEl) {
+      loadEl.style.display = 'flex';
+      // Auto-hide after 3s max to avoid blocking UI
+      clearTimeout(window._bmLoadTimer);
+      window._bmLoadTimer = setTimeout(function(){
+        if (loadEl) loadEl.style.display = 'none';
+      }, 3000);
+    }
   } else if (s === 'login') {
-    if (loadEl) loadEl.style.display = 'none';
     openBmLoginModal();
   } else if (s === 'app') {
-    if (loadEl) loadEl.style.display = 'none';
-    if (modal)  modal.style.display  = 'none';
+    clearTimeout(window._bmLoadTimer);
+    if (modal) modal.classList.remove('open');
     showBmTab();
   }
 }
