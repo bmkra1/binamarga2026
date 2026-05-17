@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bina Marga Karanganyar</title>
+<title>SIJAKA — Sistem Informasi Jalan Kabupaten Karanganyar</title>
 
 <!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -785,6 +785,248 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 .bm-app #pg-proyek .pgb { height:100%;border-radius:4px;background:var(--blue);transition:width .3s; }
 .bm-app #pg-proyek .pgb.g { background:var(--green); }
 .bm-app #pg-proyek .pgb.r { background:var(--red); }
+
+/* ── Proyek table row hover ── */
+.bm-app #pg-proyek tbody tr:not([style*="padding:0"]):hover {
+  filter: brightness(0.97);
+}
+
+/* ============================================================
+   MOBILE RESPONSIVE — Sijaka + Bina Marga
+   ============================================================ */
+
+/* ── Navbar mobile ────────────────────────────────────────── */
+@media(max-width:768px) {
+  .navbar {
+    padding: 0 12px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 56px;
+    gap: 0;
+  }
+  .nav-brand {
+    margin-right: 8px;
+    padding: 8px 0;
+  }
+  .nav-brand-text .t1 { font-size: 12px; }
+  .nav-brand-text .t2 { display: none; }
+
+  /* Login/logout area — compact */
+  #bm-login-btn  { padding: 5px 10px !important; font-size: 11px !important; }
+  #bm-logout-btn { padding: 5px 10px !important; font-size: 11px !important; }
+  #bm-navbar-userinfo { display: none !important; }
+
+  /* Tabs: full-width second row */
+  .nav-tabs {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0;
+    border-top: 1px solid rgba(255,255,255,.15);
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    padding: 0 14px;
+    height: 40px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Login/logout buttons — right side of first row */
+  .navbar > div:last-child {
+    margin-left: auto;
+    gap: 6px !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* ── Sijaka Beranda ───────────────────────────────────────── */
+@media(max-width:768px) {
+  .hero {
+    padding: 24px 16px 32px;
+  }
+  .hero-top {
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .hero-title .ht1 { font-size: 11px; }
+  .hero-title .ht2 { font-size: 26px; }
+  .hero-badge { align-self: flex-start; }
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  /* Beranda info cards below hero */
+  .info-row { flex-direction: column; }
+  .info-card { width: 100%; }
+}
+@media(max-width:400px) {
+  .stat-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hero-title .ht2 { font-size: 22px; }
+}
+
+/* ── Sijaka Peta ──────────────────────────────────────────── */
+@media(max-width:768px) {
+  #mapMain { height: 60vh !important; }
+}
+
+/* ── Sijaka Jalan (table) ─────────────────────────────────── */
+@media(max-width:768px) {
+  .table-card { border-radius: 0; box-shadow: none; margin: 0 -0px; }
+  .table-toolbar { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .tt-filters { flex-wrap: wrap; gap: 6px; }
+  .tt-search input { width: 100% !important; }
+  /* Table: hide less important cols, keep NO, NAMA, KONDISI */
+  .data-table th:nth-child(3),
+  .data-table td:nth-child(3),
+  .data-table th:nth-child(5),
+  .data-table td:nth-child(5),
+  .data-table th:nth-child(6),
+  .data-table td:nth-child(6),
+  .data-table th:nth-child(7),
+  .data-table td:nth-child(7) { display: none; }
+  /* Compact table */
+  .data-table th, .data-table td { padding: 8px 8px; font-size: 12px; }
+}
+
+/* ── Sijaka Detail Jalan ──────────────────────────────────── */
+@media(max-width:768px) {
+  .detail-hero { padding: 16px 14px; }
+  .detail-meta-row { flex-wrap: wrap; gap: 6px; }
+  #detail-map { height: 240px !important; }
+  .detail-grid { grid-template-columns: 1fr !important; gap: 12px; }
+  .detail-body { padding: 12px; }
+  .detail-map-card { margin-bottom: 12px; }
+  .back-btn { width: 100%; justify-content: center; margin-top: 8px; }
+}
+
+/* ── BM App mobile ────────────────────────────────────────── */
+@media(max-width:768px) {
+  /* BM tab panel: stack vertically */
+  #page-binamarga { flex-direction: column !important; }
+
+  /* Sidebar → bottom navigation bar */
+  #bm-sidebar {
+    display: flex !important;
+    flex-direction: row;
+    width: 100% !important;
+    min-width: unset !important;
+    height: auto !important;
+    position: sticky;
+    top: 96px; /* below navbar (56px) + tabs (40px) */
+    z-index: 100;
+    border-right: none !important;
+    border-bottom: 2px solid #e0ddd5;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  #bm-sidebar::-webkit-scrollbar { display: none; }
+
+  /* Hide sidebar header, footer, statusbar on mobile */
+  #bm-sidebar > div:first-child { display: none; }
+  #bm-statusbar { display: none; }
+
+  /* Sidebar nav items → horizontal tabs */
+  #bm-sidebar nav {
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 0 !important;
+    flex: 1;
+    overflow-x: auto;
+    min-width: 0;
+  }
+  .bm-app .ni {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 14px !important;
+    font-size: 10px !important;
+    white-space: nowrap;
+    height: 52px;
+    border-left: none !important;
+    border-bottom: 3px solid transparent;
+    border-radius: 0 !important;
+    flex-shrink: 0;
+  }
+  .bm-app .ni.on {
+    border-bottom: 3px solid var(--blue, #185FA5) !important;
+    background: #f0f6ff !important;
+    border-left: none !important;
+    color: #185FA5 !important;
+  }
+  .bm-app .ni .ic {
+    font-size: 16px !important;
+    display: block;
+    margin-bottom: 0 !important;
+  }
+
+  /* BM pages padding */
+  #bm-pages { padding: 12px 10px !important; }
+
+  /* BM Metric cards: 2 col */
+  .bm-app .mg { grid-template-columns: repeat(2,1fr) !important; }
+
+  /* BM Dana cards: 2 col */
+  .bm-app .dana-cards { grid-template-columns: repeat(2,1fr) !important; }
+
+  /* BM Dashboard filters */
+  .bm-app .dash-filters { flex-wrap: wrap; gap: 6px; }
+  .bm-app .dash-filters select,
+  .bm-app .dash-filters input { width: 100%; max-width: unset; }
+
+  /* BM Proyek table */
+  .bm-app #pg-proyek .fr { flex-wrap: wrap; gap: 6px; }
+  .bm-app #pg-proyek .fr select { flex: 1; min-width: 120px; }
+  .bm-app #pg-proyek .fr input { width: 100%; }
+  .bm-app #pg-proyek .fr button { width: 100%; justify-content: center; }
+
+  /* BM Detail row: single column */
+  #bm-pages [style*="grid-template-columns:1fr 1fr"] {
+    display: block !important;
+  }
+  #bm-pages [style*="grid-template-columns:1fr 1fr"] > div:first-child {
+    border-right: none !important;
+    padding-right: 0 !important;
+    border-bottom: 1px solid #e0ddd5;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+  }
+  #bm-pages [style*="grid-template-columns:1fr 1fr"] > div:last-child {
+    padding-left: 0 !important;
+  }
+
+  /* BM Detail map */
+  #bm-pages [id^="bm-detail-map-"] { height: 220px !important; }
+  #bm-pages [id^="bm-map-wrap-"]   { height: 220px !important; }
+
+  /* BM Edit bar */
+  .bm-app .det-edit-bar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+
+  /* BM Cards in general */
+  .bm-app .card { padding: 12px !important; }
+  .bm-app .ph   { padding: 12px 4px 10px; }
+  .bm-app .ph h2 { font-size: 18px; }
+
+  /* BM Personil */
+  .bm-app .pk-item { flex-wrap: wrap; }
+
+  /* BM Login modal */
+  .bm-modal-card { padding: 24px 18px; margin: 12px; }
+}
+
+@media(max-width:400px) {
+  .bm-app .mg { grid-template-columns: 1fr 1fr !important; }
+  .bm-app .dana-cards { grid-template-columns: 1fr 1fr !important; }
+  .bm-app .ni { padding: 6px 10px !important; font-size: 9px !important; }
+}
+
 </style>
 </head>
 <body>
@@ -850,8 +1092,8 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 </g>
 </svg></div>
     <div class="nav-brand-text">
-      <div class="t1">BIDANG BINA MARGA</div>
-      <div class="t2">DPUPR Kabupaten Karanganyar</div>
+      <div class="t1">DPUPR Kab. Karanganyar</div>
+      <div class="t2">Sistem Informasi Jalan & Jembatan</div>
     </div>
   </a>
   <div class="nav-tabs">
@@ -964,7 +1206,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   <footer class="footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <div class="fb-name">Bina Marga Kabupaten Karanganyar</div>
+        <div class="fb-name">DPUPR Kabupaten Karanganyar</div>
         <div class="fb-desc">Sistem informasi database jalan Kabupaten Karanganyar · Data Dasar (DD) 2025</div>
       </div>
       <div class="footer-section">
@@ -975,12 +1217,12 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       </div>
       <div class="footer-section">
         <h4>Hubungi Kami</h4>
-        <a>✉ binamarga@karanganyarkab.go.id</a>
-        <a>📞 (0271) 495010</a>
+        <a>✉ dpupr@karanganyarkab.go.id</a>
+        <a>📞 (0271) 495007</a>
       </div>
     </div>
   </footer>
-  <div class="footer-bottom">Hak Cipta © 2026 BM Dinas Pekerjaan Umum dan Perumahan Rakyat Kabupaten Karanganyar</div>
+  <div class="footer-bottom">Hak Cipta © 2025 Dinas Pekerjaan Umum dan Perumahan Rakyat Kabupaten Karanganyar</div>
 </div>
 
 <!-- ===== PAGE: PETA ===== -->
@@ -1041,7 +1283,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       </div>
     </div>
     <div style="overflow-x:auto;">
-      <table class="data-table">
+      <table class="jalan-table" class="data-table">
         <thead>
           <tr>
             <th onclick="sortTable('no')">NO RUAS <span class="sort-icon" id="sort-no">↕</span></th>
@@ -1112,7 +1354,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   <footer class="footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <div class="fb-name">Bina Marga Kabupaten Karanganyar</div>
+        <div class="fb-name">DPUPR Kabupaten Karanganyar</div>
         <div class="fb-desc">Sistem informasi database jalan Kabupaten Karanganyar · Data Dasar (DD) 2025</div>
       </div>
       <div class="footer-section">
@@ -1123,12 +1365,12 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       </div>
       <div class="footer-section">
         <h4>Hubungi Kami</h4>
-        <a>✉ binamarga@karanganyarkab.go.id</a>
-        <a>📞 (0271) 495010</a>
+        <a>✉ dpupr@karanganyarkab.go.id</a>
+        <a>📞 (0271) 495007</a>
       </div>
     </div>
   </footer>
-  <div class="footer-bottom">Hak Cipta © 2026 BM Dinas Pekerjaan Umum dan Perumahan Rakyat Kabupaten Karanganyar</div>
+  <div class="footer-bottom">Hak Cipta © 2025 Dinas Pekerjaan Umum dan Perumahan Rakyat Kabupaten Karanganyar</div>
 </div>
 
 
@@ -1231,8 +1473,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
     <div class="tw"><table style="table-layout:fixed;width:100%"><thead><tr>
       <th style="width:52px">NO</th>
       <th>NAMA PAKET PEKERJAAN</th>
-      <th style="width:130px">FISIK</th>
-      <th style="width:80px"></th>
+      <th style="width:150px">FISIK</th>
     </tr></thead><tbody id="tb"></tbody></table></div>
   </div>
 </div>
@@ -2406,26 +2647,31 @@ function fp() {
 }
 
 function bRow(d) {
-  var fp2 = Math.min(100, Math.max(0, d.fisik));
-  var bc  = fp2>=80?'g':fp2<30?'r':'';
+  var fp2  = Math.min(100, Math.max(0, d.fisik));
+  var bc   = fp2>=80?'g':fp2<30?'r':'';
   var open = openRow===d.no;
-  var h = '<tr style="'+(open?'background:var(--bluL)':'')+'">'
-    +'<td style="color:var(--txt2);font-size:12px;text-align:center;padding:10px 8px">'+d.no+'</td>'
-    +'<td style="padding:10px 12px">'
-    +  '<div style="font-size:13px;font-weight:500;color:var(--txt);line-height:1.4;margin-bottom:3px">'+esc(d.nama)+'</div>'
-    +  '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+  var pctColor = bc==='g'?'var(--green)':bc==='r'?'var(--red)':'var(--blue)';
+  var chevron  = '<span style="font-size:9px;color:var(--txt3);margin-left:6px;display:inline-block;'
+    +'transform:'+(open?'rotate(180deg)':'rotate(0)')+';transition:transform .2s">&#x25BC;</span>';
+  var trStyle  = 'cursor:pointer;user-select:none;'+(open?'background:var(--bluL);':'');
+  var h = '<tr style="'+trStyle+'" onclick="tog('+d.no+')">'
+    +'<td style="color:var(--txt2);font-size:12px;text-align:center;padding:12px 8px">'+d.no+'</td>'
+    +'<td style="padding:12px 14px">'
+    +  '<div style="font-size:13px;font-weight:500;color:var(--txt);line-height:1.4;margin-bottom:3px">'
+    +    esc(d.nama)+chevron
+    +  '</div>'
+    +  '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:3px">'
     +    '<span class="bd '+(DC[d.dana]||'dak')+'">'+d.dana+'</span>'
     +    '<span style="font-size:11px;color:var(--txt3)">'+fv(d.lokasi)+'</span>'
     +  '</div>'
     +'</td>'
-    +'<td style="padding:10px 12px;white-space:nowrap">'
+    +'<td style="padding:12px 14px;white-space:nowrap">'
     +  '<div style="display:flex;align-items:center;gap:8px">'
-    +    '<div class="pgw" style="flex:1;min-width:60px;max-width:100px"><div class="pgb '+bc+'" style="width:'+fp2+'%"></div></div>'
-    +    '<span style="font-size:12px;font-weight:600;color:'+(bc==='g'?'var(--green)':bc==='r'?'var(--red)':'var(--blue)')+'">'+d.fisik.toFixed(1)+'%</span>'
+    +    '<div class="pgw" style="flex:1;min-width:60px;max-width:110px">'
+    +      '<div class="pgb '+bc+'" style="width:'+fp2+'%"></div>'
+    +    '</div>'
+    +    '<span style="font-size:12px;font-weight:700;min-width:40px;text-align:right;color:'+pctColor+'">'+d.fisik.toFixed(1)+'%</span>'
     +  '</div>'
-    +'</td>'
-    +'<td style="padding:10px 8px;text-align:center">'
-    +  '<button class="btn btn-sm'+(open?' btn-p':'')+'" onclick="tog('+d.no+')">'+(open?'✕ Tutup':'Detail')+'</button>'
     +'</td>'
     +'</tr>';
   if (open) h += detailRow(d);
@@ -2461,7 +2707,7 @@ function detailRow(d) {
     return '<div class="det-item"><div class="det-label">'+label+'</div><div class="det-val">'+val+'</div></div>';
   }
 
-  var s = '<tr id="'+rowId+'"><td colspan="4" style="padding:0">'
+  var s = '<tr id="'+rowId+'"><td colspan="3" style="padding:0">'
     +'<div style="background:var(--surf2)">';
 
   // ── Edit bar (top) ───────────────────────────────────────
@@ -2727,11 +2973,16 @@ function refreshPersItem(no){
       if(nb)nb.classList.add('open');if(nc)nc.classList.add('open');}}
 }
 function loadAllSK(){
-  if(!PERS.length)return;
+  if(!PERS.length){ rPersonil(); return; }
   window._skCache={};
+  var pending = PERS.length;
   PERS.forEach(function(p){
-    fbGetSK(p.no,function(url){
-      window._skCache[p.no]=url||'';
+    fbGetSK(p.no, function(url){
+      window._skCache[p.no] = url||'';
+      pending--;
+      if(pending <= 0) {
+        rPersonil(); // render after ALL sk links fetched
+      }
     });
   });
 }
@@ -2793,7 +3044,7 @@ function saveEdit(){
 function loadAdminUsers(){
   var tb=document.getElementById('users-tbody');
   if(!tb)return;
-  tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:16px">Memuat…</td></tr>';
+  tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--txt3);padding:16px">Memuat…</td></tr>';
   fbLoadUsers(function(users){
     if(!users.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:16px">Belum ada pengguna terdaftar.</td></tr>';return;}
     tb.innerHTML=users.map(function(u){
@@ -2944,8 +3195,7 @@ window.addEventListener("DOMContentLoaded", function() {
       fbEnsureUserDoc(user);
       fbLoadPersonil(function(arr) {
         PERS = arr.length ? arr : SEED.personil;
-        loadAllSK();
-        rPersonil();
+        loadAllSK(); // will call rPersonil() after all SK links loaded
       });
     }
   });
