@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIJAKA — Sistem Informasi Jalan Kabupaten Karanganyar</title>
+<title>Bina Marga Karanganyar</title>
 
 <!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -765,6 +765,14 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 @media(max-width:900px){.bm-app .dana-cards{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.bm-app .dana-cards{grid-template-columns:1fr}}
 
+
+/* ── BM Detail row map & two-col layout ── */
+.bm-app .det-two-col { display:grid; grid-template-columns:1fr 1fr; gap:0; padding:14px 16px; }
+@media(max-width:900px) {
+  .bm-app .det-two-col { grid-template-columns:1fr; }
+  .bm-app .det-two-col > div:first-child { border-right:none; border-bottom:1px solid var(--bdr); padding-right:0; padding-bottom:14px; margin-bottom:14px; }
+  .bm-app .det-two-col > div:last-child  { padding-left:0; }
+}
 </style>
 </head>
 <body>
@@ -888,8 +896,8 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   <footer class="footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <div class="fb-name">DPUPR Kabupaten Karanganyar</div>
-        <div class="fb-desc">Sistem informasi database jalan Kabupaten Karanganyar · Data Dasar (DD) 2025</div>
+        <div class="fb-name">BINA MARGA</div>
+        <div class="fb-desc">DPUPR Kabupaten Karanganyar </div>
       </div>
       <div class="footer-section">
         <h4>Alamat</h4>
@@ -899,12 +907,12 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       </div>
       <div class="footer-section">
         <h4>Hubungi Kami</h4>
-        <a>✉ dpupr@karanganyarkab.go.id</a>
-        <a>📞 (0271) 495007</a>
+        <a>✉ Binamarga@karanganyarkab.go.id</a>
+        <a>📞 (0271) 495010</a>
       </div>
     </div>
   </footer>
-  <div class="footer-bottom">Hak Cipta © 2025 Dinas Pekerjaan Umum dan Perumahan Rakyat Kabupaten Karanganyar</div>
+  <div class="footer-bottom">Hak Cipta © 2026 BM Dinas Pekerjaan Umum dan Perumahan Rakyat Kabupaten Karanganyar</div>
 </div>
 
 <!-- ===== PAGE: PETA ===== -->
@@ -2112,15 +2120,15 @@ function commitEdit(no) {
   // Recalculate pctReal
   d.pctReal = d.kontrak > 0 ? parseFloat((d.realisasi/d.kontrak*100).toFixed(1)) : 0;
 
-  // Show saving state
-  var msgEl = document.getElementById('editmsg_'+no);
-  if (msgEl) msgEl.textContent = 'Menyimpan…';
+  // Exit edit mode immediately — re-render with updated data
+  editRow = null;
+  editSnapshot = null;
+  fp(); // re-render now (inputs gone, view mode shown with new values)
 
+  // Then persist to Firebase in background
   fbSaveProject(d, function() {
-    editRow = null;
-    editSnapshot = null;
     toast('✅ Data Ruas '+d.noRuas+' berhasil disimpan');
-    fp();
+    rMetrics(); // update dashboard cards too
   });
 }
 var DC   = {DAK:'dak', DAU:'dau', Bankeu:'bnk', Hibah:'hib'};
@@ -2190,6 +2198,76 @@ function rDanaCards() {
       +'</div>';
   }).join('');
 }
+
+// ── BM Detail Map (inline in Daftar Proyek row) ──────────
+var _bmDetailMaps = {}; // cache: paket_no -> L.map instance
+
+function initBmDetailMap(paketNo, noRuas) {
+  var containerId = 'bm-detail-map-' + paketNo;
+  var el = document.getElementById(containerId);
+  if (!el) return;
+
+  // Destroy previous instance for this paket if any
+  if (_bmDetailMaps[paketNo]) {
+    try { _bmDetailMaps[paketNo].remove(); } catch(e){}
+    _bmDetailMaps[paketNo] = null;
+  }
+
+  var map = L.map(el, { preferCanvas: true, zoomControl: true });
+  _bmDetailMaps[paketNo] = map;
+
+  // Tile layers
+  var gmR = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    {attribution:'© Google', maxZoom:20});
+  var gmH = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    {attribution:'© Google Hybrid', maxZoom:20});
+  var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {attribution:'© OSM', maxZoom:19});
+  gmR.addTo(map);
+  L.control.layers(
+    {'Google Jalan':gmR, 'Google Hybrid':gmH, 'OpenStreetMap':osm},
+    {}, {position:'topright'}
+  ).addTo(map);
+
+  // Look up road in RD by noRuas
+  var noRuasStr = String(noRuas||'').trim();
+  var rd = null;
+  if (noRuasStr && typeof RD !== 'undefined') {
+    rd = RD.find(function(r){ return String(r.no) === noRuasStr; });
+  }
+
+  if (rd && rd.coords && rd.coords.length > 1) {
+    // Draw polyline — use green to indicate Bina Marga project
+    var pl = L.polyline(rd.coords, {color:'#2e7d32', weight:5, opacity:.9});
+    pl.addTo(map);
+    // Start/end markers
+    var startPt = rd.coords[0];
+    var endPt   = rd.coords[rd.coords.length - 1];
+    L.circleMarker(startPt, {radius:7, color:'#fff', fillColor:'#2e7d32',
+      fillOpacity:1, weight:2}).bindTooltip('Awal Ruas').addTo(map);
+    L.circleMarker(endPt,   {radius:7, color:'#fff', fillColor:'#185FA5',
+      fillOpacity:1, weight:2}).bindTooltip('Akhir Ruas').addTo(map);
+    map.fitBounds(pl.getBounds(), {padding:[30,30]});
+  } else if (rd && rd.lat && rd.lng) {
+    map.setView([rd.lat, rd.lng], 15);
+    L.marker([rd.lat, rd.lng]).addTo(map);
+  } else {
+    // No coords — show message overlay
+    map.setView([-7.6, 110.95], 11);
+    var info = L.control({position:'topright'});
+    info.onAdd = function() {
+      var d = L.DomUtil.create('div');
+      d.style.cssText = 'background:rgba(255,255,255,.9);padding:8px 12px;border-radius:6px;font-size:12px;color:#636360';
+      d.textContent = 'Koordinat ruas tidak ditemukan';
+      return d;
+    };
+    info.addTo(map);
+  }
+
+  // Force resize after render
+  setTimeout(function(){ map.invalidateSize(); }, 50);
+}
+
 
 // ── Dashboard progress bars ───────────────────────────────
 function rDashboard() {
@@ -2269,156 +2347,152 @@ function bRow(d) {
 }
 
 function detailRow(d) {
-  var isEdit = editRow === d.no;
-  var canEdit   = can('canEdit');
-  var isAdmin   = CURRENT_ROLE === 'admin';
-  // Helpers: render view or input
+  var isEdit  = editRow === d.no;
+  var canEdit = can('canEdit');
+  var isAdmin = CURRENT_ROLE === 'admin';
+  var rowId   = 'dr_' + d.no;
+
+  // ── Helpers ─────────────────────────────────────────────
   function vOrI(field, val, type) {
     if (!isEdit || !canEdit) return fv(val);
     type = type || 'text';
-    var strVal = (val===undefined||val===null)?'':String(val);
-    return '<input class="det-edit-input" type="'+type+'" id="ei_'+field+'_'+d.no+'" value="'+esc(strVal)+'">';
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="'+type+'" id="ei_'+field+'_'+d.no+'" value="'+esc(sv)+'">';
   }
-  function vOrN(field, val) { // numeric
+  function vOrN(field, val) {
     if (!isEdit || !canEdit) return rp(val);
-    var numVal = (val===undefined||val===null)?'':String(val);
-    return '<input class="det-edit-input" type="number" id="ei_'+field+'_'+d.no+'" value="'+esc(numVal)+'" step="any">';
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="number" id="ei_'+field+'_'+d.no+'" value="'+esc(sv)+'" step="any">';
   }
-  function vOrSel(field, val, options) {
-    if (!isEdit || !canEdit) return fv(val);
-    var opts = options.map(function(o){
-      return '<option value="'+esc(o)+'"'+(String(val)===o?' selected':'')+'>'+o+'</option>';
-    }).join('');
-    return '<select class="det-edit-select" id="ei_'+field+'_'+d.no+'">'+opts+'</select>';
-  }
-  function vOrIA(field, val, type) { // admin only
+  function vOrIA(field, val) {
     if (!isEdit || !isAdmin) {
-      if (val) return '<span class="role-chip '+getRoleChipClass(field)+'">'+esc(String(val))+'</span>';
-      return '&mdash;';
+      return val ? '<span class="role-chip role-'+field.replace(/\d/g,'')+'">'+esc(String(val))+'</span>' : '&mdash;';
     }
-    var strVal = (val===undefined||val===null)?'':String(val);
-    return '<input class="det-edit-input" type="'+(type||'text')+'" id="ei_'+field+'_'+d.no+'" value="'+esc(strVal)+'">';
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="text" id="ei_'+field+'_'+d.no+'" value="'+esc(sv)+'">';
   }
-  function getRoleChipClass(f) {
-    var m={'ppk':'role-ppk','pptk':'role-pptk','staf':'role-staf','ketua':'role-ketua','sekretaris':'role-sekretaris'};
-    return m[f]||'role-anggota';
+  function di(label, val) {
+    return '<div class="det-item"><div class="det-label">'+label+'</div><div class="det-val">'+val+'</div></div>';
   }
 
-  var s = '<tr><td colspan="9" style="padding:0">'
+  var s = '<tr id="'+rowId+'"><td colspan="9" style="padding:0">'
     +'<div style="background:var(--surf2)">';
 
-  // ── Edit bar (top) ──
+  // ── Edit bar (top) ───────────────────────────────────────
   if (canEdit) {
     if (isEdit) {
       s += '<div class="det-edit-bar">'
-        +'<span>✏️ Mode Edit — Ruas '+esc(fv(d.noRuas))+'</span>'
-        +'<div class="det-edit-actions">'
-        +'</div></div>';
+        +'<span>✏️ Mode Edit &mdash; '+esc(d.nama)+'</span>'
+        +'</div>';
     } else {
       s += '<div class="det-edit-bar" style="background:var(--surf2);border-bottom-color:var(--bdr)">'
-        +'<span style="color:var(--txt2)">Ruas '+esc(fv(d.noRuas))+' — '+esc(d.nama)+'</span>'
+        +'<span style="color:var(--txt2)">Ruas '+esc(fv(d.noRuas))+' &mdash; '+esc(d.nama)+'</span>'
         +'<button class="btn btn-sm btn-p" onclick="startEdit('+d.no+')">✏️ Edit</button>'
         +'</div>';
     }
   }
 
-  s += '<div style="padding:14px 16px">';
+  // ── Peta mini ────────────────────────────────────────────
+  s += '<div id="bm-map-wrap-'+d.no+'" style="width:100%;height:320px;position:relative;border-bottom:1px solid var(--bdr)">'
+    +'<div id="bm-detail-map-'+d.no+'" style="width:100%;height:100%"></div>'
+    +'</div>';
 
-  // ── Identitas Paket ──
+  // ── Detail content (two columns) ─────────────────────────
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;padding:14px 16px">';
+
+  // LEFT COLUMN
+  s += '<div style="padding-right:16px;border-right:1px solid var(--bdr)">';
+
   s += sec('📋 Identitas Paket');
   s += '<div class="det-grid">'
-    +'<div class="det-item"><div class="det-label">No. Paket</div><div class="det-val">'+fv(d.no)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">No. Ruas</div><div class="det-val">'+fv(d.noRuas)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Sumber Dana</div><div class="det-val">'+fv(d.dana)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Lokasi</div><div class="det-val">'+vOrI('lokasi',d.lokasi)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Lebar &times; Panjang</div><div class="det-val">'+vOrI('lebarPanjang',d.lebarPanjang)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Jenis Infrastruktur</div><div class="det-val">'+vOrI('jenisInfra',d.jenisInfra)+'</div></div>'
+    +di('No. Paket', fv(d.no))
+    +di('No. Ruas',  fv(d.noRuas))
+    +di('Sumber Dana', fv(d.dana))
+    +di('Lokasi', vOrI('lokasi',d.lokasi))
+    +di('Lebar &times; Panjang', vOrI('lebarPanjang',d.lebarPanjang))
+    +di('Jenis Infrastruktur', vOrI('jenisInfra',d.jenisInfra))
     +'</div>';
 
-  // ── Anggaran ──
   s += sec('💰 Anggaran');
   s += '<div class="det-grid">'
-    +'<div class="det-item"><div class="det-label">Nilai Pagu APBD-P</div><div class="det-val">'+vOrN('pagu',d.pagu)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Nilai HPS (Rp)</div><div class="det-val">'+vOrN('hps',d.hps)+'</div></div>'
+    +di('Nilai Pagu APBD-P', vOrN('pagu',d.pagu))
+    +di('Nilai HPS (Rp)', vOrN('hps',d.hps))
     +'</div>';
 
-  // ── Kontrak / Surat Pesanan ──
   s += sec('📜 Kontrak / Surat Pesanan');
   s += '<div class="det-grid">'
-    +'<div class="det-item"><div class="det-label">Pelaksana / Penyedia Jasa</div><div class="det-val">'+vOrIA('penyedia',d.penyedia)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Nomor Kontrak</div><div class="det-val">'+vOrI('noKontrak',d.noKontrak)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tanggal Kontrak</div><div class="det-val">'+vOrI('tglKontrak',d.tglKontrak,'date')+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Nilai Kontrak (Rp)</div><div class="det-val">'+vOrN('kontrak',d.kontrak)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Add Kontrak + 10%</div><div class="det-val">'+vOrN('addKontrak10',d.addKontrak10)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Metode Pengadaan</div><div class="det-val">'+vOrI('metode',d.metode)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Jenis Kontrak</div><div class="det-val">'+vOrI('jenisKontrak',d.jenisKontrak)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Jenis Belanja</div><div class="det-val">'+vOrI('jenisBelanja',d.jenisBelanja)+'</div></div>'
+    +di('Pelaksana / Penyedia Jasa', vOrIA('penyedia',d.penyedia))
+    +di('Nomor Kontrak', vOrI('noKontrak',d.noKontrak))
+    +di('Tanggal Kontrak', vOrI('tglKontrak',d.tglKontrak,'date'))
+    +di('Nilai Kontrak (Rp)', vOrN('kontrak',d.kontrak))
+    +di('Add Kontrak + 10%', vOrN('addKontrak10',d.addKontrak10))
+    +di('Metode Pengadaan', vOrI('metode',d.metode))
+    +di('Jenis Kontrak', vOrI('jenisKontrak',d.jenisKontrak))
+    +di('Jenis Belanja', vOrI('jenisBelanja',d.jenisBelanja))
     +'</div>';
 
-  // ── Addendum ──
   s += sec('📝 Addendum Terakhir');
   s += '<div class="det-grid">'
-    +'<div class="det-item"><div class="det-label">Addendum Ke-</div><div class="det-val">'+vOrI('addKe',d.addKe)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Nomor Addendum</div><div class="det-val">'+vOrI('noAdd',d.noAdd)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tanggal Addendum</div><div class="det-val">'+vOrI('tglAdd',d.tglAdd,'date')+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Nilai Kontrak Addendum</div><div class="det-val">'+vOrN('nilaiAdd',d.nilaiAdd)+'</div></div>'
+    +di('Addendum Ke-', vOrI('addKe',d.addKe))
+    +di('Nomor Addendum', vOrI('noAdd',d.noAdd))
+    +di('Tanggal Addendum', vOrI('tglAdd',d.tglAdd,'date'))
+    +di('Nilai Kontrak Addendum', vOrN('nilaiAdd',d.nilaiAdd))
     +'</div>';
 
-  // ── Jangka Waktu ──
+  s += '</div>'; // end left col
+
+  // RIGHT COLUMN
+  s += '<div style="padding-left:16px">';
+
   s += sec('📅 Jangka Waktu Kontrak');
   s += '<div class="det-grid">'
-    +'<div class="det-item"><div class="det-label">Jangka Waktu (Hari)</div><div class="det-val">'+vOrI('jaWaktu',d.jaWaktu,'number')+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tanggal Mulai</div><div class="det-val">'+vOrI('mulai',d.mulai,'date')+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tanggal Selesai</div><div class="det-val">'+vOrI('selesai',d.selesai,'date')+'</div></div>'
+    +di('Jangka Waktu (Hari)', vOrI('jaWaktu',d.jaWaktu,'number'))
+    +di('Tanggal Mulai', vOrI('mulai',d.mulai,'date'))
+    +di('Tanggal Selesai', vOrI('selesai',d.selesai,'date'))
     +'</div>';
 
-  // ── PHO / BAST ──
   s += sec('✅ PHO / BAST');
   s += '<div class="det-grid">'
     +'<div class="det-item"><div class="det-label">Status PHO</div><div class="det-val">'
-    +(isEdit&&canEdit
+    +(isEdit && canEdit
       ? '<select class="det-edit-select" id="ei_pho_'+d.no+'"><option value="Sudah"'+(d.pho==='Sudah'?' selected':'')+'>Sudah</option><option value="Belum"'+(d.pho!=='Sudah'?' selected':'')+'>Belum</option></select>'
       : '<span class="bd '+(d.pho==='Sudah'?'ok':'bl')+'">'+d.pho+'</span>')
     +'</div></div>'
-    +'<div class="det-item"><div class="det-label">Nomor PHO/BAST</div><div class="det-val">'+vOrI('noPho',d.noPho)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tanggal PHO/BAST</div><div class="det-val">'+vOrI('tglPho',d.tglPho,'date')+'</div></div>'
+    +di('Nomor PHO/BAST', vOrI('noPho',d.noPho))
+    +di('Tanggal PHO/BAST', vOrI('tglPho',d.tglPho,'date'))
     +'</div>';
 
-  // ── Progres & Realisasi ──
   s += sec('📊 Progres &amp; Realisasi');
   s += '<div class="det-grid">'
     +'<div class="det-item"><div class="det-label">Prestasi Fisik (%)</div><div class="det-val">'
-    +(isEdit&&canEdit
+    +(isEdit && canEdit
       ? '<input class="det-edit-input" type="number" id="ei_fisik_'+d.no+'" value="'+d.fisik+'" step="0.1">'
       : '<strong style="color:var(--blue)">'+d.fisik.toFixed(1)+'%</strong>')
     +'</div></div>'
     +'<div class="det-item"><div class="det-label">Realisasi Pembayaran</div><div class="det-val">'
-    +(isEdit&&canEdit
+    +(isEdit && canEdit
       ? '<input class="det-edit-input" type="number" id="ei_realisasi_'+d.no+'" value="'+d.realisasi+'" step="any">'
       : '<strong>'+rp(d.realisasi)+'</strong>')
     +'</div></div>'
-    +'<div class="det-item"><div class="det-label">% thd Kontrak</div><div class="det-val">'
-    +'<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong>'
-    +'<span style="font-size:10px;color:var(--txt3);margin-left:6px">(dihitung otomatis)</span>'
-    +'</div></div>'
+    +di('% thd Kontrak', '<strong style="color:var(--green)">'+d.pctReal.toFixed(1)+'%</strong><span style="font-size:10px;color:var(--txt3);margin-left:4px">(otomatis)</span>')
     +'</div>';
 
-  // ── Pelaksana & Tim Teknis ──
   s += sec('👤 Pelaksana &amp; Tim Teknis');
   s += '<div class="det-grid">'
-    +'<div class="det-item"><div class="det-label">PPK</div><div class="det-val">'+vOrIA('ppk',d.ppk)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">PPTK</div><div class="det-val">'+vOrIA('pptk',d.pptk)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Staf/Pengawas Teknis</div><div class="det-val">'+vOrIA('staf',d.staf)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tim Teknis Ketua</div><div class="det-val">'+vOrIA('ketua',d.ketua)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tim Teknis Sekretaris</div><div class="det-val">'+vOrIA('sekretaris',d.sekretaris)+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tim Teknis Anggota 1</div><div class="det-val">'+vOrIA('anggota0',(d.anggota&&d.anggota[0])||'')+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tim Teknis Anggota 2</div><div class="det-val">'+vOrIA('anggota1',(d.anggota&&d.anggota[1])||'')+'</div></div>'
-    +'<div class="det-item"><div class="det-label">Tim Teknis Anggota 3</div><div class="det-val">'+vOrIA('anggota2',(d.anggota&&d.anggota[2])||'')+'</div></div>'
+    +di('PPK', vOrIA('ppk',d.ppk))
+    +di('PPTK', vOrIA('pptk',d.pptk))
+    +di('Staf/Pengawas Teknis', vOrIA('staf',d.staf))
+    +di('Tim Teknis Ketua', vOrIA('ketua',d.ketua))
+    +di('Tim Teknis Sekretaris', vOrIA('sekretaris',d.sekretaris))
+    +di('Tim Teknis Anggota 1', vOrIA('anggota0',(d.anggota&&d.anggota[0])||''))
+    +di('Tim Teknis Anggota 2', vOrIA('anggota1',(d.anggota&&d.anggota[1])||''))
+    +di('Tim Teknis Anggota 3', vOrIA('anggota2',(d.anggota&&d.anggota[2])||''))
     +'</div>';
 
-  s += '</div>'; // end padding div
+  s += '</div>'; // end right col
+  s += '</div>'; // end grid
 
-  // ── Save / Cancel bar (bottom, edit mode only) ──
+  // ── Save / Cancel bar (bottom, edit mode only) ──────────
   if (isEdit && canEdit) {
     s += '<div class="det-save-bar">'
       +'<button class="btn btn-g" onclick="commitEdit('+d.no+')">💾 Selesai Edit</button>'
@@ -2428,11 +2502,25 @@ function detailRow(d) {
   }
 
   s += '</div></td></tr>';
+
+  // Schedule map init after DOM insert
+  s += '<script>setTimeout(function(){initBmDetailMap('+d.no+','+JSON.stringify(d.noRuas)+')},120);<\/script>';
+
   return s;
 }
 function sec(t){return '<div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;margin-top:10px;border-bottom:1px solid var(--bdr);margin-bottom:8px">'+t+'</div>';}
 function di(l,v){return '<div class="det-item"><div class="det-label">'+l+'</div><div class="det-val">'+v+'</div></div>';}
-function tog(no){openRow=openRow===no?null:no;fp();}
+function tog(no) {
+  // Destroy BM detail map for this row if closing
+  if (openRow === no && _bmDetailMaps && _bmDetailMaps[no]) {
+    try { _bmDetailMaps[no].remove(); } catch(e){}
+    _bmDetailMaps[no] = null;
+  }
+  openRow = openRow === no ? null : no;
+  editRow = null; // cancel any active edit when closing row
+  editSnapshot = null;
+  fp();
+}
 function fv(v){return(v===undefined||v===null||v===''||v==='0'||v===0)?'&mdash;':esc(String(v));}
 function rp(v){if(!v&&v!==0)return'&mdash;';return'Rp '+Number(v).toLocaleString('id-ID');}
 
