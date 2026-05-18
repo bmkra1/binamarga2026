@@ -797,12 +797,31 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 
 /* ── Navbar mobile — hamburger approach ──────────────────── */
 @media(max-width:768px) {
+  .navbar {
+    padding: 0 14px;
+    height: 56px;
+    flex-wrap: nowrap;
+  }
+  .nav-brand { flex: 1; min-width: 0; margin-right: 0; }
+  .nav-brand-text .t1 { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav-brand-text .t2 { display: none; }
+  /* Hide desktop tabs + login buttons */
+  .nav-tabs { display: none !important; }
+  .navbar > div:last-of-type { display: none !important; }
+  /* Show hamburger at far right */
+  #nav-hamburger { display: flex !important; margin-left: auto; flex-shrink: 0; }
+}
+
+/* Hide hamburger on desktop (default) */
+#nav-hamburger { display: none; }
+
+@media(max-width:768px) {
   /* BM layout: konten di atas, nav di bawah */
   #page-binamarga { flex-direction: column !important; }
 
   /* Sidebar → FIXED BOTTOM navigation bar */
   #bm-sidebar {
-    display: flex !important;
+    display: flex;
     flex-direction: row;
     order: 2;
     width: 100% !important;
@@ -916,8 +935,8 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   }
 
   /* BM Detail map */
-  #bm-pages [id^="bm-detail-map-"] { height: 220px !important; }
-  #bm-pages [id^="bm-map-wrap-"]   { height: 220px !important; }
+  #bm-pages [id^="bm-detail-map-"] { height: 200px !important; }
+  #bm-pages [id^="bm-map-wrap-"]   { height: 200px !important; }
 
   /* BM Edit bar */
   .bm-app .det-edit-bar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
@@ -972,16 +991,14 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   .tt-filters { flex-wrap: wrap; gap: 6px; }
   .tt-search input { width: 100% !important; }
   /* Table: hide less important cols, keep NO, NAMA, KONDISI */
+  /* Sembunyikan col 3=KECAMATAN, 4=PANJANG, 5=KONDISI — tampilkan NO RUAS + NAMA + AKSI */
   .data-table th:nth-child(3),
   .data-table td:nth-child(3),
+  .data-table th:nth-child(4),
+  .data-table td:nth-child(4),
   .data-table th:nth-child(5),
-  .data-table td:nth-child(5),
-  .data-table th:nth-child(6),
-  .data-table td:nth-child(6),
-  .data-table th:nth-child(7),
-  .data-table td:nth-child(7) { display: none; }
-  /* Compact table */
-  .data-table th, .data-table td { padding: 8px 8px; font-size: 12px; }
+  .data-table td:nth-child(5) { display: none !important; }
+  .data-table th, .data-table td { padding: 10px 8px; font-size: 13px; }
 }
 
 /* ── Sijaka Detail Jalan ──────────────────────────────────── */
@@ -1341,6 +1358,20 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 /* Print area hidden on screen */
 #ck-print-area { display:none; }
 
+
+/* ── BM page mobile: ensure content fills screen ─────── */
+@media(max-width:768px) {
+  #page-binamarga.active {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: calc(100vh - 56px);
+  }
+  #bm-pages {
+    flex: 1;
+    min-height: 200px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1421,9 +1452,9 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
     <button id="bm-login-btn" onclick="openBmLoginModal()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;color:#fff;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;font-family:inherit" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">🔑 Login</button>
     <button id="bm-logout-btn" onclick="fbLogout()" style="display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:6px;color:rgba(255,255,255,.85);padding:6px 14px;font-size:12px;cursor:pointer;transition:.2s;font-family:inherit" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">Keluar</button>
   </div>
-  <!-- Hamburger button — mobile only -->
+  <!-- Hamburger button — mobile only, hidden via CSS on desktop -->
   <button id="nav-hamburger" onclick="toggleMobileMenu()"
-    style="display:none;margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+    style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
     border-radius:8px;color:#fff;width:40px;height:40px;font-size:20px;cursor:pointer;
     align-items:center;justify-content:center;flex-shrink:0;transition:.2s;line-height:1">
     ☰
@@ -1439,12 +1470,15 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
     <div class="mm-item" onclick="mobileNav('beranda')">🏠 Beranda</div>
     <div class="mm-item" onclick="mobileNav('peta')">📍 Peta</div>
     <div class="mm-item" onclick="mobileNav('jalan')">🛣️ Jalan</div>
-    <div class="mm-item mm-bm" id="mm-binamarga" onclick="mobileNav('binamarga')" style="display:none">🏗️ Bina Marga</div>
+    <div class="mm-item mm-bm" id="mm-binamarga" onclick="mobileNav('binamarga')" style="display:none">🏗️ Kegiatan 2026</div>
     <div style="height:1px;background:rgba(255,255,255,.12);margin:6px 16px"></div>
     <div class="mm-item mm-login" id="mm-login-item" onclick="mobileNav('login')">🔑 Login</div>
     <div class="mm-item mm-logout" id="mm-logout-item" style="display:none">
-      <div id="mm-userinfo" style="font-size:11px;opacity:.7;margin-bottom:2px"></div>
-      <span onclick="fbLogout();closeMobileMenu()">→ Keluar</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span id="mm-userinfo" style="font-size:12px;color:rgba(255,255,255,.8)"></span>
+        <span id="mm-role-badge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.2);color:#fff"></span>
+      </div>
+      <span style="font-size:13px;color:rgba(255,255,255,.65);cursor:pointer" onclick="fbLogout();closeMobileMenu()">→ Keluar</span>
     </div>
   </div>
 </div>
@@ -1757,7 +1791,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 <div class="page bm-app" id="page-binamarga">
 
   <!-- BM Sidebar -->
-  <aside id="bm-sidebar">
+  <aside id="bm-sidebar" style="display:none">
     <div style="padding:14px 14px 12px;border-bottom:1px solid #e0ddd5;flex-shrink:0">
       <div style="font-size:13px;font-weight:700;color:#0C447C;line-height:1.3;font-family:-apple-system,sans-serif">🏗️ KEGIATAN 2026</div>
       <div style="font-size:10px;color:#636360;margin-top:1px;font-family:-apple-system,sans-serif">Bidang &mdash; Bina Marga</div>
@@ -2289,6 +2323,9 @@ function openMobileMenu() {
     if (loginItem)  loginItem.style.display  = 'none';
     if (logoutItem) logoutItem.style.display = 'flex';
     if (uinfo) uinfo.textContent = CURRENT_USER.email || '';
+    // Show role badge
+    var roleBadge = document.getElementById('mm-role-badge');
+    if (roleBadge) roleBadge.textContent = CURRENT_ROLE || 'viewer';
   } else {
     if (loginItem)  loginItem.style.display  = '';
     if (logoutItem) logoutItem.style.display = 'none';
@@ -2350,6 +2387,9 @@ hideBmTab = function() {
   _origHideBmTab();
   var bmItem = document.getElementById('mm-binamarga');
   if (bmItem) bmItem.style.display = 'none';
+  // Hide mobile sidebar (bottom nav) when logged out
+  var sidebar = document.getElementById('bm-sidebar');
+  if (sidebar) sidebar.style.display = 'none';
 };
 
 // ===== CHECKLIST ADMINISTRASI =====
@@ -2828,11 +2868,16 @@ function showBmTab() {
   var logoutBtn = document.getElementById('bm-logout-btn');
   if (loginBtn)  loginBtn.style.display  = 'none';
   if (logoutBtn) logoutBtn.style.display = '';
+  // Show mobile sidebar (bottom nav)
+  var sidebar = document.getElementById('bm-sidebar');
+  if (sidebar) sidebar.style.display = '';
   // Navigate to BM tab
   showPage('binamarga');
   // Update email display
   var sfEmail = document.getElementById('sf-email');
   if (sfEmail && CURRENT_USER) sfEmail.textContent = CURRENT_USER.email;
+  // Apply role-based visibility immediately
+  if (typeof applyRoleUI === 'function') applyRoleUI();
 }
 function hideBmTab() {
   var tab = document.getElementById('tab-binamarga');
@@ -3138,14 +3183,20 @@ function applyRoleUI() {
   var canUpload = can('canUpload');
   var isAdmin   = CURRENT_ROLE === 'admin';
 
+  // Use flex for ni items on mobile, empty string for others
+  function _roleDisplay(el, show) {
+    if (!show) { el.style.display = 'none'; return; }
+    // Restore: ni items need 'flex' on mobile
+    el.style.display = el.classList.contains('ni') ? 'flex' : '';
+  }
   document.querySelectorAll('.edit-only').forEach(function(el) {
-    el.style.display = canEdit ? '' : 'none';
+    _roleDisplay(el, canEdit);
   });
   document.querySelectorAll('.upload-only').forEach(function(el) {
-    el.style.display = canUpload ? '' : 'none';
+    _roleDisplay(el, canUpload);
   });
   document.querySelectorAll('.admin-only').forEach(function(el) {
-    el.style.display = isAdmin ? '' : 'none';
+    _roleDisplay(el, isAdmin);
   });
 
   // Update BM sidebar role badge
@@ -3168,6 +3219,10 @@ function applyRoleUI() {
       '<span style="font-size:11px;color:rgba(255,255,255,.75)">' + shortName + '</span>' +
       '<span class="bm-role-pill bm-role-' + (CURRENT_ROLE||'viewer') + '">' + (CURRENT_ROLE||'viewer') + '</span>';
   }
+
+  // Update mobile menu role badge (if menu is open)
+  var mmRoleBadge = document.getElementById('mm-role-badge');
+  if (mmRoleBadge) mmRoleBadge.textContent = CURRENT_ROLE || 'viewer';
 
   // Show/hide BM-specific nav items
   var bmAdminNav = document.getElementById('bm-nav-admin');
@@ -3325,6 +3380,8 @@ function rAll() {
   rPersonil();
   rNotif();
   initEsel();
+  // Ensure role-based visibility after every render
+  if (typeof applyRoleUI === 'function') applyRoleUI();
 }
 
 // ── Metric cards ──────────────────────────────────────────
@@ -3599,7 +3656,7 @@ function detailRow(d) {
   }
 
   // ── Peta mini ────────────────────────────────────────────
-  s += '<div id="bm-map-wrap-'+d.no+'" style="width:100%;height:320px;position:relative;border-bottom:1px solid var(--bdr)">'
+  s += '<div id="bm-map-wrap-'+d.no+'" style="width:100%;height:160px;position:relative;border-bottom:1px solid var(--bdr)">'
     +'<div id="bm-detail-map-'+d.no+'" style="width:100%;height:100%"></div>'
     +'</div>';
 
