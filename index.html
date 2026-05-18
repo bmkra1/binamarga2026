@@ -1928,7 +1928,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       <div class="dropz" id="dz" onclick="document.getElementById('fi').click()" ondrop="onDrop(event)" ondragover="onDov(event)" ondragleave="onDlv(event)">
         <div style="font-size:28px;margin-bottom:7px">&#x1F4C2;</div>
         <div style="font-weight:600;font-size:13px">Klik atau drag &amp; drop file Excel</div>
-        <div style="font-size:11px;margin-top:4px;color:var(--txt3)">Sheet: Rekap / DAK_26 / DAU_26 / Bankeu_26 / Hibah_26 / Personil</div>
+        <div style="font-size:11px;margin-top:4px;color:var(--txt3)">Sheet: Rekap / Personil (check_list diabaikan saat upload)</div>
       </div>
       <input type="file" id="fi" accept=".xlsx" style="display:none" onchange="onFile(event)">
       <div id="umsg" style="margin-top:10px;font-size:12px"></div>
@@ -1937,50 +1937,36 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       <div class="ct">&#x2B07; Download data terkini (.xlsx)</div>
       <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Download Excel berisi data terkini sebagai dasar update berikutnya.</p>
       <button class="btn btn-p" style="width:100%;justify-content:center;padding:10px" onclick="downloadExcel()">&#x1F4E5; Download Excel Data Terkini</button>
-      <div style="margin-top:8px;font-size:11px;color:var(--txt3)">Sheet: Rekap, DAK_26, DAU_26, Bankeu_26, Hibah_26, Personil</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--txt3)">Sheet: Rekap, Personil, check_list</div>
     </div>
   </div>
-  <div class="card">
-    <div class="ct">&#x270F; Edit manual per paket</div>
-    <div class="fr" style="margin-bottom:10px">
-      <select id="esel" onchange="loadEdit()" style="width:100%;max-width:500px"><option value="">Pilih paket pekerjaan...</option></select>
-    </div>
-    <div id="eform" style="display:none">
-      <div class="eg">
-        <div class="fg"><label>Prestasi fisik (%)</label><input type="number" id="ef" min="0" max="100" step="0.1"></div>
-        <div class="fg"><label>Realisasi pembayaran (Rp)</label><input type="number" id="er"></div>
-        <div class="fg"><label>Status PHO</label><select id="ep"><option value="Sudah">Sudah</option><option value="Belum">Belum</option></select></div>
-        <div class="fg"><label>Nomor PHO/BAST</label><input type="text" id="en"></div>
-      </div>
-      <button class="btn btn-g" onclick="saveEdit()">&#x1F4BE; Simpan ke Firebase</button>
-      <span id="sok" style="font-size:11px;color:var(--green);margin-left:8px"></span>
-    </div>
-  </div>
-</div>
 
-<!-- DATA DASAR JALAN SECTION -->
-<div class="card admin-only" id="card-dd-jalan" style="margin-top:16px">
-  <div class="ct">
-    🗺️ Data Dasar Jalan
-    <span style="font-size:9px;background:var(--purL);color:var(--purple);padding:1px 6px;border-radius:8px;margin-left:6px">Admin only</span>
-  </div>
-  <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">
-    Download data atribut jalan terkini (318 ruas) sebagai template. Edit kondisi, panjang, lebar, dll, lalu upload kembali untuk memperbarui tampilan peta dan tabel jalan.
-  </p>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-    <button class="btn btn-p" onclick="ddDownloadExcel()" style="gap:6px">
-      ⬇️ Download Data Dasar Jalan (.xlsx)
-    </button>
-    <button class="btn" onclick="document.getElementById('dd-fi').click()" style="gap:6px">
-      ⬆️ Upload Update Data Jalan (.xlsx)
-    </button>
-    <input type="file" id="dd-fi" accept=".xlsx" style="display:none" onchange="ddUploadExcel(this)">
-  </div>
-  <div id="dd-status" style="font-size:12px;color:var(--txt3);min-height:20px"></div>
-  <div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.7">
-    <strong>Kolom yang bisa diupdate:</strong> Nama Ruas, Kecamatan, Desa, Fungsi, Panjang (km), Lebar (m),
-    Aspal (km), Beton (km), Telford (km), Tanah (km), Baik (km), Sedang (km), RR (km), RB (km), Kondisi, Mantap, Wilayah, UPT.<br>
-    <strong>Tidak diupdate:</strong> No Ruas (key), koordinat peta (tetap dari data awal).
+
+
+  <!-- DATA DASAR JALAN SECTION -->
+  <div class="card admin-only" id="card-dd-jalan" style="margin-top:16px">
+    <div class="ct">
+      🗺️ Data Dasar Jalan
+      <span style="font-size:9px;background:var(--purL);color:var(--purple);padding:1px 6px;border-radius:8px;margin-left:6px">Admin only</span>
+    </div>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">
+      Download data atribut jalan terkini (318 ruas) sebagai template. Edit kondisi, panjang, lebar, dll, lalu upload kembali untuk memperbarui tampilan peta dan tabel jalan.
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn btn-p" onclick="ddDownloadExcel()" style="gap:6px">
+        ⬇️ Download Data Dasar Jalan (.xlsx)
+      </button>
+      <button class="btn" onclick="document.getElementById('dd-fi').click()" style="gap:6px">
+        ⬆️ Upload Update Data Jalan (.xlsx)
+      </button>
+      <input type="file" id="dd-fi" accept=".xlsx" style="display:none" onchange="ddUploadExcel(this)">
+    </div>
+    <div id="dd-status" style="font-size:12px;color:var(--txt3);min-height:20px"></div>
+    <div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.7">
+      <strong>Kolom yang bisa diupdate:</strong> Nama Ruas, Kecamatan, Desa, Fungsi, Panjang (km), Lebar (m),
+      Aspal (km), Beton (km), Telford (km), Tanah (km), Baik (km), Sedang (km), RR (km), RB (km), Kondisi, Mantap, Wilayah, UPT.<br>
+      <strong>Tidak diupdate:</strong> No Ruas (key), koordinat peta (tetap dari data awal).
+    </div>
   </div>
 </div>
 
