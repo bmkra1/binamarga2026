@@ -884,62 +884,85 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   /* BM tab panel: stack vertically */
   #page-binamarga { flex-direction: column !important; }
 
-  /* Sidebar → bottom navigation bar */
+  /* Sidebar → FIXED BOTTOM navigation bar */
+  #page-binamarga { flex-direction: column !important; }
   #bm-sidebar {
     display: flex !important;
     flex-direction: row;
     width: 100% !important;
     min-width: unset !important;
     height: auto !important;
-    position: sticky;
-    top: 96px; /* below navbar (56px) + tabs (40px) */
-    z-index: 100;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto !important;
+    z-index: 200;
     border-right: none !important;
-    border-bottom: 2px solid #e0ddd5;
+    border-top: 1px solid #d0cdc5;
+    border-bottom: none !important;
+    background: #fff !important;
+    box-shadow: 0 -2px 12px rgba(0,0,0,.10);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   #bm-sidebar::-webkit-scrollbar { display: none; }
 
-  /* Hide sidebar header, footer, statusbar on mobile */
+  /* Konten di atas, padding bawah agar tidak tertutup nav */
+  #bm-pages {
+    order: 1;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Hide sidebar header & statusbar */
   #bm-sidebar > div:first-child { display: none; }
   #bm-statusbar { display: none; }
 
-  /* Sidebar nav items → horizontal tabs */
+  /* Nav items → rata merata, ikon + label */
   #bm-sidebar nav {
     display: flex !important;
     flex-direction: row !important;
     padding: 0 !important;
     flex: 1;
     overflow-x: auto;
-    min-width: 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    justify-content: space-around;
   }
+  #bm-sidebar nav::-webkit-scrollbar { display: none; }
   .bm-app .ni {
     display: flex !important;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 2px;
-    padding: 8px 14px !important;
+    padding: 6px 8px !important;
     font-size: 10px !important;
     white-space: nowrap;
-    height: 52px;
+    height: 56px;
+    min-width: 52px;
+    flex: 1;
     border-left: none !important;
-    border-bottom: 3px solid transparent;
+    border-top: 3px solid transparent;
+    border-bottom: none !important;
     border-radius: 0 !important;
     flex-shrink: 0;
+    color: #636360;
+    transition: color .15s, background .15s;
   }
   .bm-app .ni.on {
-    border-bottom: 3px solid var(--blue, #185FA5) !important;
-    background: #f0f6ff !important;
+    border-top: 3px solid #185FA5 !important;
     border-left: none !important;
+    background: #eef4fb !important;
     color: #185FA5 !important;
   }
+  .bm-app .ni:active { background: #e8f0fb !important; }
   .bm-app .ni .ic {
-    font-size: 16px !important;
+    font-size: 18px !important;
     display: block;
-    margin-bottom: 0 !important;
+    margin-bottom: 1px !important;
   }
 
   /* BM pages padding */
