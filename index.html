@@ -4564,7 +4564,7 @@ function parseRows(ws,danaKey){
       jenisKontrak:sv(row[gi('Jenis Kontrak (Harga satuan atau Lumpsum)')]),
       jenisBelanja:sv(row[gi('Jenis Belanja (Belanja Barang dan Jasa, Belanja Modal Gedung dan Bangunan atau Belanja Modal Jalan Irigasi dan Jaringan')]),
       jenisInfra:sv(row[gi('Jenis Infrastruktur (Diisi: Jalan, Irigasi, Jaringan, Gedung atau Bangunan)')]),
-      ppk:sv(row[gi('PPK')]),pptk:sv(row[gi('PPTK')]),staf:sv(row[gi('Staf/Pengawas Taknis')]),
+      ppk:sv(row[gi('PPK')]),pptk:sv(row[gi('PPTK')]),staf:sv(row[gi('Staf/Pengawas')]),
       ketua:sv(row[ki]),sekretaris:sv(row[gi('Tim Teknis Sekretaris')]),anggota:a});
   }
   return result;
@@ -4588,15 +4588,45 @@ function processFile(file){
             newPer.push({no:pno,nama:pnm,nip:sv(prow[ph2.indexOf('NIP')]),pangkat:sv(prow[ph2.indexOf('Pangkat')]),gol:sv(prow[ph2.indexOf('Golongan')]),jabatan:sv(prow[ph2.indexOf('Jabatan')])});}}
       }
       if(!newP.length){msg.innerHTML='<span style="color:var(--red)">&#x274C; Tidak ada data terbaca.</span>';return;}
+      // If no Personil sheet, try to extract unique names from Rekap columns
+      if (newPer.length === 0 && newP.length > 0) {
+        var persMap = {};
+        var persCounter = 1;
+        var roleFields = ['ppk','pptk','staf','ketua','sekretaris'];
+        newP.forEach(function(p) {
+          roleFields.forEach(function(f) {
+            var nm = (p[f]||'').trim();
+            if (nm && nm !== '—' && !persMap[nm]) {
+              persMap[nm] = {no: persCounter++, nama: nm, nip:'', pangkat:'', gol:'', jabatan:''};
+            }
+          });
+          // Also check anggota array
+          (p.anggota||[]).forEach(function(nm) {
+            nm = (nm||'').trim();
+            if (nm && nm !== '—' && !persMap[nm]) {
+              persMap[nm] = {no: persCounter++, nama: nm, nip:'', pangkat:'', gol:'', jabatan:''};
+            }
+          });
+        });
+        newPer = Object.values(persMap);
+      }
       var hasPersonil = newPer.length > 0;
       msg.innerHTML='<span style="color:var(--txt2)">&#x23F3; Mengupload '+newP.length+' paket ke Firebase...</span>';
       fbUploadAll(newP, hasPersonil ? newPer : [], function(){
-        if(hasPersonil) PERS = newPer;
         var persMsg = hasPersonil
           ? newPer.length+' personil diupdate'
           : 'data personil dipertahankan';
         msg.innerHTML='<span style="color:var(--green)">&#x2705; Berhasil! '+newP.length+' paket &amp; '+persMsg+'.</span>';
         toast('Upload Excel berhasil!');
+        // Reload PERS from Firestore so UI reflects latest data
+        fbLoadPersonil(function(arr) {
+          if (arr.length) {
+            PERS = arr;
+          } else if (hasPersonil) {
+            PERS = newPer;
+          }
+          loadAllSK();
+        });
       });
     }catch(err){msg.innerHTML='<span style="color:var(--red)">&#x274C; Gagal: '+esc(err.message)+'</span>';}
   };
