@@ -3616,9 +3616,15 @@ function fbUploadAll(projects, personilArr, cb) {
       .catch(function(e) { toast('Upload gagal: ' + e.message); });
   }
   writeChunk(projects, 'projects', 0, function() {
-    writeChunk(personilArr, 'personil', 0, function() {
+    // Only write personil if array has data (prevents accidental deletion)
+    if (personilArr && personilArr.length > 0) {
+      writeChunk(personilArr, 'personil', 0, function() {
+        if (cb) cb();
+      });
+    } else {
+      // No personil data — skip, preserve existing Firebase personil
       if (cb) cb();
-    });
+    }
   });
 }
 
@@ -4596,10 +4602,14 @@ function processFile(file){
             newPer.push({no:pno,nama:pnm,nip:sv(prow[ph2.indexOf('NIP')]),pangkat:sv(prow[ph2.indexOf('Pangkat')]),gol:sv(prow[ph2.indexOf('Golongan')]),jabatan:sv(prow[ph2.indexOf('Jabatan')])});}}
       }
       if(!newP.length){msg.innerHTML='<span style="color:var(--red)">&#x274C; Tidak ada data terbaca.</span>';return;}
+      var hasPersonil = newPer.length > 0;
       msg.innerHTML='<span style="color:var(--txt2)">&#x23F3; Mengupload '+newP.length+' paket ke Firebase...</span>';
-      fbUploadAll(newP,newPer,function(){
-        PERS=newPer.length?newPer:PERS;
-        msg.innerHTML='<span style="color:var(--green)">&#x2705; Berhasil! '+newP.length+' paket &amp; '+newPer.length+' personil diupload dan tersinkron ke semua pengguna.</span>';
+      fbUploadAll(newP, hasPersonil ? newPer : [], function(){
+        if(hasPersonil) PERS = newPer;
+        var persMsg = hasPersonil
+          ? newPer.length+' personil diupdate'
+          : 'data personil dipertahankan';
+        msg.innerHTML='<span style="color:var(--green)">&#x2705; Berhasil! '+newP.length+' paket &amp; '+persMsg+'.</span>';
         toast('Upload Excel berhasil!');
       });
     }catch(err){msg.innerHTML='<span style="color:var(--red)">&#x274C; Gagal: '+esc(err.message)+'</span>';}
@@ -4651,7 +4661,16 @@ function downloadExcel(){
   });
   XLSX.utils.book_append_sheet(wb, rekapWs, 'Rekap');
 
-  // ── Sheet 2: check_list ──
+  // ── Sheet 2: Personil ──
+  var persHdr = ['No','Nama','NIP','Pangkat','Golongan','Jabatan'];
+  var persRows = (PERS||[]).map(function(p,i){
+    return [p.no||(i+1), p.nama||'', p.nip||'', p.pangkat||'', p.gol||'', p.jabatan||''];
+  });
+  var persWs = XLSX.utils.aoa_to_sheet([persHdr].concat(persRows));
+  persWs['!cols'] = [{wch:5},{wch:30},{wch:20},{wch:20},{wch:10},{wch:25}];
+  XLSX.utils.book_append_sheet(wb, persWs, 'Personil');
+
+  // ── Sheet 3: check_list ──
   var ckRows = ckBuildExcelSheet();
   var ckWs   = XLSX.utils.aoa_to_sheet(ckRows);
   ckWs['!cols'] = [
