@@ -1913,6 +1913,32 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   </div>
 </div>
 
+<!-- DATA DASAR JALAN SECTION -->
+<div class="card admin-only" id="card-dd-jalan" style="margin-top:16px">
+  <div class="ct">
+    🗺️ Data Dasar Jalan
+    <span style="font-size:9px;background:var(--purL);color:var(--purple);padding:1px 6px;border-radius:8px;margin-left:6px">Admin only</span>
+  </div>
+  <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">
+    Download data atribut jalan terkini (318 ruas) sebagai template. Edit kondisi, panjang, lebar, dll, lalu upload kembali untuk memperbarui tampilan peta dan tabel jalan.
+  </p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <button class="btn btn-p" onclick="ddDownloadExcel()" style="gap:6px">
+      ⬇️ Download Data Dasar Jalan (.xlsx)
+    </button>
+    <button class="btn" onclick="document.getElementById('dd-fi').click()" style="gap:6px">
+      ⬆️ Upload Update Data Jalan (.xlsx)
+    </button>
+    <input type="file" id="dd-fi" accept=".xlsx" style="display:none" onchange="ddUploadExcel(this)">
+  </div>
+  <div id="dd-status" style="font-size:12px;color:var(--txt3);min-height:20px"></div>
+  <div style="font-size:11px;color:var(--txt3);margin-top:8px;line-height:1.7">
+    <strong>Kolom yang bisa diupdate:</strong> Nama Ruas, Kecamatan, Desa, Fungsi, Panjang (km), Lebar (m),
+    Aspal (km), Beton (km), Telford (km), Tanah (km), Baik (km), Sedang (km), RR (km), RB (km), Kondisi, Mantap, Wilayah, UPT.<br>
+    <strong>Tidak diupdate:</strong> No Ruas (key), koordinat peta (tetap dari data awal).
+  </div>
+</div>
+
 <!-- ADMIN USERS -->
 <div id="pg-admin" class="pg admin-only">
   <div class="ph"><h2>Manajemen Pengguna</h2><p>Kelola hak akses pengguna yang sudah pernah login</p></div>
@@ -2831,6 +2857,419 @@ function ckBuildExcelSheet() {
 }
 
 
+// ===== EXPORT DETAIL DOCX =====
+function exportDetailDocx(paketNo) {
+  var d = DATA.filter(function(x){ return x.no === paketNo; })[0];
+  if (!d) { toast('Data tidak ditemukan'); return; }
+
+  // ── Helpers ────────────────────────────────────────────
+  function rp2(v) {
+    if (!v && v!==0) return '\u2014';
+    return 'Rp ' + Number(v).toLocaleString('id-ID');
+  }
+  function fv2(v) {
+    if (v===undefined||v===null||v==='') return '\u2014';
+    return String(v);
+  }
+  function pad2(n){ return n<10?'0'+n:String(n); }
+  function tglNow() {
+    var t=new Date();
+    return pad2(t.getDate())+'/'+pad2(t.getMonth()+1)+'/'+t.getFullYear();
+  }
+  function esc2(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Checklist data ─────────────────────────────────────
+  var ckKey  = (d.noRuas && String(d.noRuas).trim()) ? String(d.noRuas).trim() : ('p'+d.no);
+  var ckData = _ckState[ckKey] || {};
+
+  // ── Build rows helper ──────────────────────────────────
+  function secHdr(title) {
+    return '<tr><td colspan="2" style="background:#1e3a5f;color:#fff;font-weight:bold;'
+      +'font-size:11pt;padding:6pt 8pt;border:1px solid #999">' + esc2(title) + '</td></tr>';
+  }
+  function dataRow2(label, val, shade) {
+    var bg = shade ? '#f2f4f8' : '#ffffff';
+    return '<tr>'
+      +'<td style="background:'+bg+';font-weight:bold;font-size:10pt;padding:4pt 8pt;'
+      +'border:1px solid #ccc;width:35%;vertical-align:top">' + esc2(label) + '</td>'
+      +'<td style="background:#fff;font-size:10pt;padding:4pt 8pt;'
+      +'border:1px solid #ccc;width:65%;vertical-align:top">' + esc2(val) + '</td>'
+      +'</tr>';
+  }
+
+  // ── Build HTML content ─────────────────────────────────
+  var rows = '';
+  var s = false;
+
+  // IDENTITAS PAKET
+  rows += secHdr('📋  IDENTITAS PAKET');
+  [['No. Paket',fv2(d.no)],['No. Ruas',fv2(d.noRuas)],
+   ['Nama Kegiatan',fv2(d.nama)],['Sumber Dana',fv2(d.dana)],
+   ['Lokasi',fv2(d.lokasi)],['Lebar \u00d7 Panjang',fv2(d.lebarPanjang)],
+   ['Jenis Infrastruktur',fv2(d.jenisInfra)]
+  ].forEach(function(f){ rows+=dataRow2(f[0],f[1],s=!s); });
+
+  // ANGGARAN
+  rows += secHdr('💰  ANGGARAN');
+  s=false;
+  [['Nilai Pagu APBD-P',rp2(d.pagu)],['Nilai HPS (Rp)',rp2(d.hps)]
+  ].forEach(function(f){ rows+=dataRow2(f[0],f[1],s=!s); });
+
+  // KONTRAK
+  rows += secHdr('📜  KONTRAK / SURAT PESANAN');
+  s=false;
+  [['Pelaksana / Penyedia Jasa',fv2(d.penyedia)],
+   ['Nomor Kontrak',fv2(d.noKontrak)],['Tanggal Kontrak',fv2(d.tglKontrak)],
+   ['Nilai Kontrak (Rp)',rp2(d.kontrak)],['Add Kontrak + 10%',rp2(d.addKontrak10)],
+   ['Metode Pengadaan',fv2(d.metode)],['Jenis Kontrak',fv2(d.jenisKontrak)],
+   ['Jenis Belanja',fv2(d.jenisBelanja)]
+  ].forEach(function(f){ rows+=dataRow2(f[0],f[1],s=!s); });
+
+  // ADDENDUM
+  rows += secHdr('📝  ADDENDUM TERAKHIR');
+  s=false;
+  [['Addendum Ke-',fv2(d.addKe)],['Nomor Addendum',fv2(d.noAdd)],
+   ['Tanggal Addendum',fv2(d.tglAdd)],['Nilai Kontrak Addendum',rp2(d.nilaiAdd)]
+  ].forEach(function(f){ rows+=dataRow2(f[0],f[1],s=!s); });
+
+  // JANGKA WAKTU
+  rows += secHdr('📅  JANGKA WAKTU KONTRAK');
+  s=false;
+  [['Jangka Waktu (Hari)',fv2(d.jaWaktu)],
+   ['Tanggal Mulai',fv2(d.mulai)],['Tanggal Selesai',fv2(d.selesai)]
+  ].forEach(function(f){ rows+=dataRow2(f[0],f[1],s=!s); });
+
+  // PHO
+  rows += secHdr('✅  PHO / BAST');
+  s=false;
+  [['Status PHO',fv2(d.pho)],
+   ['Nomor PHO/BAST',fv2(d.noPho)],['Tanggal PHO/BAST',fv2(d.tglPho)]
+  ].forEach(function(f){ rows+=dataRow2(f[0],f[1],s=!s); });
+
+  // PROGRES
+  rows += secHdr('📊  PROGRES & REALISASI');
+  s=false;
+  [['Prestasi Fisik (%)',(d.fisik||0).toFixed(1)+'%'],
+   ['Realisasi Pembayaran',rp2(d.realisasi)],
+   ['% thd Kontrak',(d.pctReal||0).toFixed(1)+'% (otomatis)']
+  ].forEach(function(f){ rows+=dataRow2(f[0],f[1],s=!s); });
+
+  // TIM TEKNIS
+  rows += secHdr('👤  PELAKSANA & TIM TEKNIS');
+  s=false;
+  [['PPK',fv2(d.ppk)],['PPTK',fv2(d.pptk)],
+   ['Staf/Pengawas Teknis',fv2(d.staf)],
+   ['Tim Teknis Ketua',fv2(d.ketua)],
+   ['Tim Teknis Sekretaris',fv2(d.sekretaris)],
+   ['Tim Teknis Anggota 1',fv2(d.anggota&&d.anggota[0])],
+   ['Tim Teknis Anggota 2',fv2(d.anggota&&d.anggota[1])],
+   ['Tim Teknis Anggota 3',fv2(d.anggota&&d.anggota[2])]
+  ].forEach(function(f){ rows+=dataRow2(f[0],f[1],s=!s); });
+
+  // CHECKLIST
+  rows += secHdr('📋  CHECKLIST ADMINISTRASI PHO');
+  // Checklist header
+  rows += '<tr>'
+    +'<td style="background:#dce9f5;font-weight:bold;font-size:10pt;padding:4pt 8pt;'
+    +'border:1px solid #ccc;width:35%">Item</td>'
+    +'<td style="background:#dce9f5;font-weight:bold;font-size:10pt;padding:4pt 8pt;'
+    +'border:1px solid #ccc;width:65%">Status</td>'
+    +'</tr>';
+
+  // Group checklist
+  var ckGrps={}, ckGrpOrder=[];
+  checklist.forEach(function(c){
+    if(!ckGrps[c.grup]){ckGrps[c.grup]=[];ckGrpOrder.push(c.grup);}
+    ckGrps[c.grup].push(c);
+  });
+  var ckNo=0;
+  ckGrpOrder.forEach(function(grp){
+    rows += '<tr><td colspan="2" style="background:#dce9f5;font-style:italic;font-weight:bold;'
+      +'font-size:10pt;padding:3pt 8pt;border:1px solid #ccc">'
+      + esc2(grp) + '</td></tr>';
+    ckGrps[grp].forEach(function(c){
+      ckNo++;
+      var ada = !!ckData[c.id];
+      rows += '<tr>'
+        +'<td style="background:#fff;font-size:10pt;padding:3pt 8pt;border:1px solid #ccc">'
+        + ckNo + '. ' + esc2(c.label) + '</td>'
+        +'<td style="background:'+(ada?'#ecfdf5':'#fff')+';font-size:10pt;padding:3pt 8pt;'
+        +'border:1px solid #ccc;text-align:center;color:'+(ada?'#16a34a':'#aaaaaa')
+        +';font-weight:'+(ada?'bold':'normal')+'">'
+        + (ada ? '\u2713 Ada' : '\u2014') + '</td>'
+        +'</tr>';
+    });
+  });
+
+  // ── Assemble full HTML document ────────────────────────
+  var noRuas = fv2(d.noRuas);
+  var doc = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<style>'
+    +'@page{size:A4;margin:2cm}'
+    +'body{font-family:Arial,sans-serif;font-size:11pt;color:#111;}'
+    +'table{border-collapse:collapse;width:100%;}'
+    +'</style></head><body>'
+    // Title
+    +'<div style="text-align:center;margin-bottom:16pt">'
+    +'<div style="font-size:14pt;font-weight:bold;color:#1e3a5f;margin-bottom:4pt">'
+    +'LEMBAR DATA PAKET PEKERJAAN BINA MARGA</div>'
+    +'<div style="font-size:10pt;color:#555">'
+    +'Dinas PUPR Kabupaten Karanganyar \u2014 Tahun Anggaran 2026</div>'
+    +'<div style="font-size:9pt;color:#888;margin-top:4pt">Dicetak: '+tglNow()+'</div>'
+    +'<div style="border-bottom:2px solid #1e3a5f;margin-top:8pt"></div>'
+    +'</div>'
+    // Table
+    +'<table>'+rows+'</table>'
+    +'</body></html>';
+
+  // ── Download ───────────────────────────────────────────
+  var blob = new Blob([doc], {type:'application/msword'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  var fn2  = 'Detail_Paket_'+d.no+'_Ruas'+noRuas+'.doc';
+  a.href   = url;
+  a.download = fn2;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('\ud83d\udcc4 ' + fn2 + ' berhasil didownload');
+}
+
+// ===== DATA DASAR JALAN =====
+
+// ============================================================
+//  DATA DASAR JALAN — Download / Upload / Sync (Admin only)
+// ============================================================
+
+// In-memory override: rd_attr[noRuas] = {nama, kecamatan, ...}
+var _rdAttr = {};   // loaded from Firestore on login
+var _rdAttrLoaded = false;
+
+// ── Merge RD[] with Firestore overrides ──────────────────
+function rdGet(noRuas) {
+  // Return RD entry merged with Firestore override (if any)
+  var base = RD.find(function(r){ return r.no === parseInt(noRuas); });
+  if (!base) return null;
+  var ov = _rdAttr[String(noRuas)];
+  if (!ov) return base;
+  return Object.assign({}, base, ov);
+}
+
+// Apply Firestore atribut overrides to RD array in memory
+function ddApplyOverrides() {
+  Object.keys(_rdAttr).forEach(function(noRuas) {
+    var ov  = _rdAttr[noRuas];
+    var idx = RD.findIndex(function(r){ return String(r.no) === String(noRuas); });
+    if (idx !== -1) Object.assign(RD[idx], ov);
+  });
+}
+
+// ── Load rd_attr from Firestore ──────────────────────────
+function ddLoadFromFirestore(cb) {
+  if (!db) { if (cb) cb(); return; }
+  db.collection('rd_attr').get().then(function(snap) {
+    snap.forEach(function(doc) {
+      _rdAttr[doc.id] = doc.data();
+    });
+    _rdAttrLoaded = true;
+    ddApplyOverrides();
+    if (cb) cb();
+  }).catch(function(e) {
+    console.error('ddLoad error', e);
+    if (cb) cb();
+  });
+}
+
+// ── Download Excel ───────────────────────────────────────
+function ddDownloadExcel() {
+  var hdr = [
+    'No Ruas','Nama Ruas Jalan','Kecamatan','Desa/Kelurahan',
+    'Fungsi Jalan','Panjang (km)','Lebar (m)',
+    'Aspal (km)','Beton (km)','Telford/Kerikil (km)','Tanah (km)',
+    'Baik (km)','Sedang (km)','Rusak Ringan (km)','Rusak Berat (km)',
+    'Kondisi','Mantap','Wilayah','UPT'
+  ];
+  var rows = RD.map(function(r) {
+    return [
+      r.no, r.nama, r.kecamatan, r.desa||'',
+      r.fungsi||'', r.panjang||0, r.lebar||0,
+      r.aspal_km||0, r.beton_km||0, r.telford_km||0, r.tanah_km||0,
+      r.baik_km||0, r.sedang_km||0, r.rr_km||0, r.rb_km||0,
+      r.kondisi||'', r.mantap||'', r.wilayah||'', r.upt||''
+    ];
+  });
+  var ws = XLSX.utils.aoa_to_sheet([hdr].concat(rows));
+  // Column widths
+  ws['!cols'] = [
+    {wch:8},{wch:40},{wch:18},{wch:30},
+    {wch:12},{wch:12},{wch:10},
+    {wch:10},{wch:10},{wch:14},{wch:10},
+    {wch:10},{wch:10},{wch:14},{wch:10},
+    {wch:14},{wch:10},{wch:12},{wch:12}
+  ];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'DataDasar_Jalan');
+  var d = new Date();
+  function p(n){ return n<10?'0'+n:String(n); }
+  var fn = 'DataDasar_Jalan_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.xlsx';
+  XLSX.writeFile(wb, fn);
+  toast('⬇️ ' + fn + ' berhasil didownload');
+}
+
+// ── Upload & parse Excel ─────────────────────────────────
+function ddUploadExcel(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('dd-status');
+  if (statusEl) statusEl.textContent = '⏳ Membaca file...';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb   = XLSX.read(e.target.result, {type:'array'});
+      var ws   = wb.Sheets['DataDasar_Jalan'];
+      if (!ws) {
+        // Try first sheet
+        ws = wb.Sheets[wb.SheetNames[0]];
+      }
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if (rows.length < 2) {
+        if (statusEl) statusEl.textContent = '❌ File kosong atau format salah';
+        return;
+      }
+
+      var hdr  = rows[0].map(function(h){ return String(h).trim(); });
+      var gi   = function(name) { return hdr.indexOf(name); };
+
+      // Column mapping
+      var iNo  = gi('No Ruas');
+      var iNm  = gi('Nama Ruas Jalan');
+      var iKec = gi('Kecamatan');
+      var iDes = gi('Desa/Kelurahan');
+      var iFun = gi('Fungsi Jalan');
+      var iPjg = gi('Panjang (km)');
+      var iLbr = gi('Lebar (m)');
+      var iAsp = gi('Aspal (km)');
+      var iBet = gi('Beton (km)');
+      var iTel = gi('Telford/Kerikil (km)');
+      var iTnh = gi('Tanah (km)');
+      var iBaik= gi('Baik (km)');
+      var iSed = gi('Sedang (km)');
+      var iRR  = gi('Rusak Ringan (km)');
+      var iRB  = gi('Rusak Berat (km)');
+      var iKon = gi('Kondisi');
+      var iMnt = gi('Mantap');
+      var iWil = gi('Wilayah');
+      var iUPT = gi('UPT');
+
+      if (iNo < 0) {
+        if (statusEl) statusEl.textContent = '❌ Kolom "No Ruas" tidak ditemukan';
+        return;
+      }
+
+      var updates = {};
+      var count   = 0;
+      rows.slice(1).forEach(function(row) {
+        var noRuas = parseInt(row[iNo]);
+        if (!noRuas || isNaN(noRuas)) return;
+        var fn2  = function(i){ return i>=0 ? (parseFloat(row[i])||0) : 0; };
+        var fs   = function(i){ return i>=0 ? String(row[i]||'').trim() : ''; };
+        updates[String(noRuas)] = {
+          nama:       fs(iNm),
+          kecamatan:  fs(iKec),
+          desa:       fs(iDes),
+          fungsi:     fs(iFun),
+          panjang:    fn2(iPjg),
+          lebar:      fn2(iLbr),
+          aspal_km:   fn2(iAsp),
+          beton_km:   fn2(iBet),
+          telford_km: fn2(iTel),
+          tanah_km:   fn2(iTnh),
+          baik_km:    fn2(iBaik),
+          sedang_km:  fn2(iSed),
+          rr_km:      fn2(iRR),
+          rb_km:      fn2(iRB),
+          kondisi:    fs(iKon),
+          mantap:     fs(iMnt),
+          wilayah:    fs(iWil),
+          upt:        fs(iUPT)
+        };
+        count++;
+      });
+
+      if (statusEl) statusEl.textContent = '⏳ Menyimpan ' + count + ' ruas ke Firebase...';
+
+      // Save to Firestore in batches of 500
+      var keys   = Object.keys(updates);
+      var batches = [];
+      for (var i=0; i<keys.length; i+=490) {
+        batches.push(keys.slice(i, i+490));
+      }
+
+      var batchIdx = 0;
+      function doNextBatch() {
+        if (batchIdx >= batches.length) {
+          // All done — apply to RD in memory
+          Object.assign(_rdAttr, updates);
+          ddApplyOverrides();
+          // Refresh map and table
+          if (typeof refreshMapColors === 'function') refreshMapColors();
+          if (typeof renderTable === 'function') renderTable();
+          if (typeof renderPeta === 'function') renderPeta();
+          if (statusEl) statusEl.textContent = '✅ ' + count + ' ruas berhasil diupdate';
+          toast('✅ Data Dasar Jalan diupdate: ' + count + ' ruas');
+          // Reset input
+          input.value = '';
+          return;
+        }
+        var batch = db.batch();
+        batches[batchIdx].forEach(function(noRuas) {
+          var ref = db.collection('rd_attr').doc(noRuas);
+          batch.set(ref, updates[noRuas]);
+        });
+        batch.commit().then(function() {
+          batchIdx++;
+          doNextBatch();
+        }).catch(function(err) {
+          if (statusEl) statusEl.textContent = '❌ Error: ' + err.message;
+        });
+      }
+      doNextBatch();
+
+    } catch(err) {
+      console.error('ddUpload error', err);
+      if (statusEl) statusEl.textContent = '❌ Error membaca file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Refresh map polyline colors from updated RD ──────────
+function refreshMapColors() {
+  if (!polylines || !mapMain) return;
+  RD.forEach(function(r) {
+    var pl = polylines[r.no];
+    if (!pl) return;
+    // Only re-color if road is not the active selected one
+    if (r.no !== activeRoadNo) {
+      pl.setStyle({color:'#2a2a2a', weight:2, opacity:0.7});
+    }
+  });
+  // Re-color the active road if any
+  if (activeRoadNo !== null) {
+    var road = RD.find(function(r){ return r.no === activeRoadNo; });
+    if (road) {
+      var dom = getDomCond(road);
+      var pl  = polylines[activeRoadNo];
+      if (pl) pl.setStyle({color: COND_COLOR[dom], weight:5, opacity:1});
+    }
+  }
+}
+
+
 // ===== BM MERGE CONTROLLER =====
 function openBmLoginModal() {
   var modal = document.getElementById('bm-login-modal');
@@ -2878,6 +3317,13 @@ function showBmTab() {
   if (sfEmail && CURRENT_USER) sfEmail.textContent = CURRENT_USER.email;
   // Apply role-based visibility immediately
   if (typeof applyRoleUI === 'function') applyRoleUI();
+  // Load RD attribute overrides from Firestore
+  if (!_rdAttrLoaded && typeof ddLoadFromFirestore === 'function') {
+    ddLoadFromFirestore(function() {
+      if (typeof renderTable === 'function') renderTable();
+      if (typeof refreshMapColors === 'function') refreshMapColors();
+    });
+  }
 }
 function hideBmTab() {
   var tab = document.getElementById('tab-binamarga');
@@ -3650,7 +4096,10 @@ function detailRow(d) {
     } else {
       s += '<div class="det-edit-bar" style="background:var(--surf2);border-bottom-color:var(--bdr)">'
         +'<span style="color:var(--txt2)">Ruas '+esc(fv(d.noRuas))+' &mdash; '+esc(d.nama)+'</span>'
-        +'<button class="btn btn-sm btn-p" onclick="startEdit('+d.no+')">✏️ Edit</button>'
+        +'<div style="display:flex;gap:6px">'
+        +'<button class="btn btn-sm" style="background:#1e5c2e;color:#fff;border-color:#1e5c2e" onclick="(function(ev){ev.stopPropagation();exportDetailDocx('+d.no+');})(event)">📄 Export Word</button>'
+        +(canEdit ? '<button class="btn btn-sm btn-p" onclick="startEdit('+d.no+')">✏️ Edit</button>' : '')
+        +'</div>'
         +'</div>';
     }
   }
