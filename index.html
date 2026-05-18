@@ -797,25 +797,141 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 
 /* ── Navbar mobile — hamburger approach ──────────────────── */
 @media(max-width:768px) {
-  .navbar {
-    padding: 0 14px;
+  /* BM layout: konten di atas, nav di bawah */
+  #page-binamarga { flex-direction: column !important; }
+
+  /* Sidebar → FIXED BOTTOM navigation bar */
+  #bm-sidebar {
+    display: flex !important;
+    flex-direction: row;
+    order: 2;
+    width: 100% !important;
+    min-width: unset !important;
+    height: auto !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto !important;
+    z-index: 200;
+    border-right: none !important;
+    border-top: 1px solid #d0cdc5;
+    border-bottom: none !important;
+    background: #fff !important;
+    box-shadow: 0 -2px 12px rgba(0,0,0,.10);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #bm-sidebar::-webkit-scrollbar { display: none; }
+
+  /* Konten: order 1, padding bawah agar tidak tertutup nav */
+  #bm-pages {
+    order: 1;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Hide sidebar header & statusbar */
+  #bm-sidebar > div:first-child { display: none; }
+  #bm-statusbar { display: none; }
+
+  /* Nav items → rata merata, ikon + label */
+  #bm-sidebar nav {
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 0 !important;
+    flex: 1;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    justify-content: space-around;
+  }
+  #bm-sidebar nav::-webkit-scrollbar { display: none; }
+  .bm-app .ni {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+    white-space: nowrap;
     height: 56px;
-    flex-wrap: nowrap;
+    min-width: 52px;
+    flex: 1;
+    border-left: none !important;
+    border-top: 3px solid transparent;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+    flex-shrink: 0;
+    color: #636360;
+    transition: color .15s, background .15s;
   }
-  .nav-brand { margin-right: 0; }
-  .nav-brand-text .t2 { display: none; }
-  .nav-brand-text .t1 { font-size: 12px; }
+  .bm-app .ni.on {
+    border-top: 3px solid #185FA5 !important;
+    border-left: none !important;
+    background: #eef4fb !important;
+    color: #185FA5 !important;
+  }
+  .bm-app .ni:active { background: #e8f0fb !important; }
+  .bm-app .ni .ic {
+    font-size: 18px !important;
+    display: block;
+    margin-bottom: 1px !important;
+  }
+  /* BM pages padding */
+  #bm-pages { padding: 12px 10px !important; }
 
-  /* Hide desktop tabs */
-  .nav-tabs { display: none !important; }
+  /* BM Metric cards: 2 col */
+  .bm-app .mg { grid-template-columns: repeat(2,1fr) !important; }
 
-  /* Hide desktop login/logout buttons & userinfo */
-  #bm-login-btn, #bm-logout-btn, #bm-navbar-userinfo {
-    display: none !important;
+  /* BM Dana cards: 2 col */
+  .bm-app .dana-cards { grid-template-columns: repeat(2,1fr) !important; }
+
+  /* BM Dashboard filters */
+  .bm-app .dash-filters { flex-wrap: wrap; gap: 6px; }
+  .bm-app .dash-filters select,
+  .bm-app .dash-filters input { width: 100%; max-width: unset; }
+
+  /* BM Proyek table */
+  .bm-app #pg-proyek .fr { flex-wrap: wrap; gap: 6px; }
+  .bm-app #pg-proyek .fr select { flex: 1; min-width: 120px; }
+  .bm-app #pg-proyek .fr input { width: 100%; }
+  .bm-app #pg-proyek .fr button { width: 100%; justify-content: center; }
+
+  /* BM Detail row: single column */
+  #bm-pages [style*="grid-template-columns:1fr 1fr"] {
+    display: block !important;
+  }
+  #bm-pages [style*="grid-template-columns:1fr 1fr"] > div:first-child {
+    border-right: none !important;
+    padding-right: 0 !important;
+    border-bottom: 1px solid #e0ddd5;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+  }
+  #bm-pages [style*="grid-template-columns:1fr 1fr"] > div:last-child {
+    padding-left: 0 !important;
   }
 
-  /* Show hamburger button */
-  #nav-hamburger { display: flex !important; }
+  /* BM Detail map */
+  #bm-pages [id^="bm-detail-map-"] { height: 220px !important; }
+  #bm-pages [id^="bm-map-wrap-"]   { height: 220px !important; }
+
+  /* BM Edit bar */
+  .bm-app .det-edit-bar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+
+  /* BM Cards in general */
+  .bm-app .card { padding: 12px !important; }
+  .bm-app .ph   { padding: 12px 4px 10px; }
+  .bm-app .ph h2 { font-size: 18px; }
+
+  /* BM Personil */
+  .bm-app .pk-item { flex-wrap: wrap; }
+
+  /* BM Login modal */
+  .bm-modal-card { padding: 24px 18px; margin: 12px; }
 }
 
 /* ── Sijaka Beranda ───────────────────────────────────────── */
@@ -884,85 +1000,62 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   /* BM tab panel: stack vertically */
   #page-binamarga { flex-direction: column !important; }
 
-  /* Sidebar → FIXED BOTTOM navigation bar */
-  #page-binamarga { flex-direction: column !important; }
+  /* Sidebar → bottom navigation bar */
   #bm-sidebar {
     display: flex !important;
     flex-direction: row;
     width: 100% !important;
     min-width: unset !important;
     height: auto !important;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto !important;
-    z-index: 200;
+    position: sticky;
+    top: 96px; /* below navbar (56px) + tabs (40px) */
+    z-index: 100;
     border-right: none !important;
-    border-top: 1px solid #d0cdc5;
-    border-bottom: none !important;
-    background: #fff !important;
-    box-shadow: 0 -2px 12px rgba(0,0,0,.10);
+    border-bottom: 2px solid #e0ddd5;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding-bottom: env(safe-area-inset-bottom);
   }
   #bm-sidebar::-webkit-scrollbar { display: none; }
 
-  /* Konten di atas, padding bawah agar tidak tertutup nav */
-  #bm-pages {
-    order: 1;
-    padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
-  }
-
-  /* Hide sidebar header & statusbar */
+  /* Hide sidebar header, footer, statusbar on mobile */
   #bm-sidebar > div:first-child { display: none; }
   #bm-statusbar { display: none; }
 
-  /* Nav items → rata merata, ikon + label */
+  /* Sidebar nav items → horizontal tabs */
   #bm-sidebar nav {
     display: flex !important;
     flex-direction: row !important;
     padding: 0 !important;
     flex: 1;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    justify-content: space-around;
+    min-width: 0;
   }
-  #bm-sidebar nav::-webkit-scrollbar { display: none; }
   .bm-app .ni {
     display: flex !important;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 2px;
-    padding: 6px 8px !important;
+    padding: 8px 14px !important;
     font-size: 10px !important;
     white-space: nowrap;
-    height: 56px;
-    min-width: 52px;
-    flex: 1;
+    height: 52px;
     border-left: none !important;
-    border-top: 3px solid transparent;
-    border-bottom: none !important;
+    border-bottom: 3px solid transparent;
     border-radius: 0 !important;
     flex-shrink: 0;
-    color: #636360;
-    transition: color .15s, background .15s;
   }
   .bm-app .ni.on {
-    border-top: 3px solid #185FA5 !important;
+    border-bottom: 3px solid var(--blue, #185FA5) !important;
+    background: #f0f6ff !important;
     border-left: none !important;
-    background: #eef4fb !important;
     color: #185FA5 !important;
   }
-  .bm-app .ni:active { background: #e8f0fb !important; }
   .bm-app .ni .ic {
-    font-size: 18px !important;
+    font-size: 16px !important;
     display: block;
-    margin-bottom: 1px !important;
+    margin-bottom: 0 !important;
   }
 
   /* BM pages padding */
@@ -1072,6 +1165,181 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
   background: rgba(0,0,0,.3);
   z-index: 998;
 }
+
+
+/* ============================================================
+   CHECKLIST ADMINISTRASI — scoped styles
+   ============================================================ */
+#ck-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(15,23,42,0.65);
+  z-index:2000; align-items:flex-start; justify-content:center;
+  padding:24px 16px; backdrop-filter:blur(3px); overflow-y:auto;
+}
+#ck-overlay.open { display:flex; }
+#ck-overlay .ck-modal {
+  background:#fff; border-radius:14px; width:100%; max-width:800px;
+  box-shadow:0 24px 64px rgba(0,0,0,.3);
+  animation:ck-up .2s ease; margin:auto;
+}
+@keyframes ck-up {
+  from{opacity:0;transform:translateY(20px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+#ck-overlay .ck-modal-head {
+  background:#1e3a5f; color:#fff;
+  padding:18px 22px; border-radius:14px 14px 0 0;
+  display:flex; align-items:flex-start; gap:12px;
+}
+#ck-overlay .ck-modal-head-text { flex:1; min-width:0; }
+#ck-overlay .ck-modal-title {
+  font-size:15px; font-weight:700; line-height:1.35;
+  margin-bottom:4px;
+}
+#ck-overlay .ck-modal-sub {
+  font-size:12px; opacity:.75; line-height:1.4;
+}
+#ck-overlay .ck-btn-close {
+  background:rgba(255,255,255,.15); border:none; color:#fff;
+  width:32px; height:32px; border-radius:8px; cursor:pointer;
+  font-size:16px; flex-shrink:0; display:flex;
+  align-items:center; justify-content:center;
+  transition:.15s;
+}
+#ck-overlay .ck-btn-close:hover { background:rgba(255,255,255,.25); }
+#ck-overlay .ck-toolbar {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:12px 20px; border-bottom:1px solid #e5e7eb;
+  background:#f8fafc;
+}
+#ck-overlay .ck-btn-print {
+  background:#1e3a5f; color:#fff; border:none;
+  padding:7px 14px; border-radius:8px; cursor:pointer;
+  font-size:12px; font-weight:600; font-family:inherit;
+}
+#ck-overlay .ck-btn-print:hover { background:#17325a; }
+#ck-overlay .ck-btn-reset {
+  background:#fff; color:#374151; border:1px solid #d1d5db;
+  padding:7px 14px; border-radius:8px; cursor:pointer;
+  font-size:12px; font-family:inherit;
+}
+#ck-overlay .ck-btn-reset:hover { background:#f3f4f6; }
+#ck-overlay .ck-prog-info {
+  font-size:12px; color:#374151; font-weight:600; margin-left:auto;
+}
+#ck-overlay .ck-save-note {
+  font-size:11px; color:#6b7280;
+}
+#ck-overlay .ck-body {
+  padding:16px 20px; max-height:60vh; overflow-y:auto;
+}
+#ck-overlay .ck-group {
+  margin-bottom:14px;
+}
+#ck-overlay .ck-group-title {
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:#1e3a5f;
+  background:#f0f4f9; padding:6px 10px; border-radius:6px;
+  margin-bottom:4px;
+}
+#ck-overlay .ck-row {
+  display:flex; align-items:center; gap:10px;
+  padding:7px 10px; border-radius:6px; cursor:pointer;
+  transition:.12s; user-select:none;
+}
+#ck-overlay .ck-row:hover { background:#f3f4f6; }
+#ck-overlay .ck-row.checked { background:#ecfdf5; }
+#ck-overlay .ck-row.locked { cursor:default; opacity:.7; }
+#ck-overlay .ck-row.locked:hover { background:transparent; }
+#ck-overlay .ck-box {
+  width:20px; height:20px; border:2px solid #d1d5db;
+  border-radius:5px; display:flex; align-items:center;
+  justify-content:center; font-size:13px; font-weight:700;
+  color:#16a34a; flex-shrink:0; background:#fff;
+  transition:.12s;
+}
+#ck-overlay .ck-row.checked .ck-box {
+  background:#16a34a; border-color:#16a34a; color:#fff;
+}
+#ck-overlay .ck-text {
+  font-size:13px; color:#374151; line-height:1.4;
+}
+#ck-overlay .ck-btn-adm {
+  display:inline-flex; align-items:center; gap:6px;
+  background:#1e3a5f; color:#fff; border:none;
+  padding:7px 14px; border-radius:8px; cursor:pointer;
+  font-size:12px; font-weight:600; font-family:inherit;
+  transition:.15s; white-space:nowrap;
+}
+#ck-overlay .ck-btn-adm:hover { background:#17325a; }
+@media(max-width:600px) {
+  #ck-overlay { padding:8px; }
+  #ck-overlay .ck-body { max-height:55vh; }
+  #ck-overlay .ck-modal-title { font-size:13px; }
+}
+
+
+@media print {
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Times New Roman',serif; font-size:8pt; color:#000; background:white; }
+
+  body > * { display:none !important; }
+  #ck-print-area { display:block !important; }
+
+  /* JUDUL */
+  .print-judul { text-align:center; font-size:9.5pt; font-weight:bold; line-height:1.3; margin-bottom:1.5pt; }
+  .print-tahun { text-align:center; font-size:9pt; font-weight:bold; margin-bottom:4pt; }
+
+  /* INFO KEGIATAN */
+  .print-info { margin-bottom:4pt; }
+  .print-info table { width:100%; border:none; border-collapse:collapse; }
+  .print-info td { padding:0.5pt 0; font-size:8pt; vertical-align:top; line-height:1.3; }
+  .print-info td.lbl { width:100pt; white-space:nowrap; }
+  .print-info td.sep { width:6pt; text-align:center; }
+
+  /* MAIN TABLE */
+  .print-table { width:100%; border-collapse:collapse; margin-bottom:4pt; }
+  .print-table th {
+    border:1px solid #000;
+    padding:2pt 3pt;
+    font-size:8pt;
+    font-weight:bold;
+    text-align:center;
+    background:#d0d0d0;
+    line-height:1.2;
+  }
+  .print-table td {
+    border:1px solid #000;
+    padding:0pt 3pt;
+    font-size:8pt;
+    vertical-align:middle;
+    line-height:1.15;
+    height:10pt;
+  }
+  .print-table td.no  { text-align:center; width:16pt; white-space:nowrap; }
+  .print-table td.ada { text-align:center; width:30pt; }
+  .print-table td.tdk { text-align:center; width:34pt; }
+  .print-table td.ket { width:70pt; }
+  .print-table tr.grp td {
+    font-weight:bold; font-style:italic;
+    background:#efefef;
+    padding:0pt 3pt;
+    font-size:8pt;
+    height:10pt;
+  }
+
+  /* SIGN */
+  .print-sign { margin-top:5pt; }
+  .print-sign table { width:100%; border:none; border-collapse:collapse; }
+  .print-sign td { width:50%; text-align:center; font-size:8pt; vertical-align:top; padding:0 10pt; }
+  .sign-gap { height:34pt; }
+  .sign-line { border-top:1px solid #000; display:inline-block; min-width:120pt; padding-top:2pt; }
+
+  @page { size:215mm 330mm; margin:1cm 1.5cm 1cm 1.5cm; }
+}
+
+/* Print area hidden on screen */
+#ck-print-area { display:none; }
 
 </style>
 </head>
@@ -2084,6 +2352,445 @@ hideBmTab = function() {
   if (bmItem) bmItem.style.display = 'none';
 };
 
+// ===== CHECKLIST ADMINISTRASI =====
+
+// ============================================================
+//  CHECKLIST ADMINISTRASI — Firebase-backed
+// ============================================================
+const checklist = [
+  // A
+  {id:"a1", grup:"A. Dokumen Program & Penganggaran", label:"Dokumen Program / Penganggaran"},
+  {id:"a2", grup:"A. Dokumen Program & Penganggaran", label:"Surat Penetapan PPK"},
+  {id:"a3", grup:"A. Dokumen Program & Penganggaran", label:"Dokumen Perencanaan Pengadaan (KAK, HPS)"},
+  {id:"a4", grup:"A. Dokumen Program & Penganggaran", label:"RUP / SIRUP"},
+  {id:"a5", grup:"A. Dokumen Program & Penganggaran", label:"Dokumen Persiapan Pengadaan (Spek Teknis, Gambar Rencana)"},
+  // B
+  {id:"b1", grup:"B. Dokumen Pengadaan Penyedia", label:"Dokumen Pemilihan Penyedia"},
+  {id:"b2", grup:"B. Dokumen Pengadaan Penyedia", label:"Dokumen Penawaran Penyedia"},
+  {id:"b3", grup:"B. Dokumen Pengadaan Penyedia", label:"Dokumen Evaluasi s/d Penetapan Penyedia"},
+  {id:"b4", grup:"B. Dokumen Pengadaan Penyedia", label:"SPPBJ"},
+  // C
+  {id:"c1", grup:"C. Dokumen Kontrak", label:"Dokumen Kontrak"},
+  {id:"c2", grup:"C. Dokumen Kontrak", label:"Dokumen Kontrak Perubahan"},
+  {id:"c3", grup:"C. Dokumen Kontrak", label:"Dokumen Serah Terima Hasil Pekerjaan"},
+  // D
+  {id:"d1",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"Surat Permohonan"},
+  {id:"d2",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"Surat Pernyataan Persiapan Pekerjaan"},
+  {id:"d3",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"Copy Jaminan Penawaran"},
+  {id:"d4",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"Copy Jaminan Pelaksanaan"},
+  {id:"d5",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"Copy Jaminan Uang Muka"},
+  {id:"d6",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"Copy Jaminan Pemeliharaan"},
+  {id:"d7",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"Berita Acara Pemeriksaan (PHO)"},
+  {id:"d8",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"Berita Acara CCO / Addendum"},
+  {id:"d9",  grup:"D. Dokumen Pemeriksaan Lainnya", label:"MC Pembayaran"},
+  {id:"d10", grup:"D. Dokumen Pemeriksaan Lainnya", label:"MC 0"},
+  {id:"d11", grup:"D. Dokumen Pemeriksaan Lainnya", label:"MC 100"},
+  {id:"d12", grup:"D. Dokumen Pemeriksaan Lainnya", label:"TKDN (Tingkat Komponen Dalam Negeri)"},
+  // E - Uji Aspal
+  {id:"e1", grup:"E. Uji Material — Aspal", label:"Job Mix Formula"},
+  {id:"e2", grup:"E. Uji Material — Aspal", label:"Uji Core Drill"},
+  {id:"e3", grup:"E. Uji Material — Aspal", label:"Uji Ekstrasi Aspal"},
+  {id:"e4", grup:"E. Uji Material — Aspal", label:"Density"},
+  // F - Uji Beton
+  {id:"f1", grup:"F. Uji Material — Beton", label:"Jobmix (fc / fs)"},
+  {id:"f2", grup:"F. Uji Material — Beton", label:"Core Drill"},
+  {id:"f3", grup:"F. Uji Material — Beton", label:"Uji Desak / Tekan Beton (Benda Uji / Sample)"},
+  {id:"f4", grup:"F. Uji Material — Beton", label:"Uji Hasil Core"},
+  {id:"f5", grup:"F. Uji Material — Beton", label:"Kuat Lentur Beton (fs)"},
+  // G - LPA
+  {id:"g1", grup:"G. Uji Material — LPA", label:"Job Mix"},
+  {id:"g2", grup:"G. Uji Material — LPA", label:"Uji Ketebalan"},
+  {id:"g3", grup:"G. Uji Material — LPA", label:"Sand Cone / Kepadatan"},
+  // H - Besi
+  {id:"h1", grup:"H. Uji Material — Besi", label:"Kuat Tarik"},
+  {id:"h2", grup:"H. Uji Material — Besi", label:"Diameter Besi"},
+  {id:"h3", grup:"H. Uji Material — Besi", label:"Berat Jenis"},
+  // I - Mortar
+  {id:"i1", grup:"I. Uji Material — Mortar", label:"Uji Mortar"},
+  // J - Laporan
+  {id:"j1",  grup:"J. Laporan & Administrasi Lapangan", label:"Berita Acara Pengambilan Sampel"},
+  {id:"j2",  grup:"J. Laporan & Administrasi Lapangan", label:"Pernyataan Pengawas Lapangan"},
+  {id:"j3",  grup:"J. Laporan & Administrasi Lapangan", label:"Foto Proyek"},
+  {id:"j4",  grup:"J. Laporan & Administrasi Lapangan", label:"Shop Drawing"},
+  {id:"j5",  grup:"J. Laporan & Administrasi Lapangan", label:"As Built Drawing"},
+  {id:"j6",  grup:"J. Laporan & Administrasi Lapangan", label:"Time Schedule"},
+  {id:"j7",  grup:"J. Laporan & Administrasi Lapangan", label:"Grafik Cuaca"},
+  {id:"j8",  grup:"J. Laporan & Administrasi Lapangan", label:"Grafik Tenaga"},
+  {id:"j9",  grup:"J. Laporan & Administrasi Lapangan", label:"Buku Direksi"},
+  {id:"j10", grup:"J. Laporan & Administrasi Lapangan", label:"Buku Tamu"},
+  {id:"j11", grup:"J. Laporan & Administrasi Lapangan", label:"Buku Harian"},
+  {id:"j12", grup:"J. Laporan & Administrasi Lapangan", label:"Buku Bahan"},
+  {id:"j13", grup:"J. Laporan & Administrasi Lapangan", label:"Laporan Mingguan (Proyek Fisik)"},
+  {id:"j14", grup:"J. Laporan & Administrasi Lapangan", label:"Request"},
+  {id:"j15", grup:"J. Laporan & Administrasi Lapangan", label:"Surat-surat Masuk"},
+  {id:"j16", grup:"J. Laporan & Administrasi Lapangan", label:"Surat-surat Keluar"},
+  // K - Keuangan
+  {id:"k1", grup:"K. Keuangan & Pajak", label:"Bukti Setor Astek"},
+  {id:"k2", grup:"K. Keuangan & Pajak", label:"Bukti Retribusi Lab"},
+  {id:"k3", grup:"K. Keuangan & Pajak", label:"Bukti Setor Retribusi Kebersihan"},
+  {id:"k4", grup:"K. Keuangan & Pajak", label:"Bukti Setor SP3"},
+  {id:"k5", grup:"K. Keuangan & Pajak", label:"Copy SSP dan PPH"},
+  {id:"k6", grup:"K. Keuangan & Pajak", label:"Bukti Kirim Tiket (Aspal Beton)"},
+];
+
+const CK_TOTAL = checklist.length;
+
+// State: { [noRuas]: { [itemId]: true/false } }
+var _ckState    = {};   // in-memory cache
+var _ckActive   = null; // storage key currently open
+var _ckActiveNo = 0;    // paket no fallback
+
+// ── Firebase load/save ────────────────────────────────────
+function ckLoad(noRuas, cb) {
+  var key = (noRuas && String(noRuas).trim()) ? String(noRuas).trim() : ('p' + _ckActiveNo);
+  _ckActive = key; // sync active key
+  if (_ckState[key] !== undefined) { cb(_ckState[key]); return; }
+  db.collection('checklist').doc(key).get().then(function(doc) {
+    _ckState[key] = doc.exists ? doc.data() : {};
+    cb(_ckState[key]);
+  }).catch(function() {
+    _ckState[key] = {};
+    cb(_ckState[key]);
+  });
+}
+
+function ckSave(noRuas, cb) {
+  var key = String(noRuas);
+  db.collection('checklist').doc(key).set(_ckState[key] || {})
+    .then(function() { if (cb) cb(); })
+    .catch(function(e) { console.error('ckSave error', e); });
+}
+
+// ── Progress ──────────────────────────────────────────────
+function ckGetProg(noRuas) {
+  var key  = (noRuas && String(noRuas).trim()) ? String(noRuas).trim() : ('p' + _ckActiveNo);
+  var s    = _ckState[key] || {};
+  var done = checklist.filter(function(c) { return !!s[c.id]; }).length;
+  return { done: done, total: CK_TOTAL, pct: Math.round(done / CK_TOTAL * 100) };
+}
+
+// ── Load pct for button (called after detail row renders) ─
+function ckLoadBtnPct(noRuas, paketNo) {
+  var key = (noRuas && String(noRuas).trim()) ? String(noRuas).trim() : ('p' + paketNo);
+  var btnId = 'ck-pct-' + paketNo;
+  function updateBtn() {
+    var p   = ckGetProg(key);
+    var el  = document.getElementById(btnId);
+    if (!el) return;
+    var col = p.pct >= 67 ? '#16a34a' : p.pct >= 33 ? '#b45309' : '#dc2626';
+    el.style.background    = col;
+    el.textContent         = p.pct + '%';
+  }
+  // If already cached, update immediately
+  if (_ckState[key] !== undefined) { updateBtn(); return; }
+  // Otherwise load from Firebase
+  db.collection('checklist').doc(key).get().then(function(doc) {
+    _ckState[key] = doc.exists ? doc.data() : {};
+    updateBtn();
+  }).catch(function() {
+    _ckState[key] = {};
+    updateBtn();
+  });
+}
+
+// ── Open modal ───────────────────────────────────────────
+function ckOpen(noRuas, namaProyek, lokasiProyek, paketNo) {
+  _ckActiveNo = paketNo || 0;
+  _ckActive   = (noRuas && String(noRuas).trim()) ? String(noRuas).trim() : ('p' + _ckActiveNo);
+  // Set header
+  var titleEl = document.getElementById('ck-title');
+  var subEl   = document.getElementById('ck-sub');
+  if (titleEl) titleEl.textContent = namaProyek || ('Ruas ' + noRuas);
+  if (subEl)   subEl.textContent   = 'No. Ruas: ' + noRuas + '  ·  ' + (lokasiProyek || '');
+  // Show/hide Reset for admin only
+  var resetBtn = document.getElementById('ck-btn-reset');
+  if (resetBtn) resetBtn.style.display = (CURRENT_ROLE === 'admin') ? '' : 'none';
+  // Load from Firebase then render
+  var bodyEl = document.getElementById('ck-body');
+  if (bodyEl) bodyEl.innerHTML = '<div style="padding:30px;text-align:center;color:#9b9b96;font-size:13px">Memuat data…</div>';
+  document.getElementById('ck-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  ckLoad(_ckActive, function() { ckRender(); });
+}
+
+function ckClose() {
+  document.getElementById('ck-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _ckActive = null;
+}
+function ckHandleOverlay(e) {
+  if (e.target === document.getElementById('ck-overlay')) ckClose();
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && _ckActive) ckClose();
+});
+
+// ── Render modal body ─────────────────────────────────────
+function ckRender() {
+  var s       = _ckState[_ckActive] || {};
+  var canEdit = can('canEdit');
+  var p       = ckGetProg(_ckActive);
+  var progEl  = document.getElementById('ck-prog');
+  if (progEl) progEl.textContent = p.done + ' / ' + CK_TOTAL + ' item (' + p.pct + '%)';
+
+  // Group by grup
+  var grps = {};
+  var grpOrder = [];
+  checklist.forEach(function(c) {
+    if (!grps[c.grup]) { grps[c.grup] = []; grpOrder.push(c.grup); }
+    grps[c.grup].push(c);
+  });
+
+  var html = '';
+  grpOrder.forEach(function(grp) {
+    html += '<div class="ck-group"><div class="ck-group-title">' + grp + '</div>';
+    grps[grp].forEach(function(c) {
+      var checked = !!s[c.id];
+      var locked  = !canEdit ? ' locked' : '';
+      var onclick = canEdit ? ' onclick="ckToggle(\'' + c.id + '\',this)"' : '';
+      html += '<div class="ck-row' + (checked ? ' checked' : '') + locked + '"' + onclick + '>'
+        + '<div class="ck-box">' + (checked ? '✓' : '') + '</div>'
+        + '<span class="ck-text">' + c.label + '</span>'
+        + '</div>';
+    });
+    html += '</div>';
+  });
+
+  var bodyEl = document.getElementById('ck-body');
+  if (bodyEl) bodyEl.innerHTML = html;
+}
+
+// ── Toggle item ───────────────────────────────────────────
+function ckToggle(cid, el) {
+  if (!can('canEdit')) return;
+  var key = _ckActive;
+  if (!_ckState[key]) _ckState[key] = {};
+  _ckState[key][cid] = !_ckState[key][cid];
+  // Update UI immediately
+  var checked = _ckState[key][cid];
+  el.classList.toggle('checked', checked);
+  var box = el.querySelector('.ck-box');
+  if (box) box.textContent = checked ? '✓' : '';
+  // Update progress in modal
+  var p      = ckGetProg(_ckActive);
+  var progEl = document.getElementById('ck-prog');
+  if (progEl) progEl.textContent = p.done + ' / ' + CK_TOTAL + ' item (' + p.pct + '%)';
+  // Update % badge on button in detail row
+  var btnEl = document.getElementById('ck-pct-' + _ckActiveNo);
+  if (btnEl) {
+    var col = p.pct >= 67 ? '#16a34a' : p.pct >= 33 ? '#b45309' : '#dc2626';
+    btnEl.style.background = col;
+    btnEl.textContent      = p.pct + '%';
+  }
+  // Save to Firebase
+  ckSave(_ckActive);
+}
+
+// ── Reset (admin only) ────────────────────────────────────
+function ckReset() {
+  if (CURRENT_ROLE !== 'admin') return;
+  if (!confirm('Reset semua checklist untuk paket ini?')) return;
+  _ckState[_ckActive] = {};
+  ckSave(_ckActive, function() { ckRender(); });
+}
+
+// ── Print ─────────────────────────────────────────────────
+function ckPrint() {
+  // Lookup project data same as detailRow uses
+  var k = (function() {
+    var proj = DATA.filter(function(d){
+      return String(d.noRuas) === String(_ckActive);
+    })[0];
+    // Fallback: match by paket no (for projects with no noRuas)
+    if (!proj) {
+      proj = DATA.filter(function(d){
+        return String(d.no) === String(_ckActive.replace('p',''));
+      })[0];
+    }
+    if (!proj) return { nama:'—', dana:'—', pagu:0 };
+    return { nama: proj.nama, dana: proj.dana, pagu: proj.pagu||0 };
+  })();
+
+  var s = _ckState[_ckActive] || {};
+
+  const rows_def = [
+    {no:'1',  label:'Dokumen Program / Penganggaran',                     indent:0},
+    {no:'2',  label:'Surat Penetapan PPK',                                indent:0},
+    {no:'3',  label:'Dokumen Perencanaan Pengadaan ( KAK, HPS )',         indent:0},
+    {no:'4',  label:'RUP/ SIRUP',                                         indent:0},
+    {no:'5',  label:'Dokumen Persiapan Pengadaan ( Spek Teknis, Gbr Rencana)', indent:0},
+    {no:'6',  label:'Dokumen Pemilihan Penyedia',                         indent:0},
+    {no:'7',  label:'Dokumen Penawaran Penyedia',                         indent:0},
+    {no:'8',  label:'Dokumen Evaluasi s/d Penetapan Penyedia',            indent:0},
+    {no:'9',  label:'SPPBJ',                                              indent:0},
+    {no:'10', label:'Dokumen Kontrak',                                    indent:0},
+    {no:'11', label:'Dokumen Kontrak Perubahan',                          indent:0},
+    {no:'12', label:'Dokumen Serah Terima Hasil Pekerjaan',               indent:0},
+    {no:'13', label:'Dokumen Pemeriksaan Lainnya',                        indent:0, grp:true},
+    {no:'1.',  label:'Surat Permohonan',                                  indent:1, ckid:'d1'},
+    {no:'2.',  label:'Surat Pernyataan Persiapan Pekerjaan',              indent:1, ckid:'d2'},
+    {no:'3.',  label:'Copy Jaminan Penawaran',                            indent:1, ckid:'d3'},
+    {no:'4.',  label:'Copy Jaminan Pelaksanaan',                          indent:1, ckid:'d4'},
+    {no:'5.',  label:'Copy Jaminan Uang Muka',                            indent:1, ckid:'d5'},
+    {no:'6.',  label:'Copy Jaminan Pemeliharaan',                         indent:1, ckid:'d6'},
+    {no:'7.',  label:'Berita Acara Pemeriksaan ( PHO )',                  indent:1, ckid:'d7'},
+    {no:'8.',  label:'Berita Acara CCO / Addendum',                       indent:1, ckid:'d8'},
+    {no:'9.',  label:'MC Pembayaran',                                     indent:1, ckid:'d9'},
+    {no:'10.', label:'MC 0',                                              indent:1, ckid:'d10'},
+    {no:'11.', label:'MC 100',                                            indent:1, ckid:'d11'},
+    {no:'12.', label:'TKDN ( Tingkat Komponen Dalam Negeri )',            indent:1, ckid:'d12'},
+    {no:'',   label:'ASPAL',                                              indent:1, grp:true},
+    {no:'a.', label:'Job Mix Formula',                                    indent:2, ckid:'e1'},
+    {no:'b.', label:'Uji Core Drill',                                     indent:2, ckid:'e2'},
+    {no:'c.', label:'Uji Ekstrasi Aspal',                                 indent:2, ckid:'e3'},
+    {no:'d.', label:'Density',                                            indent:2, ckid:'e4'},
+    {no:'',   label:'BETON',                                              indent:1, grp:true},
+    {no:'a.', label:'Jobmix ( fc / fs )',                                 indent:2, ckid:'f1'},
+    {no:'b.', label:'Core Drill',                                         indent:2, ckid:'f2'},
+    {no:'c.', label:'Uji Desak Beton / Tekan',                           indent:2, ckid:'f3'},
+    {no:'-',  label:'Benda Uji / Sample',                                 indent:2, ckid:'f4', sub:true},
+    {no:'-',  label:'Uji Hasil Core',                                     indent:2, ckid:'f5', sub:true},
+    {no:'d.', label:'Kuat Lentur ( Beton ) fs',                          indent:2, ckid:'f6'},
+    {no:'',   label:'LPA',                                                indent:1, grp:true},
+    {no:'a.', label:'Job Mix',                                            indent:2, ckid:'g1'},
+    {no:'b.', label:'Uji Ketebalan',                                      indent:2, ckid:'g2'},
+    {no:'c.', label:'Sand Cone / Kepadatan',                              indent:2, ckid:'g3'},
+    {no:'',   label:'BESI',                                               indent:1, grp:true},
+    {no:'a.', label:'Kuat Tarik',                                         indent:2, ckid:'h1'},
+    {no:'b.', label:'Berat Jenis',                                        indent:2, ckid:'h3'},
+    {no:'',   label:'MORTAR',                                             indent:1, grp:true},
+    {no:'a.', label:'Uji Mortar',                                         indent:2, ckid:'i1'},
+    {no:'13.', label:'Berita Acara Pengambilan Sampel',                   indent:1, ckid:'j1'},
+    {no:'14.', label:'Pernyataan Pengawas Lapangan',                      indent:1, ckid:'j2'},
+    {no:'15.', label:'Foto Proyek',                                       indent:1, ckid:'j3'},
+    {no:'16.', label:'Shop Drawing',                                      indent:1, ckid:'j4'},
+    {no:'17.', label:'As Built Drawing',                                  indent:1, ckid:'j5'},
+    {no:'18.', label:'Time Schedule',                                     indent:1, ckid:'j6'},
+    {no:'19.', label:'Grafik Cuaca',                                      indent:1, ckid:'j7'},
+    {no:'20.', label:'Grafik Tenaga',                                     indent:1, ckid:'j8'},
+    {no:'21.', label:'Buku Direksi',                                      indent:1, ckid:'j9'},
+    {no:'22.', label:'Buku Tamu',                                         indent:1, ckid:'j10'},
+    {no:'23.', label:'Buku Harian',                                       indent:1, ckid:'j11'},
+    {no:'24.', label:'Buku Bahan',                                        indent:1, ckid:'j12'},
+    {no:'25.', label:'Laporan Mingguan ( Proyek Fisik )',                 indent:1, ckid:'j13'},
+    {no:'26.', label:'Request',                                           indent:1, ckid:'j14'},
+    {no:'27.', label:'Surat Surat Masuk',                                 indent:1, ckid:'j15'},
+    {no:'28.', label:'Surat Surat Keluar',                                indent:1, ckid:'j16'},
+    {no:'29.', label:'Bukti Setor Astek',                                 indent:1, ckid:'k1'},
+    {no:'30.', label:'Bukti Retribusi Lab',                               indent:1, ckid:'k2'},
+    {no:'31.', label:'Bukti Setor Retribusi Kebersihan',                  indent:1, ckid:'k3'},
+    {no:'32.', label:'Bukti Setor SP3',                                   indent:1, ckid:'k4'},
+    {no:'33.', label:'Copy SSP dan PPH',                                  indent:1, ckid:'k5'},
+    {no:'34.', label:'Bukti Kirim Tiket ( Aspal Beton )',                 indent:1, ckid:'k6'},
+  ];
+
+  const topMap = {
+    '1':'a1','2':'a2','3':'a3','4':'a4','5':'a5',
+    '6':'b1','7':'b2','8':'b3','9':'b4',
+    '10':'c1','11':'c2','12':'c3'
+  };
+
+  let rows = '';
+  rows_def.forEach(r => {
+    const ckid = r.ckid || topMap[r.no];
+    const ada  = ckid ? !!s[ckid] : false;
+    const pl   = r.indent===2 ? '18pt' : r.indent===1 ? '9pt' : '3pt';
+
+    if (r.grp) {
+      rows += `<tr class="grp">
+        <td class="no">${r.no}</td>
+        <td colspan="3" style="border:1px solid #000;padding:0pt 3pt;font-weight:bold;font-style:italic;font-size:8pt;height:10pt;padding-left:${pl}">${r.label}</td>
+      </tr>`;
+    } else {
+      rows += `<tr>
+        <td class="no">${r.no}</td>
+        <td style="border:1px solid #000;padding:0pt 3pt;padding-left:${pl};font-size:8pt;line-height:1.15;height:10pt">${r.label}</td>
+        <td class="ada">${ada ? '✓' : ''}</td>
+        <td class="tdk">${ada ? '' : ''}</td>
+        <td class="ket"></td>
+      </tr>`;
+    }
+  });
+
+  const paguFull = 'Rp ' + k.pagu.toLocaleString('id') + ',-';
+
+  document.getElementById('ck-print-area').innerHTML = `
+  <div class="print-judul">LAMPIRAN DAFTAR PEMERIKSAAN ADMINISTRASI HASIL PEKERJAAN SERAH TERIMA PERTAMA PEKERJAAN</div>
+  <div class="print-tahun">TAHUN 2026</div>
+
+  <div class="print-info">
+    <table>
+      <tr><td class="lbl">Nama Kegiatan</td><td class="sep">:</td><td>${k.nama}</td></tr>
+      <tr><td class="lbl">Sumber Dana</td><td class="sep">:</td><td>${k.dana}</td></tr>
+      <tr><td class="lbl">Nilai Pagu</td><td class="sep">:</td><td>${paguFull}</td></tr>
+      <tr><td class="lbl">Pelaksana Kegiatan</td><td class="sep">:</td><td>___________________________________________</td></tr>
+    </table>
+  </div>
+
+  <table class="print-table">
+    <thead>
+      <tr>
+        <th style="width:16pt">NO</th>
+        <th>NAMA BERKAS</th>
+        <th style="width:30pt">ADA</th>
+        <th style="width:34pt">TIDAK ADA</th>
+        <th style="width:70pt">KETERANGAN</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="print-sign">
+    <table>
+      <tr>
+        <td>
+          Pelaksana<br>PT/ CV __________________________
+          <div class="sign-gap"></div>
+          <span class="sign-line">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</span>
+        </td>
+        <td>
+          PjPHP
+          <div class="sign-gap"></div>
+          <span class="sign-line">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</span>
+        </td>
+      </tr>
+    </table>
+  </div>`;
+
+  window.print();
+}
+
+// ════════════════════════════════════
+//  INIT
+// ════════════════════════════════════
+loadState();
+renderCards();
+
+
+// ── downloadExcel: patch to include check_list sheet ─────
+var _ckOrigDownload = null; // will be set after downloadExcel is defined
+function ckBuildExcelSheet() {
+  // Build Opsi A: per row per item
+  var rows = [['No Paket','No Ruas','Nama Paket','Sumber Dana','Lokasi','Grup','Item','Status']];
+  DATA.forEach(function(d) {
+    var s = _ckState[String(d.noRuas)] || {};
+    checklist.forEach(function(c) {
+      rows.push([
+        d.no,
+        d.noRuas || '—',
+        d.nama,
+        d.dana,
+        d.lokasi || '—',
+        c.grup,
+        c.label,
+        s[c.id] ? 'Ada' : 'Tidak Ada'
+      ]);
+    });
+  });
+  return rows;
+}
+
+
 // ===== BM MERGE CONTROLLER =====
 function openBmLoginModal() {
   var modal = document.getElementById('bm-login-modal');
@@ -2799,12 +3506,15 @@ function fp() {
   });
   document.getElementById('pcnt').textContent = 'Menampilkan '+rows.length+' dari '+DATA.length+' paket';
   document.getElementById('tb').innerHTML = rows.map(bRow).join('');
-  // Init BM detail map after DOM is updated
+  // Init BM detail map + checklist % after DOM is updated
   if (openRow !== null) {
     var openData = DATA.filter(function(d){ return d.no === openRow; })[0];
     if (openData) {
       setTimeout(function(){
         initBmDetailMap(openData.no, openData.noRuas);
+        if (typeof ckLoadBtnPct === 'function') {
+          ckLoadBtnPct(openData.noRuas, openData.no);
+        }
       }, 80);
     }
   }
@@ -2956,7 +3666,21 @@ function detailRow(d) {
     +'</div></div>'
     +di('Nomor PHO/BAST', vOrI('noPho',d.noPho))
     +di('Tanggal PHO/BAST', vOrI('tglPho',d.tglPho,'date'))
-    +'</div>';
+    +'</div>'
++(function(){
+      var _ruas = (d.noRuas||'').toString().replace(/'/g,"\\'");
+      var _nama = (d.nama||'').replace(/'/g,"\\'").replace(/"/g,"&quot;");
+      var _lok  = (d.lokasi||'').replace(/'/g,"\\'");
+      var _no   = d.no || 0;
+      // Kotak seukuran det-item — warna badge dari % kelengkapan
+      return '<div class="det-item" style="cursor:pointer" onclick="(function(ev){ev.stopPropagation();ckOpen(\''+_ruas+'\',\''+_nama+'\',\''+_lok+'\','+_no+');})(event)">'
+        +'<div class="det-label">List Administrasi</div>'
+        +'<div class="det-val" style="display:flex;align-items:center;gap:10px">'
+        +'<span id="ck-pct-'+_no+'" style="display:inline-block;min-width:46px;padding:4px 10px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;text-align:center;background:#dc2626;transition:background .3s">—%</span>'
+        +'<span style="font-size:11px;color:var(--txt3)">klik untuk buka</span>'
+        +'</div>'
+        +'</div>';
+    })();
 
   s += sec('📊 Progres &amp; Realisasi');
   s += '<div class="det-grid">'
@@ -3305,28 +4029,59 @@ function onDlv(){document.getElementById('dz').classList.remove('dov');}
 
 // ── Download Excel ────────────────────────────────────────
 function downloadExcel(){
-  var wb=XLSX.utils.book_new();
-  var hdr=['No','No. Ruas','Nama Paket Pekerjaan','Sumber Dana','Lokasi','Lebar dan Panjang Jalan',
-    'Nilai Pagu APBD-P','Nilai HPS (Rp)','Pelaksana/ Penyedia Jasa','Nomor Kontrak','Tanggal Kontrak',
-    'Nilai Kontrak (Rp)','Add Kontrak + 10%','Addendum Ke-','Nomor Add','Tanggal Add','Nilai Kontrak Add (Rp)',
-    'Jangka Waktu Kontrak (Hari)','Tanggal Mulai Kontrak','Tanggal Selesai Kontrak','Belum','Nomor PHO/BAST',
-    'Tanggal PHO/BAST','Prestasi Fisik %','Realisasi Pembayaran (Rp)','% thd Kontrak',
-    'Metode Pengadaan Barang/Jasa (PL, Lelang, Swakelola, atau E-katalog)','Jenis Kontrak (Harga satuan atau Lumpsum)',
-    'Jenis Belanja (Belanja Barang dan Jasa, Belanja Modal Gedung dan Bangunan atau Belanja Modal Jalan Irigasi dan Jaringan',
-    'Jenis Infrastruktur (Diisi: Jalan, Irigasi, Jaringan, Gedung atau Bangunan)',
-    'PPK','PPTK','Staf/Pengawas Taknis','Tim Teknis Ketua ','Tim Teknis Sekretaris',
-    'Tim Teknis Anggota 1','Tim Teknis Anggota 2','Tim Teknis Anggota 3'];
-  var DL={'DAK':'Dana Alokasi Khusus (DAK)','DAU':'Dana Alokasi Umum (DAU)','Bankeu':'Bantuan Provinsi (Banprov)','Hibah':'Belanja Barang untuk dijual/Diserahkan kepada Masyarakat'};
-  function mkR(fd){var rows=fd?DATA.filter(function(d){return d.dana===fd;}):DATA;
-    return[hdr].concat(rows.map(function(d){return[d.no,d.noRuas||'',d.nama,DL[d.dana]||d.dana,d.lokasi||'',d.lebarPanjang||'',d.pagu||'',d.hps||'',d.penyedia||'',d.noKontrak||'',d.tglKontrak||'',d.kontrak,d.addKontrak10||'',d.addKe||'',d.noAdd||'',d.tglAdd||'',d.nilaiAdd||'',d.jaWaktu||'',d.mulai||'',d.selesai||'',d.pho,d.noPho||'',d.tglPho||'',d.fisik,d.realisasi,d.pctReal,d.metode||'',d.jenisKontrak||'',d.jenisBelanja||'',d.jenisInfra||'',d.ppk||'',d.pptk||'',d.staf||'',d.ketua||'',d.sekretaris||'',(d.anggota&&d.anggota[0])||'',(d.anggota&&d.anggota[1])||'',(d.anggota&&d.anggota[2])||''];}));}
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mkR(null)),'Rekap');
-  ['DAK','DAU','Bankeu','Hibah'].forEach(function(d){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mkR(d)),d+'_26');});
-  var phdr=['No','Nama','NIP','Pangkat','Golongan','Jabatan'];
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([phdr].concat(PERS.map(function(p){return[p.no,p.nama,p.nip||'',p.pangkat||'',p.gol||'',p.jabatan||''];}))),'Personil');
-  var ts=new Date();var fn='BinaMarga2026_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())+'_'+pad(ts.getHours())+pad(ts.getMinutes())+'.xlsx';
-  XLSX.writeFile(wb,fn);toast('Excel didownload: '+fn);
+  var wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: Rekap ──
+  var hdr = ['No','No. Ruas','Nama Paket Pekerjaan','Sumber Dana','Lokasi',
+    'Lebar dan Panjang Jalan','Nilai Pagu APBD-P','Nilai HPS (Rp)',
+    'Pelaksana/ Penyedia Jasa','Nomor Kontrak','Tanggal Kontrak',
+    'Nilai Kontrak (Rp)','Add Kontrak +10%','Metode Pengadaan',
+    'Jenis Kontrak','Jenis Belanja',
+    'Addendum Ke-','Nomor Addendum','Tanggal Addendum','Nilai Kontrak Addendum',
+    'Jangka Waktu (Hari)','Tanggal Mulai','Tanggal Selesai',
+    'Status PHO','Nomor PHO/BAST','Tanggal PHO/BAST',
+    'Prestasi Fisik (%)','Realisasi Pembayaran','% thd Kontrak',
+    'PPK','PPTK','Staf/Pengawas','Ketua Tim Teknis','Sekretaris Tim Teknis',
+    'Anggota 1','Anggota 2','Anggota 3'];
+  var rows = DATA.map(function(d){
+    return [
+      d.no, d.noRuas||'—', d.nama, d.dana, d.lokasi||'—',
+      d.lebarPanjang||'—', d.pagu||0, d.hps||0,
+      d.penyedia||'—', d.noKontrak||'—', d.tglKontrak||'—',
+      d.kontrak||0, d.addKontrak10||0, d.metode||'—',
+      d.jenisKontrak||'—', d.jenisBelanja||'—',
+      d.addKe||'—', d.noAdd||'—', d.tglAdd||'—', d.nilaiAdd||0,
+      d.jaWaktu||'—', d.mulai||'—', d.selesai||'—',
+      d.pho||'Belum', d.noPho||'—', d.tglPho||'—',
+      d.fisik||0, d.realisasi||0, d.pctReal||0,
+      d.ppk||'—', d.pptk||'—', d.staf||'—',
+      d.ketua||'—', d.sekretaris||'—',
+      (d.anggota&&d.anggota[0])||'—',
+      (d.anggota&&d.anggota[1])||'—',
+      (d.anggota&&d.anggota[2])||'—'
+    ];
+  });
+  var rekapWs = XLSX.utils.aoa_to_sheet([hdr].concat(rows));
+  rekapWs['!cols'] = hdr.map(function(h,i){
+    return {wch: i===2?55 : i===0?4 : i===1?7 : 16};
+  });
+  XLSX.utils.book_append_sheet(wb, rekapWs, 'Rekap');
+
+  // ── Sheet 2: check_list ──
+  var ckRows = ckBuildExcelSheet();
+  var ckWs   = XLSX.utils.aoa_to_sheet(ckRows);
+  ckWs['!cols'] = [
+    {wch:8},{wch:8},{wch:55},{wch:10},{wch:20},{wch:35},{wch:42},{wch:10}
+  ];
+  XLSX.utils.book_append_sheet(wb, ckWs, 'check_list');
+
+  var ts  = new Date();
+  function pad(n){ return n<10?'0'+n:String(n); }
+  var fn  = 'BinaMarga2026_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())
+            +'_'+pad(ts.getHours())+pad(ts.getMinutes())+'.xlsx';
+  XLSX.writeFile(wb, fn);
+  toast('Excel didownload: ' + fn);
 }
-function pad(n){return n<10?'0'+n:String(n);}
 
 // ── Export CSV ────────────────────────────────────────────
 function exportCSV(){
@@ -3366,6 +4121,28 @@ window.addEventListener("DOMContentLoaded", function() {
 });
 
 </script>
+
+
+<!-- ===== CHECKLIST ADMINISTRASI MODAL ===== -->
+<div id="ck-overlay" onclick="ckHandleOverlay(event)">
+  <div class="ck-modal">
+    <div class="ck-modal-head">
+      <div class="ck-modal-head-text">
+        <div class="ck-modal-title" id="ck-title">–</div>
+        <div class="ck-modal-sub"   id="ck-sub">–</div>
+      </div>
+      <button class="ck-btn-close" onclick="ckClose()">✕</button>
+    </div>
+    <div class="ck-toolbar">
+      <button class="ck-btn-print" onclick="ckPrint()">🖨️ Print / Cetak</button>
+      <button class="ck-btn-reset" id="ck-btn-reset" onclick="ckReset()" style="display:none">↺ Reset</button>
+      <span class="ck-prog-info" id="ck-prog">0 / 0 item</span>
+      <span class="ck-save-note">💾 Tersimpan ke Firebase</span>
+    </div>
+    <div class="ck-body" id="ck-body"></div>
+  </div>
+</div>
+<div id="ck-print-area" style="display:none"></div>
 
 <div id="mobile-menu-backdrop" onclick="closeMobileMenu()"></div>
 </body>
