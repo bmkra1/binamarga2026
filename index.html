@@ -4673,17 +4673,41 @@ function processFile(file){
         // Ganti nama di DATA dengan nama baku dari Personil
         var allFields = ['ppk','pptk','staf','ketua','sekretaris'];
         newP.forEach(function(p) {
+          // Sync single-value fields
           allFields.forEach(function(f) {
             if (!p[f]) return;
             var k = persKey(p[f]);
             if (persBakuMap[k]) p[f] = persBakuMap[k];
+            // Also add to rekapNamaSet in case not yet captured
+            else if (p[f] && p[f] !== '—') {
+              var nk = persKey(normNama(p[f]));
+              if (!rekapNamaSet[nk]) rekapNamaSet[nk] = normNama(p[f]);
+            }
           });
+          // Sync anggota array
           if (p.anggota) {
             p.anggota = p.anggota.map(function(a) {
-              var k = persKey(a||'');
-              return persBakuMap[k] || a;
+              if (!a || a === '—') return a;
+              var k = persKey(a);
+              if (persBakuMap[k]) return persBakuMap[k];
+              // Add unknown anggota names to rekapNamaSet
+              var nk = persKey(normNama(a));
+              if (!rekapNamaSet[nk]) rekapNamaSet[nk] = normNama(a);
+              return a;
             });
           }
+        });
+        // Rebuild rekapNamaSet from all fields including updated anggota
+        var allRoleFields2 = ['ppk','pptk','staf','ketua','sekretaris'];
+        newP.forEach(function(p) {
+          allRoleFields2.forEach(function(f) {
+            var nm = normNama(p[f]||'');
+            if (nm && nm !== '—') rekapNamaSet[persKey(nm)] = nm;
+          });
+          (p.anggota||[]).forEach(function(a) {
+            var nm = normNama(a||'');
+            if (nm && nm !== '—') rekapNamaSet[persKey(nm)] = nm;
+          });
         });
         // Tambah nama dari Rekap yang tidak ada di Personil sheet (nama baru)
         var lastNo = newPer.length > 0 ? Math.max.apply(null, newPer.map(function(p){return p.no||0;})) : 0;
@@ -4777,6 +4801,42 @@ function downloadExcel(){
     {wch:8},{wch:8},{wch:55},{wch:10},{wch:20},{wch:35},{wch:42},{wch:10}
   ];
   XLSX.utils.book_append_sheet(wb, ckWs, 'check_list');
+
+  // ── Sheet 4: cek_personil (formula-based, reads from Rekap) ──
+  // Rekap cols: AD=PPK, AE=PPTK, AF=Staf, AG=Ketua, AH=Sekretaris
+  //             AI=Anggota1, AJ=Anggota2, AK=Anggota3
+  // Rekap data: row 2 onward (header row 1), up to row 1000
+  // Personil names: Personil sheet col B, starting row 2
+  var cpHdr = ['No','Nama','Total','PPK','PPTK','Staf','Ketua','Sekr','Ang1','Ang2','Ang3'];
+  var cpRows = [cpHdr];
+  var maxDataRow = Math.max(DATA.length + 1, 35) + 1; // row range for COUNTIF
+  var rekapRange = '2:' + (maxDataRow + 5);
+
+  (PERS||[]).forEach(function(p, pidx) {
+    var r = pidx + 2; // row in cek_personil (1=header, 2=first data)
+    // COUNTIF: range must specify column in both start & end
+    // e.g. COUNTIF(Rekap!AD$2:AD$1000, Personil!B2)
+    function cf(col) {
+      return {f: 'COUNTIF(Rekap!' + col + '$2:' + col + '$1000,Personil!B' + r + ')'};
+    }
+    var ppk  = cf('AD');
+    var pptk = cf('AE');
+    var staf = cf('AF');
+    var ketua= cf('AG');
+    var sekr = cf('AH');
+    var ang1 = cf('AI');
+    var ang2 = cf('AJ');
+    var ang3 = cf('AK');
+    // Total = SUM(D:K) for this row — cleaner than D+E+...
+    var totalF = {f: 'SUM(D' + r + ':K' + r + ')'};
+    cpRows.push([p.no, p.nama, totalF, ppk, pptk, staf, ketua, sekr, ang1, ang2, ang3]);
+  });
+
+  var cpWs = XLSX.utils.aoa_to_sheet(cpRows);
+  cpWs['!cols'] = [
+    {wch:5},{wch:38},{wch:7},{wch:6},{wch:6},{wch:6},{wch:7},{wch:6},{wch:6},{wch:6},{wch:6}
+  ];
+  XLSX.utils.book_append_sheet(wb, cpWs, 'cek_personil');
 
   var ts  = new Date();
   function pad(n){ return n<10?'0'+n:String(n); }
