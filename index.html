@@ -2574,21 +2574,59 @@ var _ckActiveNo = 0;    // paket no fallback
 function ckLoad(noRuas, cb) {
   var key = (noRuas && String(noRuas).trim()) ? String(noRuas).trim() : ('p' + _ckActiveNo);
   _ckActive = key; // sync active key
+  // Jika sudah ada di cache, gunakan cache
   if (_ckState[key] !== undefined) { cb(_ckState[key]); return; }
-  db.collection('checklist').doc(key).get().then(function(doc) {
-    _ckState[key] = doc.exists ? doc.data() : {};
-    cb(_ckState[key]);
-  }).catch(function() {
+  // Cek user sudah login
+  if (!CURRENT_USER) {
     _ckState[key] = {};
+    cb(_ckState[key]);
+    return;
+  }
+  db.collection('checklist').doc(key).get().then(function(doc) {
+    _ckState[key] = doc.exists ? (doc.data() || {}) : {};
+    cb(_ckState[key]);
+  }).catch(function(e) {
+    console.error('ckLoad error:', e.code, e.message);
+    _ckState[key] = {};
+    // Tampilkan pesan di modal body jika ada
+    var bodyEl = document.getElementById('ck-body');
+    if (bodyEl) {
+      bodyEl.innerHTML = '<div style="padding:20px;color:#dc2626;font-size:12px">'
+        + '⚠️ Gagal memuat data checklist. Pastikan koneksi internet aktif dan Anda sudah login.<br>'
+        + 'Error: ' + (e.code || e.message) + '</div>';
+    }
     cb(_ckState[key]);
   });
 }
 
 function ckSave(noRuas, cb) {
   var key = String(noRuas);
-  db.collection('checklist').doc(key).set(_ckState[key] || {})
-    .then(function() { if (cb) cb(); })
-    .catch(function(e) { console.error('ckSave error', e); });
+  var data = _ckState[key] || {};
+  // merge:true agar tidak overwrite field lain yang mungkin ada
+  db.collection('checklist').doc(key).set(data, {merge: true})
+    .then(function() {
+      // Konfirmasi visual di toolbar modal
+      var saveNote = document.querySelector('#ck-overlay .ck-save-note');
+      if (saveNote) {
+        saveNote.textContent = '✅ Tersimpan';
+        saveNote.style.color = '#16a34a';
+        setTimeout(function() {
+          saveNote.textContent = '💾 Tersimpan ke Firebase';
+          saveNote.style.color = '';
+        }, 2000);
+      }
+      if (cb) cb();
+    })
+    .catch(function(e) {
+      console.error('ckSave error', e);
+      // Notifikasi error ke user — jangan silent!
+      var saveNote = document.querySelector('#ck-overlay .ck-save-note');
+      if (saveNote) {
+        saveNote.textContent = '❌ Gagal simpan: ' + (e.code || e.message || 'cek koneksi');
+        saveNote.style.color = '#dc2626';
+      }
+      toast('❌ Checklist gagal disimpan: ' + (e.code || e.message || 'Cek koneksi & login'));
+    });
 }
 
 // ── Progress ──────────────────────────────────────────────
@@ -2625,8 +2663,16 @@ function ckLoadBtnPct(noRuas, paketNo) {
 
 // ── Open modal ───────────────────────────────────────────
 function ckOpen(noRuas, namaProyek, lokasiProyek, paketNo) {
+  // Cek login
+  if (!CURRENT_USER) {
+    toast('⚠️ Login terlebih dahulu untuk mengakses checklist');
+    return;
+  }
   _ckActiveNo = paketNo || 0;
   _ckActive   = (noRuas && String(noRuas).trim()) ? String(noRuas).trim() : ('p' + _ckActiveNo);
+  // FORCE RELOAD dari Firestore setiap kali modal dibuka
+  // Hapus cache agar data selalu fresh dari server
+  delete _ckState[_ckActive];
   // Set header
   var titleEl = document.getElementById('ck-title');
   var subEl   = document.getElementById('ck-sub');
@@ -2635,9 +2681,15 @@ function ckOpen(noRuas, namaProyek, lokasiProyek, paketNo) {
   // Show/hide Reset for admin only
   var resetBtn = document.getElementById('ck-btn-reset');
   if (resetBtn) resetBtn.style.display = (CURRENT_ROLE === 'admin') ? '' : 'none';
+  // Reset save note
+  var saveNote = document.querySelector('#ck-overlay .ck-save-note');
+  if (saveNote) {
+    saveNote.textContent = '💾 Tersimpan ke Firebase';
+    saveNote.style.color = '';
+  }
   // Load from Firebase then render
   var bodyEl = document.getElementById('ck-body');
-  if (bodyEl) bodyEl.innerHTML = '<div style="padding:30px;text-align:center;color:#9b9b96;font-size:13px">Memuat data…</div>';
+  if (bodyEl) bodyEl.innerHTML = '<div style="padding:30px;text-align:center;color:#9b9b96;font-size:13px">⏳ Memuat data dari Firebase…</div>';
   document.getElementById('ck-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   ckLoad(_ckActive, function() { ckRender(); });
@@ -2719,9 +2771,17 @@ function ckToggle(cid, el) {
 // ── Reset (admin only) ────────────────────────────────────
 function ckReset() {
   if (CURRENT_ROLE !== 'admin') return;
-  if (!confirm('Reset semua checklist untuk paket ini?')) return;
+  if (!confirm('Reset semua checklist untuk paket ini? Data tidak bisa dikembalikan.')) return;
   _ckState[_ckActive] = {};
-  ckSave(_ckActive, function() { ckRender(); });
+  // Untuk reset, gunakan set tanpa merge agar benar-benar bersih
+  db.collection('checklist').doc(String(_ckActive)).set({})
+    .then(function() {
+      toast('✅ Checklist berhasil direset');
+      ckRender();
+    })
+    .catch(function(e) {
+      toast('❌ Reset gagal: ' + (e.code || e.message));
+    });
 }
 
 // ── Print ─────────────────────────────────────────────────
