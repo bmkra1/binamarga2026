@@ -3343,25 +3343,47 @@ function ddUploadExcel(input) {
       var batchIdx = 0;
       function doNextBatch() {
         if (batchIdx >= batches.length) {
-          // All done — apply to RD in memory (null guard)
-          if (updates && typeof updates === 'object') {
-            Object.assign(_rdAttr, updates);
+          try {
+            // All done — apply to RD in memory (null guard)
+            if (updates && typeof updates === 'object') {
+              Object.assign(_rdAttr, updates);
+            }
+            ddApplyOverrides();
+            // Refresh map and table
+            if (typeof refreshMapColors === 'function') refreshMapColors();
+            if (typeof renderTable === 'function') renderTable();
+            if (typeof renderPeta === 'function') renderPeta();
+            if (statusEl) statusEl.textContent = '✅ ' + count + ' ruas berhasil diupdate';
+            toast('✅ Data Dasar Jalan diupdate: ' + count + ' ruas');
+          } catch(applyErr) {
+            console.error('ddApply error:', applyErr);
+            // Data sudah tersimpan di Firestore, hanya gagal apply ke memory
+            if (statusEl) statusEl.textContent = '✅ ' + count + ' ruas tersimpan di Firebase (refresh untuk melihat perubahan)';
           }
-          ddApplyOverrides();
-          // Refresh map and table
-          if (typeof refreshMapColors === 'function') refreshMapColors();
-          if (typeof renderTable === 'function') renderTable();
-          if (typeof renderPeta === 'function') renderPeta();
-          if (statusEl) statusEl.textContent = '✅ ' + count + ' ruas berhasil diupdate';
-          toast('✅ Data Dasar Jalan diupdate: ' + count + ' ruas');
           // Reset input
           input.value = '';
           return;
         }
         var batch = db.batch();
         batches[batchIdx].forEach(function(noRuas) {
-          var ref = db.collection('rd_attr').doc(noRuas);
-          batch.set(ref, updates[noRuas]);
+          var ref  = db.collection('rd_attr').doc(noRuas);
+          var data = updates[noRuas];
+          // Sanitize: Firestore tidak terima undefined/null values
+          // Ganti semua undefined/null dengan '' atau 0
+          var safe = {};
+          if (data && typeof data === 'object') {
+            Object.keys(data).forEach(function(k) {
+              var v = data[k];
+              if (v === undefined || v === null) {
+                safe[k] = typeof v === 'number' ? 0 : '';
+              } else if (typeof v === 'number' && isNaN(v)) {
+                safe[k] = 0;
+              } else {
+                safe[k] = v;
+              }
+            });
+          }
+          batch.set(ref, safe);
         });
         batch.commit().then(function() {
           batchIdx++;
@@ -3381,11 +3403,10 @@ function ddUploadExcel(input) {
     } catch(err) {
       console.error('ddUpload error', err);
       var errMsg = err ? (err.message || String(err)) : 'Unknown error';
-      // Pesan yang lebih informatif
       if (errMsg.indexOf('null') !== -1 || errMsg.indexOf('undefined') !== -1) {
-        errMsg = 'Format file tidak valid atau ada sel kosong. Pastikan menggunakan file hasil download dari aplikasi.';
+        errMsg = 'Format file tidak valid atau ada sel kosong. Download ulang template dari aplikasi.';
       }
-      if (statusEl) statusEl.textContent = '❌ ' + errMsg;
+      if (statusEl) statusEl.textContent = '❌ Error membaca file: ' + errMsg;
       toast('❌ Upload Data Jalan gagal: ' + errMsg);
     }
   };
