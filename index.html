@@ -3184,8 +3184,11 @@ function rdGet(noRuas) {
 
 // Apply Firestore atribut overrides to RD array in memory
 function ddApplyOverrides() {
+  if (!_rdAttr || typeof _rdAttr !== 'object') return;
   Object.keys(_rdAttr).forEach(function(noRuas) {
-    var ov  = _rdAttr[noRuas];
+    var ov = _rdAttr[noRuas];
+    // Guard: skip null/undefined/non-object overrides
+    if (!ov || typeof ov !== 'object') return;
     var idx = RD.findIndex(function(r){ return String(r.no) === String(noRuas); });
     if (idx !== -1) Object.assign(RD[idx], ov);
   });
@@ -3196,13 +3199,17 @@ function ddLoadFromFirestore(cb) {
   if (!db) { if (cb) cb(); return; }
   db.collection('rd_attr').get().then(function(snap) {
     snap.forEach(function(doc) {
-      _rdAttr[doc.id] = doc.data();
+      var data = doc.data();
+      // Guard: jangan simpan null/undefined ke _rdAttr
+      if (data && typeof data === 'object') {
+        _rdAttr[doc.id] = data;
+      }
     });
     _rdAttrLoaded = true;
     ddApplyOverrides();
     if (cb) cb();
   }).catch(function(e) {
-    console.error('ddLoad error', e);
+    console.error('ddLoad error', e.code, e.message);
     if (cb) cb();
   });
 }
@@ -3336,8 +3343,10 @@ function ddUploadExcel(input) {
       var batchIdx = 0;
       function doNextBatch() {
         if (batchIdx >= batches.length) {
-          // All done — apply to RD in memory
-          Object.assign(_rdAttr, updates);
+          // All done — apply to RD in memory (null guard)
+          if (updates && typeof updates === 'object') {
+            Object.assign(_rdAttr, updates);
+          }
           ddApplyOverrides();
           // Refresh map and table
           if (typeof refreshMapColors === 'function') refreshMapColors();
@@ -3358,14 +3367,26 @@ function ddUploadExcel(input) {
           batchIdx++;
           doNextBatch();
         }).catch(function(err) {
-          if (statusEl) statusEl.textContent = '❌ Error: ' + err.message;
+          var msg = err ? (err.code === 'permission-denied'
+            ? '❌ Akses ditolak Firebase. Pastikan rules rd_attr sudah diset di Firebase Console.'
+            : '❌ Error Firebase: ' + (err.message || err.code || 'unknown'))
+            : '❌ Error tidak dikenal';
+          if (statusEl) statusEl.textContent = msg;
+          toast(msg);
+          console.error('ddBatch error:', err);
         });
       }
       doNextBatch();
 
     } catch(err) {
       console.error('ddUpload error', err);
-      if (statusEl) statusEl.textContent = '❌ Error membaca file: ' + err.message;
+      var errMsg = err ? (err.message || String(err)) : 'Unknown error';
+      // Pesan yang lebih informatif
+      if (errMsg.indexOf('null') !== -1 || errMsg.indexOf('undefined') !== -1) {
+        errMsg = 'Format file tidak valid atau ada sel kosong. Pastikan menggunakan file hasil download dari aplikasi.';
+      }
+      if (statusEl) statusEl.textContent = '❌ ' + errMsg;
+      toast('❌ Upload Data Jalan gagal: ' + errMsg);
     }
   };
   reader.readAsArrayBuffer(file);
