@@ -2037,6 +2037,72 @@ function filterJalanByUpt(uptName) {
   }, 150);
 }
 
+
+// ── Render UPT cards dynamically from RD[] ───────────────
+function renderUptCards() {
+  var UPT_ORDER = [
+    'UPT Wilayah Karanganyar Kota',
+    'UPT Wilayah Barat',
+    'UPT Wilayah Utara',
+    'UPT Wilayah Timur',
+    'UPT Wilayah Selatan'
+  ];
+  var UPT_KEC = {
+    'UPT Wilayah Karanganyar Kota': 'Karanganyar',
+    'UPT Wilayah Barat':            'Colomadu, Gondangrejo, Kebakkramat, Jaten',
+    'UPT Wilayah Utara':            'Jenawi, Tasikmadu, Mojogedang, Kerjo',
+    'UPT Wilayah Timur':            'Tawangmangu, Karangpandan, Matesih, Ngargoyoso',
+    'UPT Wilayah Selatan':          'Jumapolo, Jumantono, Jatiyoso, Jatipuro'
+  };
+
+  // Hitung statistik dari RD[] terkini
+  var stats = {};
+  UPT_ORDER.forEach(function(u) { stats[u] = {ruas:0,panjang:0,baik:0,sedang:0,rr:0,rb:0}; });
+  RD.forEach(function(r) {
+    var u = r.upt;
+    if (!u || !stats[u]) return;
+    var s = stats[u];
+    s.ruas++;
+    s.panjang += r.panjang||0;
+    s.baik    += r.baik_km||0;
+    s.sedang  += r.sedang_km||0;
+    s.rr      += r.rr_km||0;
+    s.rb      += r.rb_km||0;
+  });
+
+  function pbar(v, tot, color, lbl) {
+    var p = tot > 0 ? Math.round(v/tot*100*10)/10 : 0;
+    return '<div class="upt-pbar-row">'
+      +'<span class="upt-pbar-lbl">'+lbl+'</span>'
+      +'<div class="upt-pbar-track"><div class="upt-pbar-fill" style="width:'+p+'%;background:'+color+'"></div></div>'
+      +'<span class="upt-pbar-val" style="color:'+color+'">'+v.toFixed(1)+' km</span>'
+      +'</div>';
+  }
+
+  function buildCard(u, s) {
+    return '<div class="upt-card" onclick="filterJalanByUpt(''+u+'')" title="Klik untuk filter data jalan">'
+      +'<div class="upt-card-title">'+u+'</div>'
+      +'<div class="upt-card-sub">'+(UPT_KEC[u]||'')+'</div>'
+      +'<div class="upt-card-meta">'
+      +'<div class="upt-meta-item"><strong>'+s.ruas+'</strong>Ruas</div>'
+      +'<div class="upt-meta-item"><strong>'+s.panjang.toFixed(1)+'</strong>km Total</div>'
+      +'</div>'
+      + pbar(s.baik,   s.panjang, 'var(--baik)',   'Baik')
+      + pbar(s.sedang, s.panjang, 'var(--sedang)', 'Sedang')
+      + pbar(s.rr,     s.panjang, 'var(--rr)',     'Rusak Ringan')
+      + pbar(s.rb,     s.panjang, 'var(--rb)',     'Rusak Berat')
+      +'</div>';
+  }
+
+  var top3 = UPT_ORDER.slice(0,3).map(function(u){return buildCard(u,stats[u]);}).join('');
+  var bot2 = UPT_ORDER.slice(3).map(function(u){return buildCard(u,stats[u]);}).join('');
+
+  var gridTop = document.querySelector('.upt-grid');
+  var gridBot = document.querySelector('.upt-grid-bottom');
+  if (gridTop) gridTop.innerHTML = top3;
+  if (gridBot) gridBot.innerHTML = bot2;
+}
+
 // ===== GLOBALS =====
 const COND_COLOR = {
   'Baik':'#22863a','Sedang':'#b08800','Rusak Ringan':'#d04800','Rusak Berat':'#cc1f1a'
@@ -3207,6 +3273,8 @@ function ddLoadFromFirestore(cb) {
     });
     _rdAttrLoaded = true;
     ddApplyOverrides();
+    // Refresh UPT cards with latest RD data
+    if (typeof renderUptCards === 'function') renderUptCards();
     if (cb) cb();
   }).catch(function(e) {
     console.error('ddLoad error', e.code, e.message);
@@ -3349,7 +3417,8 @@ function ddUploadExcel(input) {
               Object.assign(_rdAttr, updates);
             }
             ddApplyOverrides();
-            // Refresh map and table
+            // Refresh semua UI yang menggunakan RD[]
+            if (typeof renderUptCards === 'function') renderUptCards();
             if (typeof refreshMapColors === 'function') refreshMapColors();
             if (typeof renderTable === 'function') renderTable();
             if (typeof renderPeta === 'function') renderPeta();
@@ -4001,6 +4070,14 @@ function rAll() {
   // Ensure role-based visibility after every render
   if (typeof applyRoleUI === 'function') applyRoleUI();
 }
+// Call renderUptCards when showPage beranda is triggered
+var _origShowPage = showPage;
+showPage = function(p) {
+  _origShowPage(p);
+  if (p === 'beranda' && typeof renderUptCards === 'function') {
+    renderUptCards();
+  }
+};
 
 // ── Metric cards ──────────────────────────────────────────
 function rMetrics() {
