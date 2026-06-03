@@ -23,8 +23,8 @@
 
 <style>
 /* ===================================================
-   SIBRIAN — SISTEM INFORMASI JALAN KABUPATEN
-   Stylesheet utama SIBRIAN
+   SIJAKA — SISTEM INFORMASI JALAN KABUPATEN
+   Stylesheet utama SIJAKA
 =================================================== */
 
 :root{
@@ -1902,6 +1902,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
     <select id="fp2" onchange="fp()"><option value="">Semua status PHO</option><option value="Sudah">Sudah PHO</option><option value="Belum">Belum PHO</option></select>
     <input type="text" id="fs" placeholder="Cari nama / lokasi..." oninput="fp()" style="flex:1;min-width:160px">
     <button class="btn btn-p" onclick="exportCSV()">&#x2B07; Export CSV</button>
+    <button class="btn btn-g admin-only" onclick="openTambahKegiatan()" style="display:none">➕ Tambah Kegiatan</button>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
     <div class="tw"><table style="table-layout:fixed;width:100%"><thead><tr>
@@ -3272,7 +3273,7 @@ function exportDetailDocx(paketNo) {
     +'<div style="font-size:14pt;font-weight:bold;color:#1e3a5f;margin-bottom:4pt">'
     +'LEMBAR DATA PAKET PEKERJAAN BINA MARGA</div>'
     +'<div style="font-size:10pt;color:#555">'
-    +'Dinas PUPR Kabupaten Karanganyar \u2014 Tahun Anggaran 2026</div>'
+    +'Dinas PUPR Kabupaten Karanganyar — Tahun Anggaran 2026</div>'
     +'<div style="font-size:9pt;color:#888;margin-top:4pt">Dicetak: '+tglNow()+'</div>'
     +'<div style="border-bottom:2px solid #1e3a5f;margin-top:8pt"></div>'
     +'</div>'
@@ -3294,361 +3295,57 @@ function exportDetailDocx(paketNo) {
   toast('\ud83d\udcc4 ' + fn2 + ' berhasil didownload');
 }
 
-// ===== DATA DASAR JALAN =====
-
-// ============================================================
-//  DATA DASAR JALAN — Download / Upload / Sync (Admin only)
-// ============================================================
-
-// In-memory override: rd_attr[noRuas] = {nama, kecamatan, ...}
-var _rdAttr = {};   // loaded from Firestore on login
-var _rdAttrLoaded = false;
-
-// ── Merge RD[] with Firestore overrides ──────────────────
-function rdGet(noRuas) {
-  // Return RD entry merged with Firestore override (if any)
-  var base = RD.find(function(r){ return r.no === parseInt(noRuas); });
-  if (!base) return null;
-  var ov = _rdAttr[String(noRuas)];
-  if (!ov) return base;
-  return Object.assign({}, base, ov);
-}
-
-// Apply Firestore atribut overrides to RD array in memory
-function ddApplyOverrides() {
-  if (!_rdAttr || typeof _rdAttr !== 'object') return;
-  Object.keys(_rdAttr).forEach(function(noRuas) {
-    var ov = _rdAttr[noRuas];
-    // Guard: skip null/undefined/non-object overrides
-    if (!ov || typeof ov !== 'object') return;
-    var idx = RD.findIndex(function(r){ return String(r.no) === String(noRuas); });
-    if (idx !== -1) Object.assign(RD[idx], ov);
-  });
-}
-
-// ── Load rd_attr from Firestore ──────────────────────────
-function ddLoadFromFirestore(cb) {
-  if (!db) { if (cb) cb(); return; }
-  db.collection('rd_attr').get().then(function(snap) {
-    snap.forEach(function(doc) {
-      var data = doc.data();
-      // Guard: jangan simpan null/undefined ke _rdAttr
-      if (data && typeof data === 'object') {
-        _rdAttr[doc.id] = data;
-      }
-    });
-    _rdAttrLoaded = true;
-    ddApplyOverrides();
-    // Refresh UPT cards with latest RD data
-    if (typeof renderUptCards === 'function') renderUptCards();
-    if (cb) cb();
-  }).catch(function(e) {
-    console.error('ddLoad error', e.code, e.message);
-    if (cb) cb();
-  });
-}
-
-// ── Download Excel ───────────────────────────────────────
-function ddDownloadExcel() {
-  var hdr = [
-    'No Ruas','Nama Ruas Jalan','Kecamatan','Desa/Kelurahan',
-    'Fungsi Jalan','Panjang (km)','Lebar (m)',
-    'Aspal (km)','Beton (km)','Telford/Kerikil (km)','Tanah (km)',
-    'Baik (km)','Sedang (km)','Rusak Ringan (km)','Rusak Berat (km)',
-    'Kondisi','Mantap','Wilayah','UPT'
-  ];
-  var rows = RD.map(function(r) {
-    return [
-      r.no, r.nama, r.kecamatan, r.desa||'',
-      r.fungsi||'', r.panjang||0, r.lebar||0,
-      r.aspal_km||0, r.beton_km||0, r.telford_km||0, r.tanah_km||0,
-      r.baik_km||0, r.sedang_km||0, r.rr_km||0, r.rb_km||0,
-      r.kondisi||'', r.mantap||'', r.wilayah||'', r.upt||''
-    ];
-  });
-  var ws = XLSX.utils.aoa_to_sheet([hdr].concat(rows));
-  // Column widths
-  ws['!cols'] = [
-    {wch:8},{wch:40},{wch:18},{wch:30},
-    {wch:12},{wch:12},{wch:10},
-    {wch:10},{wch:10},{wch:14},{wch:10},
-    {wch:10},{wch:10},{wch:14},{wch:10},
-    {wch:14},{wch:10},{wch:12},{wch:12}
-  ];
-  var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'DataDasar_Jalan');
-  var d = new Date();
-  function p(n){ return n<10?'0'+n:String(n); }
-  var fn = 'DataDasar_Jalan_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.xlsx';
-  XLSX.writeFile(wb, fn);
-  toast('⬇️ ' + fn + ' berhasil didownload');
-}
-
-// ── Upload & parse Excel ─────────────────────────────────
-function ddUploadExcel(input) {
-  var file = input.files[0];
-  if (!file) return;
-  var statusEl = document.getElementById('dd-status');
-  if (statusEl) statusEl.textContent = '⏳ Membaca file...';
-
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      var wb   = XLSX.read(e.target.result, {type:'array'});
-      var ws   = wb.Sheets['DataDasar_Jalan'];
-      if (!ws) {
-        // Try first sheet
-        ws = wb.Sheets[wb.SheetNames[0]];
-      }
-      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-      if (rows.length < 2) {
-        if (statusEl) statusEl.textContent = '❌ File kosong atau format salah';
-        return;
-      }
-
-      var hdr  = rows[0].map(function(h){ return String(h).trim(); });
-      var gi   = function(name) { return hdr.indexOf(name); };
-
-      // Column mapping
-      var iNo  = gi('No Ruas');
-      var iNm  = gi('Nama Ruas Jalan');
-      var iKec = gi('Kecamatan');
-      var iDes = gi('Desa/Kelurahan');
-      var iFun = gi('Fungsi Jalan');
-      var iPjg = gi('Panjang (km)');
-      var iLbr = gi('Lebar (m)');
-      var iAsp = gi('Aspal (km)');
-      var iBet = gi('Beton (km)');
-      var iTel = gi('Telford/Kerikil (km)');
-      var iTnh = gi('Tanah (km)');
-      var iBaik= gi('Baik (km)');
-      var iSed = gi('Sedang (km)');
-      var iRR  = gi('Rusak Ringan (km)');
-      var iRB  = gi('Rusak Berat (km)');
-      var iKon = gi('Kondisi');
-      var iMnt = gi('Mantap');
-      var iWil = gi('Wilayah');
-      var iUPT = gi('UPT');
-
-      if (iNo < 0) {
-        if (statusEl) statusEl.textContent = '❌ Kolom "No Ruas" tidak ditemukan';
-        return;
-      }
-
-      var updates = {};
-      var count   = 0;
-      rows.slice(1).forEach(function(row) {
-        var noRuas = parseInt(row[iNo]);
-        if (!noRuas || isNaN(noRuas)) return;
-        var fn2  = function(i){ return i>=0 ? (parseFloat(row[i])||0) : 0; };
-        var fs   = function(i){ return i>=0 ? String(row[i]||'').trim() : ''; };
-        updates[String(noRuas)] = {
-          nama:       fs(iNm),
-          kecamatan:  fs(iKec),
-          desa:       fs(iDes),
-          fungsi:     fs(iFun),
-          panjang:    fn2(iPjg),
-          lebar:      fn2(iLbr),
-          aspal_km:   fn2(iAsp),
-          beton_km:   fn2(iBet),
-          telford_km: fn2(iTel),
-          tanah_km:   fn2(iTnh),
-          baik_km:    fn2(iBaik),
-          sedang_km:  fn2(iSed),
-          rr_km:      fn2(iRR),
-          rb_km:      fn2(iRB),
-          kondisi:    fs(iKon),
-          mantap:     fs(iMnt),
-          wilayah:    fs(iWil),
-          upt:        fs(iUPT)
-        };
-        count++;
-      });
-
-      if (statusEl) statusEl.textContent = '⏳ Menyimpan ' + count + ' ruas ke Firebase...';
-
-      // Save to Firestore in batches of 500
-      var keys   = Object.keys(updates);
-      var batches = [];
-      for (var i=0; i<keys.length; i+=490) {
-        batches.push(keys.slice(i, i+490));
-      }
-
-      var batchIdx = 0;
-      function doNextBatch() {
-        if (batchIdx >= batches.length) {
-          try {
-            // All done — apply to RD in memory (null guard)
-            if (updates && typeof updates === 'object') {
-              Object.assign(_rdAttr, updates);
-            }
-            ddApplyOverrides();
-            // Refresh semua UI yang menggunakan RD[]
-            if (typeof renderUptCards === 'function') renderUptCards();
-            if (typeof refreshMapColors === 'function') refreshMapColors();
-            if (typeof renderTable === 'function') renderTable();
-            if (typeof renderPeta === 'function') renderPeta();
-            if (statusEl) statusEl.textContent = '✅ ' + count + ' ruas berhasil diupdate';
-            toast('✅ Data Dasar Jalan diupdate: ' + count + ' ruas');
-          } catch(applyErr) {
-            console.error('ddApply error:', applyErr);
-            // Data sudah tersimpan di Firestore, hanya gagal apply ke memory
-            if (statusEl) statusEl.textContent = '✅ ' + count + ' ruas tersimpan di Firebase (refresh untuk melihat perubahan)';
-          }
-          // Reset input
-          input.value = '';
-          return;
-        }
-        var batch = db.batch();
-        batches[batchIdx].forEach(function(noRuas) {
-          var ref  = db.collection('rd_attr').doc(noRuas);
-          var data = updates[noRuas];
-          // Sanitize: Firestore tidak terima undefined/null values
-          // Ganti semua undefined/null dengan '' atau 0
-          var safe = {};
-          if (data && typeof data === 'object') {
-            Object.keys(data).forEach(function(k) {
-              var v = data[k];
-              if (v === undefined || v === null) {
-                safe[k] = typeof v === 'number' ? 0 : '';
-              } else if (typeof v === 'number' && isNaN(v)) {
-                safe[k] = 0;
-              } else {
-                safe[k] = v;
-              }
-            });
-          }
-          batch.set(ref, safe);
-        });
-        batch.commit().then(function() {
-          batchIdx++;
-          doNextBatch();
-        }).catch(function(err) {
-          var msg = err ? (err.code === 'permission-denied'
-            ? '❌ Akses ditolak Firebase. Pastikan rules rd_attr sudah diset di Firebase Console.'
-            : '❌ Error Firebase: ' + (err.message || err.code || 'unknown'))
-            : '❌ Error tidak dikenal';
-          if (statusEl) statusEl.textContent = msg;
-          toast(msg);
-          console.error('ddBatch error:', err);
-        });
-      }
-      doNextBatch();
-
-    } catch(err) {
-      console.error('ddUpload error', err);
-      var errMsg = err ? (err.message || String(err)) : 'Unknown error';
-      if (errMsg.indexOf('null') !== -1 || errMsg.indexOf('undefined') !== -1) {
-        errMsg = 'Format file tidak valid atau ada sel kosong. Download ulang template dari aplikasi.';
-      }
-      if (statusEl) statusEl.textContent = '❌ Error membaca file: ' + errMsg;
-      toast('❌ Upload Data Jalan gagal: ' + errMsg);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-// ── Refresh map polyline colors from updated RD ──────────
-function refreshMapColors() {
-  if (!polylines || !mapMain) return;
-  RD.forEach(function(r) {
-    var pl = polylines[r.no];
-    if (!pl) return;
-    // Only re-color if road is not the active selected one
-    if (r.no !== activeRoadNo) {
-      pl.setStyle({color:'#2a2a2a', weight:2, opacity:0.7});
-    }
-  });
-  // Re-color the active road if any
-  if (activeRoadNo !== null) {
-    var road = RD.find(function(r){ return r.no === activeRoadNo; });
-    if (road) {
-      var dom = getDomCond(road);
-      var pl  = polylines[activeRoadNo];
-      if (pl) pl.setStyle({color: COND_COLOR[dom], weight:5, opacity:1});
-    }
-  }
-}
 
 
-// ===== DELETE PROYEK =====
-
-// ── Hapus paket dari Firestore ───────────────────────────
-function deleteProyek(no) {
-  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa menghapus'); return; }
-  var d = DATA.filter(function(x){ return x.no === no; })[0];
-  if (!d) return;
-  var namaPaket = d.nama || ('Paket No. ' + no);
-  if (!confirm('Hapus paket berikut dari Firebase?\n\n' + namaPaket + '\n\nAksi ini tidak bisa dibatalkan.')) return;
-  db.collection('projects').doc(String(no)).delete()
-    .then(function() {
-      toast('✅ Paket berhasil dihapus');
-      // Tutup detail row jika sedang terbuka
-      var detEl = document.getElementById('det-' + no);
-      if (detEl) detEl.remove();
-      var rowEl = document.getElementById('bm-row-' + no);
-      if (rowEl) rowEl.classList.remove('expanded');
-    })
-    .catch(function(e) {
-      toast('❌ Gagal hapus: ' + (e.message || e.code));
-    });
-}
-
-// ===== BM MERGE CONTROLLER =====
+// ── BM Login Modal ────────────────────────────────────────
 function openBmLoginModal() {
   var modal = document.getElementById('bm-login-modal');
   if (modal) modal.classList.add('open');
-  // Clear fields
-  var em = document.getElementById('login-email');
-  var ps = document.getElementById('login-pass');
-  var er = document.getElementById('bm-login-error');
-  if (em) em.value = '';
-  if (ps) ps.value = '';
-  if (er) { er.textContent = ''; er.style.display = 'none'; }
-  var btn = document.getElementById('btn-login-email');
-  if (btn) btn.disabled = false;
+  document.body.style.overflow = 'hidden';
+  setTimeout(function(){
+    var el = document.getElementById('login-email');
+    if (el) el.focus();
+  }, 100);
 }
+
 function closeBmLoginModal() {
   var modal = document.getElementById('bm-login-modal');
   if (modal) modal.classList.remove('open');
+  document.body.style.overflow = '';
 }
+
 // Close modal on backdrop click
 document.addEventListener('click', function(e) {
   var modal = document.getElementById('bm-login-modal');
   if (modal && e.target === modal) closeBmLoginModal();
 });
+
 // ESC key closes modal
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeBmLoginModal();
 });
 
+// ── Show/Hide BM tab ──────────────────────────────────────
 function showBmTab() {
-  // Show BM tab in navbar
   var tab = document.getElementById('tab-binamarga');
   if (tab) tab.style.display = '';
-  // Show logout btn, hide login btn
   var loginBtn  = document.getElementById('bm-login-btn');
   var logoutBtn = document.getElementById('bm-logout-btn');
   if (loginBtn)  loginBtn.style.display  = 'none';
   if (logoutBtn) logoutBtn.style.display = '';
-  // Show mobile sidebar (bottom nav)
   var sidebar = document.getElementById('bm-sidebar');
   if (sidebar) sidebar.style.display = '';
-  // Navigate to BM tab
   showPage('binamarga');
-  // Update email display
   var sfEmail = document.getElementById('sf-email');
   if (sfEmail && CURRENT_USER) sfEmail.textContent = CURRENT_USER.email;
-  // Apply role-based visibility immediately
   if (typeof applyRoleUI === 'function') applyRoleUI();
-  // Load RD attribute overrides from Firestore
   if (!_rdAttrLoaded && typeof ddLoadFromFirestore === 'function') {
     ddLoadFromFirestore(function() {
       if (typeof renderTable === 'function') renderTable();
-      if (typeof refreshMapColors === 'function') refreshMapColors();
     });
   }
 }
+
 function hideBmTab() {
   var tab = document.getElementById('tab-binamarga');
   if (tab) tab.style.display = 'none';
@@ -3656,17 +3353,11 @@ function hideBmTab() {
   var logoutBtn = document.getElementById('bm-logout-btn');
   if (loginBtn)  loginBtn.style.display  = '';
   if (logoutBtn) logoutBtn.style.display = 'none';
-  var uinfo = document.getElementById('bm-navbar-userinfo');
-  if (uinfo) uinfo.innerHTML = '';
-  // Navigate away if currently on binamarga tab
-  var bmPage = document.getElementById('page-binamarga');
-  if (bmPage && bmPage.classList.contains('active')) showPage('beranda');
+  var sidebar = document.getElementById('bm-sidebar');
+  if (sidebar) sidebar.style.display = 'none';
 }
 
-// showLoginError is defined in index.js script block (targets bm-login-error)
-// No duplicate needed here.
-
-// Override toast to use bm-toast
+// ── Toast notification ────────────────────────────────────
 function toast(msg, dur) {
   var t = document.getElementById('bm-toast');
   if (!t) return;
@@ -3675,7 +3366,6 @@ function toast(msg, dur) {
   clearTimeout(t._t);
   t._t = setTimeout(function(){ t.style.display = 'none'; }, dur||3000);
 }
-
 </script>
 
 <script>
@@ -3807,29 +3497,20 @@ function fbStartSync() {
     .orderBy('no')
     .onSnapshot(function(snap) {
       if (snap.empty) {
-        // Koleksi kosong — TIDAK auto-seed untuk mencegah overwrite data
-        // Bisa terjadi karena: quota habis, network issue, atau memang belum ada data
         DATA = [];
         rAll();
         showSyncStatus('⚠ Data kosong — Upload Excel untuk mengisi data');
-        // Tampilkan pesan di dashboard
-        var dashEl = document.getElementById('pg-dashboard');
-        if (dashEl && dashEl.classList.contains('active')) {
-          var warn = document.getElementById('bm-empty-warn');
-          if (!warn) {
-            warn = document.createElement('div');
-            warn.id = 'bm-empty-warn';
-            warn.style.cssText = 'margin:20px;padding:16px 20px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;color:#92400e;font-size:13px';
-            warn.innerHTML = '<strong>⚠️ Data Firebase kosong.</strong> Kemungkinan penyebab: quota harian Firestore habis, atau data belum diinisialisasi.<br>'
-              + 'Jika data sudah pernah diisi, tunggu beberapa menit dan refresh halaman.<br>'
-              + 'Jika ini pertama kali: gunakan menu <strong>Update Data → Upload Excel</strong> untuk mengisi data.';
-            dashEl.insertBefore(warn, dashEl.firstChild);
-          }
-        }
-      } else {
-        // Hapus warning jika ada
         var warn = document.getElementById('bm-empty-warn');
-        if (warn) warn.remove();
+        if (!warn) {
+          warn = document.createElement('div');
+          warn.id = 'bm-empty-warn';
+          warn.style.cssText = 'margin:20px;padding:16px 20px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;color:#92400e;font-size:13px';
+          warn.innerHTML = '<strong>⚠️ Data Firebase kosong.</strong> Gunakan menu <strong>Update Data → Upload Excel</strong> untuk mengisi data.';
+          var dashEl = document.getElementById('pg-dashboard');
+          if (dashEl) dashEl.insertBefore(warn, dashEl.firstChild);
+        }
+        // auto-seed untuk mencegah overwrite dihapus
+      } else {
         DATA = [];
         snap.forEach(function(doc) { DATA.push(doc.data()); });
         rAll();
@@ -3842,39 +3523,20 @@ function fbStartSync() {
 
 // ── Seed Firestore dari data Excel bawaan (hanya sekali) ──
 function seedFirestore() {
-  // SAFE SEED: double-check dulu bahwa Firestore benar-benar kosong
-  // Tidak bisa dipanggil otomatis — hanya dari tombol manual admin
-  if (!can('canManageUsers')) {
-    toast('Hanya admin yang bisa inisialisasi data');
-    return;
-  }
-  // Verifikasi Firestore benar-benar kosong sebelum menulis
-  db.collection('projects').limit(1).get().then(function(check) {
-    if (!check.empty) {
-      toast('⚠️ Firebase sudah punya data (' + check.size + ' dokumen). Inisialisasi dibatalkan untuk melindungi data Anda.');
-      return;
-    }
-    // Benar-benar kosong — boleh seed
-    if (!confirm('Firebase kosong. Inisialisasi dengan data bawaan Excel?\n\nPeringatan: Aksi ini tidak bisa dibatalkan.')) return;
-    showSyncStatus('Menyiapkan data awal…');
-    var batch = db.batch();
-    SEED.projects.forEach(function(p) {
-      var ref = db.collection('projects').doc(String(p.no));
-      batch.set(ref, p);
-    });
-    SEED.personil.forEach(function(p) {
-      var ref = db.collection('personil').doc(String(p.no));
-      batch.set(ref, p);
-    });
-    batch.commit().then(function() {
-      showSyncStatus('Data awal berhasil dimuat');
-      toast('✅ Data awal berhasil diinisialisasi');
-    }).catch(function(e) {
-      showSyncStatus('Gagal seed: ' + e.message);
-      toast('❌ Gagal: ' + e.message);
-    });
+  showSyncStatus('Menyiapkan data awal…');
+  var batch = db.batch();
+  SEED.projects.forEach(function(p) {
+    var ref = db.collection('projects').doc(String(p.no));
+    batch.set(ref, p);
+  });
+  SEED.personil.forEach(function(p) {
+    var ref = db.collection('personil').doc(String(p.no));
+    batch.set(ref, p);
+  });
+  batch.commit().then(function() {
+    showSyncStatus('Data awal berhasil dimuat');
   }).catch(function(e) {
-    toast('❌ Tidak bisa verifikasi Firebase: ' + e.message);
+    showSyncStatus('Gagal seed: ' + e.message);
   });
 }
 
@@ -3901,15 +3563,9 @@ function fbUploadAll(projects, personilArr, cb) {
       .catch(function(e) { toast('Upload gagal: ' + e.message); });
   }
   writeChunk(projects, 'projects', 0, function() {
-    // Only write personil if array has data (prevents accidental deletion)
-    if (personilArr && personilArr.length > 0) {
-      writeChunk(personilArr, 'personil', 0, function() {
-        if (cb) cb();
-      });
-    } else {
-      // No personil data — skip, preserve existing Firebase personil
+    writeChunk(personilArr, 'personil', 0, function() {
       if (cb) cb();
-    }
+    });
   });
 }
 
@@ -3998,20 +3654,14 @@ function applyRoleUI() {
   var canUpload = can('canUpload');
   var isAdmin   = CURRENT_ROLE === 'admin';
 
-  // Use flex for ni items on mobile, empty string for others
-  function _roleDisplay(el, show) {
-    if (!show) { el.style.display = 'none'; return; }
-    // Restore: ni items need 'flex' on mobile
-    el.style.display = el.classList.contains('ni') ? 'flex' : '';
-  }
   document.querySelectorAll('.edit-only').forEach(function(el) {
-    _roleDisplay(el, canEdit);
+    el.style.display = canEdit ? '' : 'none';
   });
   document.querySelectorAll('.upload-only').forEach(function(el) {
-    _roleDisplay(el, canUpload);
+    el.style.display = canUpload ? '' : 'none';
   });
   document.querySelectorAll('.admin-only').forEach(function(el) {
-    _roleDisplay(el, isAdmin);
+    el.style.display = isAdmin ? '' : 'none';
   });
 
   // Update BM sidebar role badge
@@ -4034,10 +3684,6 @@ function applyRoleUI() {
       '<span style="font-size:11px;color:rgba(255,255,255,.75)">' + shortName + '</span>' +
       '<span class="bm-role-pill bm-role-' + (CURRENT_ROLE||'viewer') + '">' + (CURRENT_ROLE||'viewer') + '</span>';
   }
-
-  // Update mobile menu role badge (if menu is open)
-  var mmRoleBadge = document.getElementById('mm-role-badge');
-  if (mmRoleBadge) mmRoleBadge.textContent = CURRENT_ROLE || 'viewer';
 
   // Show/hide BM-specific nav items
   var bmAdminNav = document.getElementById('bm-nav-admin');
@@ -4188,6 +3834,23 @@ var AVC  = ['#378ADD','#1D9E75','#D4537E','#BA7517','#7F77DD','#D85A30','#639922
 var COLS = {DAK:'#185FA5', DAU:'#3B6D11', Bankeu:'#BA7517', Hibah:'#7F77DD'};
 
 // ── Render semua halaman ──────────────────────────────────
+
+// ── Hapus paket dari Firestore ───────────────────────────
+function deleteProyek(no) {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa menghapus'); return; }
+  var d = DATA.filter(function(x){ return x.no === no; })[0];
+  if (!d) return;
+  var namaPaket = d.nama || ('Paket No. ' + no);
+  if (!confirm('Hapus paket berikut dari Firebase?\n\n' + namaPaket + '\n\nAksi ini tidak bisa dibatalkan.')) return;
+  db.collection('projects').doc(String(no)).delete()
+    .then(function() {
+      toast('\u2705 Paket berhasil dihapus');
+      var detEl = document.getElementById('det-' + no);
+      if (detEl) detEl.remove();
+    })
+    .catch(function(e) { toast('\u274c Gagal hapus: ' + (e.message||e.code)); });
+}
+
 function rAll() {
   rMetrics();
   rDashboard();
@@ -4195,14 +3858,8 @@ function rAll() {
   rPersonil();
   rNotif();
   initEsel();
-  // Show seed warning if DATA is empty
-  var seedCard = document.getElementById('seed-warning-card');
-  if (seedCard) {
-    seedCard.style.display = (!DATA || DATA.length === 0) ? 'block' : 'none';
-  }
-  // Ensure role-based visibility after every render
-  if (typeof applyRoleUI === 'function') applyRoleUI();
 }
+
 // ── Metric cards ──────────────────────────────────────────
 function rMetrics() {
   var tK = DATA.reduce(function(s,d){return s+d.kontrak;},0);
@@ -4382,15 +4039,12 @@ function fp() {
   });
   document.getElementById('pcnt').textContent = 'Menampilkan '+rows.length+' dari '+DATA.length+' paket';
   document.getElementById('tb').innerHTML = rows.map(bRow).join('');
-  // Init BM detail map + checklist % after DOM is updated
+  // Init BM detail map after DOM is updated
   if (openRow !== null) {
     var openData = DATA.filter(function(d){ return d.no === openRow; })[0];
     if (openData) {
       setTimeout(function(){
         initBmDetailMap(openData.no, openData.noRuas);
-        if (typeof ckLoadBtnPct === 'function') {
-          ckLoadBtnPct(openData.noRuas, openData.no);
-        }
       }, 80);
     }
   }
@@ -4469,17 +4123,14 @@ function detailRow(d) {
     } else {
       s += '<div class="det-edit-bar" style="background:var(--surf2);border-bottom-color:var(--bdr)">'
         +'<span style="color:var(--txt2)">Ruas '+esc(fv(d.noRuas))+' &mdash; '+esc(d.nama)+'</span>'
-        +'<div style="display:flex;gap:6px">'
-        +'<button class="btn btn-sm" style="background:#1e5c2e;color:#fff;border-color:#1e5c2e" onclick="(function(ev){ev.stopPropagation();exportDetailDocx('+d.no+');})(event)">📄 Export Word</button>'
-        +(canEdit ? '<button class="btn btn-sm btn-p" onclick="startEdit('+d.no+')">✏️ Edit</button>' : '')
+        +'<button class="btn btn-sm btn-p" onclick="startEdit('+d.no+')">✏️ Edit</button>'
         +(CURRENT_ROLE==='admin' ? '<button class="btn btn-sm" style="background:#dc2626;color:#fff;border-color:#dc2626" onclick="(function(ev){ev.stopPropagation();deleteProyek('+d.no+');})(event)">🗑️ Hapus</button>' : '')
-        +'</div>'
         +'</div>';
     }
   }
 
   // ── Peta mini ────────────────────────────────────────────
-  s += '<div id="bm-map-wrap-'+d.no+'" style="width:100%;height:160px;position:relative;border-bottom:1px solid var(--bdr)">'
+  s += '<div id="bm-map-wrap-'+d.no+'" style="width:100%;height:320px;position:relative;border-bottom:1px solid var(--bdr)">'
     +'<div id="bm-detail-map-'+d.no+'" style="width:100%;height:100%"></div>'
     +'</div>';
 
@@ -4546,21 +4197,7 @@ function detailRow(d) {
     +'</div></div>'
     +di('Nomor PHO/BAST', vOrI('noPho',d.noPho))
     +di('Tanggal PHO/BAST', vOrI('tglPho',d.tglPho,'date'))
-    +'</div>'
-+(function(){
-      var _ruas = (d.noRuas||'').toString().replace(/'/g,"\\'");
-      var _nama = (d.nama||'').replace(/'/g,"\\'").replace(/"/g,"&quot;");
-      var _lok  = (d.lokasi||'').replace(/'/g,"\\'");
-      var _no   = d.no || 0;
-      // Kotak seukuran det-item — warna badge dari % kelengkapan
-      return '<div class="det-item" style="cursor:pointer" onclick="(function(ev){ev.stopPropagation();ckOpen(\''+_ruas+'\',\''+_nama+'\',\''+_lok+'\','+_no+');})(event)">'
-        +'<div class="det-label">List Administrasi</div>'
-        +'<div class="det-val" style="display:flex;align-items:center;gap:10px">'
-        +'<span id="ck-pct-'+_no+'" style="display:inline-block;min-width:46px;padding:4px 10px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;text-align:center;background:#dc2626;transition:background .3s">—%</span>'
-        +'<span style="font-size:11px;color:var(--txt3)">klik untuk buka</span>'
-        +'</div>'
-        +'</div>';
-    })();
+    +'</div>';
 
   s += sec('📊 Progres &amp; Realisasi');
   s += '<div class="det-grid">'
@@ -4835,33 +4472,7 @@ function changeRole(uid,role){
 }
 
 // ── Upload Excel ──────────────────────────────────────────
-var DANA_MAP={
-  // Format panjang
-  'Dana Alokasi Khusus (DAK)':'DAK',
-  'Dana Alokasi Umum (DAU)':'DAU',
-  'Bantuan Provinsi (Banprov)':'Bankeu',
-  'Bantuan Keuangan (Bankeu)':'Bankeu',
-  'Hibah':'Hibah',
-  'Belanja Barang untuk dijual/Diserahkan kepada Masyarakat':'Hibah',
-  // Format singkat (yang biasa ditulis di Rekap)
-  'DAK':'DAK','dak':'DAK',
-  'DAU':'DAU','dau':'DAU',
-  'Bankeu':'Bankeu','bankeu':'Bankeu','BANKEU':'Bankeu',
-  'Banprov':'Bankeu','BANPROV':'Bankeu',
-  'Hibah':'Hibah','hibah':'Hibah','HIBAH':'Hibah',
-};
-// Helper: resolve dana from any raw string
-function resolveDana(raw) {
-  if (!raw) return null;
-  var s = String(raw).trim();
-  if (DANA_MAP[s]) return DANA_MAP[s];
-  var sl = s.toLowerCase();
-  if (sl.indexOf('dak') >= 0) return 'DAK';
-  if (sl.indexOf('dau') >= 0) return 'DAU';
-  if (sl.indexOf('bankeu') >= 0 || sl.indexOf('banprov') >= 0) return 'Bankeu';
-  if (sl.indexOf('hibah') >= 0) return 'Hibah';
-  return null;
-}
+var DANA_MAP={'Dana Alokasi Khusus (DAK)':'DAK','Dana Alokasi Umum (DAU)':'DAU','Bantuan Provinsi (Banprov)':'Bankeu','Belanja Barang untuk dijual/Diserahkan kepada Masyarakat':'Hibah'};
 var SHEET_DANA={DAK_26:'DAK',DAU_26:'DAU',Bankeu_26:'Bankeu',Hibah_26:'Hibah'};
 function sv(v){if(v===null||v===undefined)return'';var s=String(v).trim();return(s==='undefined'||s==='null')?'':s;}
 function fn(v,fb){var n=parseFloat(v);return isNaN(n)?(fb||0):n;}
@@ -4879,10 +4490,10 @@ function parseRows(ws,danaKey){
     var kontrak=fn(row[gi('Nilai Kontrak (Rp)')])||fn(row[gi('Nilai HPS (Rp)')]);
     var real=fn(row[gi('Realisasi Pembayaran (Rp)')]);var fisik=fn(row[gi('Prestasi Fisik %')]);
     var pct=fn(row[gi('% thd Kontrak')])||(kontrak>0?parseFloat((real/kontrak*100).toFixed(1)):0);
-    var danaRaw=sv(row[gi('Sumber Dana')]);var dana=resolveDana(danaRaw)||danaKey||'DAK';
+    var danaRaw=sv(row[gi('Sumber Dana')]);var dana=DANA_MAP[danaRaw]||danaKey||'DAK';
     var pho=sv(row[gi('Belum')]);if(pho!=='Sudah'&&pho!=='Belum')pho='Belum';
-    var a=[sv(row[gi('Anggota 1')]),sv(row[gi('Anggota 2')]),sv(row[gi('Anggota 3')])].filter(Boolean);
-    var ki=gi('Ketua Tim Teknis');if(ki<0)ki=gi('Tim Teknis Ketua');
+    var a=[sv(row[gi('Tim Teknis Anggota 1')]),sv(row[gi('Tim Teknis Anggota 2')]),sv(row[gi('Tim Teknis Anggota 3')])].filter(Boolean);
+    var ki=gi('Tim Teknis Ketua ');if(ki<0)ki=gi('Tim Teknis Ketua');
     result.push({no:no,noRuas:sv(row[gi('No. Ruas')]),nama:sv(row[gi('Nama Paket Pekerjaan')]),dana:dana,lokasi:sv(row[gi('Lokasi')]),
       lebarPanjang:sv(row[gi('Lebar dan Panjang Jalan')]),pagu:fn(row[gi('Nilai Pagu APBD-P')]),hps:fn(row[gi('Nilai HPS (Rp)')]),
       penyedia:sv(row[gi('Pelaksana/ Penyedia Jasa')]),noKontrak:sv(row[gi('Nomor Kontrak')]),tglKontrak:fmtDate(row[gi('Tanggal Kontrak')]),
@@ -4894,8 +4505,8 @@ function parseRows(ws,danaKey){
       jenisKontrak:sv(row[gi('Jenis Kontrak (Harga satuan atau Lumpsum)')]),
       jenisBelanja:sv(row[gi('Jenis Belanja (Belanja Barang dan Jasa, Belanja Modal Gedung dan Bangunan atau Belanja Modal Jalan Irigasi dan Jaringan')]),
       jenisInfra:sv(row[gi('Jenis Infrastruktur (Diisi: Jalan, Irigasi, Jaringan, Gedung atau Bangunan)')]),
-      ppk:sv(row[gi('PPK')]),pptk:sv(row[gi('PPTK')]),staf:sv(row[gi('Staf/Pengawas')]),
-      ketua:sv(row[ki]),sekretaris:(function(){var si=gi('Sekretaris Tim Teknis');if(si<0)si=gi('Tim Teknis Sekretaris');return sv(row[si]);})(),anggota:a});
+      ppk:sv(row[gi('PPK')]),pptk:sv(row[gi('PPTK')]),staf:sv(row[gi('Staf/Pengawas Taknis')]),
+      ketua:sv(row[ki]),sekretaris:sv(row[gi('Tim Teknis Sekretaris')]),anggota:a});
   }
   return result;
 }
@@ -4907,7 +4518,7 @@ function processFile(file){
     try{
       var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
       var newP=[],newPer=[];
-      if(wb.Sheets['Rekap'])newP=parseRows(wb.Sheets['Rekap'],null);
+      if(wb.Sheets['Rekap'])newP=parseRows(wb.Sheets['Rekap'],'DAK');
       if(!newP.length){Object.keys(SHEET_DANA).forEach(function(sn){if(wb.Sheets[sn]){var r=parseRows(wb.Sheets[sn],SHEET_DANA[sn]);r.forEach(function(x){newP.push(x);});}});}
       if(wb.Sheets['Personil']){
         var pr=XLSX.utils.sheet_to_json(wb.Sheets['Personil'],{header:1,defval:''});
@@ -4918,127 +4529,11 @@ function processFile(file){
             newPer.push({no:pno,nama:pnm,nip:sv(prow[ph2.indexOf('NIP')]),pangkat:sv(prow[ph2.indexOf('Pangkat')]),gol:sv(prow[ph2.indexOf('Golongan')]),jabatan:sv(prow[ph2.indexOf('Jabatan')])});}}
       }
       if(!newP.length){msg.innerHTML='<span style="color:var(--red)">&#x274C; Tidak ada data terbaca.</span>';return;}
-      // Normalisasi nama: hapus perbedaan titik akhir, spasi ganda
-      function normNama(s) {
-        if (!s) return '';
-        return s.trim()
-          // Titik akhir konsisten: A.Md, S.T, S.Pd, S.Sos → tambah titik jika perlu
-          .replace(/,\s*(A\.Md|S\.T|S\.Pd|S\.Sos|S\.E|S\.Si|S\.H|A\.Md|S\.M|S\.Pd)\s*$/,
-            function(m,g){ return ', '+g.trim()+'.'; })
-          // Gelar tanpa titik akhir
-          .replace(/(IPM|IPU|ASEAN Eng)\s*$/g, '$1')
-          // Spasi ganda
-          .replace(/\s+/g,' ')
-          .trim();
-      }
-      // Bangun lookup key: lowercase, tanpa gelar depan, tanpa tanda baca
-      function persKey(s) {
-        return (s||'').toLowerCase()
-          .replace(/^(ir\.|dr\.|dr\. ir\.)\s*/i,'')
-          .replace(/[,.\s]+/g,'');
-      }
-
-      // Jika ada sheet Personil, normalisasi namanya
-      if (newPer.length > 0) {
-        newPer = newPer.map(function(p) {
-          p.nama = normNama(p.nama);
-          return p;
-        });
-      }
-
-      // Ekstrak nama unik dari kolom Rekap (PPK/PPTK/Staf/Ketua/Sekr/Anggota)
-      // Gunakan sebagai sumber kebenaran nama baku
-      var rekapNamaSet = {};
-      var roleFields = ['ppk','pptk','staf','ketua','sekretaris'];
-      newP.forEach(function(p) {
-        roleFields.forEach(function(f) {
-          var nm = normNama(p[f]||'');
-          if (nm && nm !== '—') rekapNamaSet[persKey(nm)] = nm;
-        });
-        (p.anggota||[]).forEach(function(a) {
-          var nm = normNama(a||'');
-          if (nm && nm !== '—') rekapNamaSet[persKey(nm)] = nm;
-        });
-      });
-
-      // Jika tidak ada sheet Personil → buat dari Rekap
-      if (newPer.length === 0 && newP.length > 0) {
-        var persCounter = 1;
-        newPer = Object.values(rekapNamaSet).map(function(nm) {
-          return {no: persCounter++, nama: nm, nip:'', pangkat:'', gol:'', jabatan:''};
-        });
-      } else if (newPer.length > 0) {
-        // Ada sheet Personil: update nama di Rekap agar cocok dengan nama baku di Personil
-        // Buat lookup dari personil sheet
-        var persBakuMap = {};
-        newPer.forEach(function(p) {
-          persBakuMap[persKey(p.nama)] = p.nama;
-        });
-        // Ganti nama di DATA dengan nama baku dari Personil
-        var allFields = ['ppk','pptk','staf','ketua','sekretaris'];
-        newP.forEach(function(p) {
-          // Sync single-value fields
-          allFields.forEach(function(f) {
-            if (!p[f]) return;
-            var k = persKey(p[f]);
-            if (persBakuMap[k]) p[f] = persBakuMap[k];
-            // Also add to rekapNamaSet in case not yet captured
-            else if (p[f] && p[f] !== '—') {
-              var nk = persKey(normNama(p[f]));
-              if (!rekapNamaSet[nk]) rekapNamaSet[nk] = normNama(p[f]);
-            }
-          });
-          // Sync anggota array
-          if (p.anggota) {
-            p.anggota = p.anggota.map(function(a) {
-              if (!a || a === '—') return a;
-              var k = persKey(a);
-              if (persBakuMap[k]) return persBakuMap[k];
-              // Add unknown anggota names to rekapNamaSet
-              var nk = persKey(normNama(a));
-              if (!rekapNamaSet[nk]) rekapNamaSet[nk] = normNama(a);
-              return a;
-            });
-          }
-        });
-        // Rebuild rekapNamaSet from all fields including updated anggota
-        var allRoleFields2 = ['ppk','pptk','staf','ketua','sekretaris'];
-        newP.forEach(function(p) {
-          allRoleFields2.forEach(function(f) {
-            var nm = normNama(p[f]||'');
-            if (nm && nm !== '—') rekapNamaSet[persKey(nm)] = nm;
-          });
-          (p.anggota||[]).forEach(function(a) {
-            var nm = normNama(a||'');
-            if (nm && nm !== '—') rekapNamaSet[persKey(nm)] = nm;
-          });
-        });
-        // Tambah nama dari Rekap yang tidak ada di Personil sheet (nama baru)
-        var lastNo = newPer.length > 0 ? Math.max.apply(null, newPer.map(function(p){return p.no||0;})) : 0;
-        Object.keys(rekapNamaSet).forEach(function(k) {
-          if (!persBakuMap[k]) {
-            lastNo++;
-            newPer.push({no:lastNo, nama:rekapNamaSet[k], nip:'', pangkat:'', gol:'', jabatan:''});
-          }
-        });
-      }
-      var hasPersonil = newPer.length > 0;
       msg.innerHTML='<span style="color:var(--txt2)">&#x23F3; Mengupload '+newP.length+' paket ke Firebase...</span>';
-      fbUploadAll(newP, hasPersonil ? newPer : [], function(){
-        var persMsg = hasPersonil
-          ? newPer.length+' personil diupdate'
-          : 'data personil dipertahankan';
-        msg.innerHTML='<span style="color:var(--green)">&#x2705; Berhasil! '+newP.length+' paket &amp; '+persMsg+'.</span>';
+      fbUploadAll(newP,newPer,function(){
+        PERS=newPer.length?newPer:PERS;
+        msg.innerHTML='<span style="color:var(--green)">&#x2705; Berhasil! '+newP.length+' paket &amp; '+newPer.length+' personil diupload dan tersinkron ke semua pengguna.</span>';
         toast('Upload Excel berhasil!');
-        // Reload PERS from Firestore so UI reflects latest data
-        fbLoadPersonil(function(arr) {
-          if (arr.length) {
-            PERS = arr;
-          } else if (hasPersonil) {
-            PERS = newPer;
-          }
-          loadAllSK();
-        });
       });
     }catch(err){msg.innerHTML='<span style="color:var(--red)">&#x274C; Gagal: '+esc(err.message)+'</span>';}
   };
@@ -5051,104 +4546,28 @@ function onDlv(){document.getElementById('dz').classList.remove('dov');}
 
 // ── Download Excel ────────────────────────────────────────
 function downloadExcel(){
-  var wb = XLSX.utils.book_new();
-
-  // ── Sheet 1: Rekap ──
-  var hdr = ['No','No. Ruas','Nama Paket Pekerjaan','Sumber Dana','Lokasi',
-    'Lebar dan Panjang Jalan','Nilai Pagu APBD-P','Nilai HPS (Rp)',
-    'Pelaksana/ Penyedia Jasa','Nomor Kontrak','Tanggal Kontrak',
-    'Nilai Kontrak (Rp)','Add Kontrak +10%','Metode Pengadaan',
-    'Jenis Kontrak','Jenis Belanja',
-    'Addendum Ke-','Nomor Addendum','Tanggal Addendum','Nilai Kontrak Addendum',
-    'Jangka Waktu (Hari)','Tanggal Mulai','Tanggal Selesai',
-    'Status PHO','Nomor PHO/BAST','Tanggal PHO/BAST',
-    'Prestasi Fisik (%)','Realisasi Pembayaran','% thd Kontrak',
-    'PPK','PPTK','Staf/Pengawas','Ketua Tim Teknis','Sekretaris Tim Teknis',
-    'Anggota 1','Anggota 2','Anggota 3'];
-  var rows = DATA.map(function(d){
-    return [
-      d.no, d.noRuas||'—', d.nama, d.dana, d.lokasi||'—',
-      d.lebarPanjang||'—', d.pagu||0, d.hps||0,
-      d.penyedia||'—', d.noKontrak||'—', d.tglKontrak||'—',
-      d.kontrak||0, d.addKontrak10||0, d.metode||'—',
-      d.jenisKontrak||'—', d.jenisBelanja||'—',
-      d.addKe||'—', d.noAdd||'—', d.tglAdd||'—', d.nilaiAdd||0,
-      d.jaWaktu||'—', d.mulai||'—', d.selesai||'—',
-      d.pho||'Belum', d.noPho||'—', d.tglPho||'—',
-      d.fisik||0, d.realisasi||0, d.pctReal||0,
-      d.ppk||'—', d.pptk||'—', d.staf||'—',
-      d.ketua||'—', d.sekretaris||'—',
-      (d.anggota&&d.anggota[0])||'—',
-      (d.anggota&&d.anggota[1])||'—',
-      (d.anggota&&d.anggota[2])||'—'
-    ];
-  });
-  var rekapWs = XLSX.utils.aoa_to_sheet([hdr].concat(rows));
-  rekapWs['!cols'] = hdr.map(function(h,i){
-    return {wch: i===2?55 : i===0?4 : i===1?7 : 16};
-  });
-  XLSX.utils.book_append_sheet(wb, rekapWs, 'Rekap');
-
-  // ── Sheet 2: Personil ──
-  var persHdr = ['No','Nama','NIP','Pangkat','Golongan','Jabatan'];
-  var persRows = (PERS||[]).map(function(p,i){
-    return [p.no||(i+1), p.nama||'', p.nip||'', p.pangkat||'', p.gol||'', p.jabatan||''];
-  });
-  var persWs = XLSX.utils.aoa_to_sheet([persHdr].concat(persRows));
-  persWs['!cols'] = [{wch:5},{wch:30},{wch:20},{wch:20},{wch:10},{wch:25}];
-  XLSX.utils.book_append_sheet(wb, persWs, 'Personil');
-
-  // ── Sheet 3: check_list ──
-  var ckRows = ckBuildExcelSheet();
-  var ckWs   = XLSX.utils.aoa_to_sheet(ckRows);
-  ckWs['!cols'] = [
-    {wch:8},{wch:8},{wch:55},{wch:10},{wch:20},{wch:35},{wch:42},{wch:10}
-  ];
-  XLSX.utils.book_append_sheet(wb, ckWs, 'check_list');
-
-  // ── Sheet 4: cek_personil (formula-based, reads from Rekap) ──
-  // Rekap cols: AD=PPK, AE=PPTK, AF=Staf, AG=Ketua, AH=Sekretaris
-  //             AI=Anggota1, AJ=Anggota2, AK=Anggota3
-  // Rekap data: row 2 onward (header row 1), up to row 1000
-  // Personil names: Personil sheet col B, starting row 2
-  var cpHdr = ['No','Nama','Total','PPK','PPTK','Staf','Ketua','Sekr','Ang1','Ang2','Ang3'];
-  var cpRows = [cpHdr];
-  var maxDataRow = Math.max(DATA.length + 1, 35) + 1; // row range for COUNTIF
-  var rekapRange = '2:' + (maxDataRow + 5);
-
-  (PERS||[]).forEach(function(p, pidx) {
-    var r = pidx + 2; // row in cek_personil (1=header, 2=first data)
-    // COUNTIF: range must specify column in both start & end
-    // e.g. COUNTIF(Rekap!AD$2:AD$1000, Personil!B2)
-    function cf(col) {
-      return {f: 'COUNTIF(Rekap!' + col + '$2:' + col + '$1000,Personil!B' + r + ')'};
-    }
-    var ppk  = cf('AD');
-    var pptk = cf('AE');
-    var staf = cf('AF');
-    var ketua= cf('AG');
-    var sekr = cf('AH');
-    var ang1 = cf('AI');
-    var ang2 = cf('AJ');
-    var ang3 = cf('AK');
-    // Total = SUM(D:K) for this row — cleaner than D+E+...
-    var totalF = {f: 'SUM(D' + r + ':K' + r + ')'};
-    cpRows.push([p.no, p.nama, totalF, ppk, pptk, staf, ketua, sekr, ang1, ang2, ang3]);
-  });
-
-  var cpWs = XLSX.utils.aoa_to_sheet(cpRows);
-  cpWs['!cols'] = [
-    {wch:5},{wch:38},{wch:7},{wch:6},{wch:6},{wch:6},{wch:7},{wch:6},{wch:6},{wch:6},{wch:6}
-  ];
-  XLSX.utils.book_append_sheet(wb, cpWs, 'cek_personil');
-
-  var ts  = new Date();
-  function pad(n){ return n<10?'0'+n:String(n); }
-  var fn  = 'BinaMarga2026_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())
-            +'_'+pad(ts.getHours())+pad(ts.getMinutes())+'.xlsx';
-  XLSX.writeFile(wb, fn);
-  toast('Excel didownload: ' + fn);
+  var wb=XLSX.utils.book_new();
+  var hdr=['No','No. Ruas','Nama Paket Pekerjaan','Sumber Dana','Lokasi','Lebar dan Panjang Jalan',
+    'Nilai Pagu APBD-P','Nilai HPS (Rp)','Pelaksana/ Penyedia Jasa','Nomor Kontrak','Tanggal Kontrak',
+    'Nilai Kontrak (Rp)','Add Kontrak + 10%','Addendum Ke-','Nomor Add','Tanggal Add','Nilai Kontrak Add (Rp)',
+    'Jangka Waktu Kontrak (Hari)','Tanggal Mulai Kontrak','Tanggal Selesai Kontrak','Belum','Nomor PHO/BAST',
+    'Tanggal PHO/BAST','Prestasi Fisik %','Realisasi Pembayaran (Rp)','% thd Kontrak',
+    'Metode Pengadaan Barang/Jasa (PL, Lelang, Swakelola, atau E-katalog)','Jenis Kontrak (Harga satuan atau Lumpsum)',
+    'Jenis Belanja (Belanja Barang dan Jasa, Belanja Modal Gedung dan Bangunan atau Belanja Modal Jalan Irigasi dan Jaringan',
+    'Jenis Infrastruktur (Diisi: Jalan, Irigasi, Jaringan, Gedung atau Bangunan)',
+    'PPK','PPTK','Staf/Pengawas Taknis','Tim Teknis Ketua ','Tim Teknis Sekretaris',
+    'Tim Teknis Anggota 1','Tim Teknis Anggota 2','Tim Teknis Anggota 3'];
+  var DL={'DAK':'Dana Alokasi Khusus (DAK)','DAU':'Dana Alokasi Umum (DAU)','Bankeu':'Bantuan Provinsi (Banprov)','Hibah':'Belanja Barang untuk dijual/Diserahkan kepada Masyarakat'};
+  function mkR(fd){var rows=fd?DATA.filter(function(d){return d.dana===fd;}):DATA;
+    return[hdr].concat(rows.map(function(d){return[d.no,d.noRuas||'',d.nama,DL[d.dana]||d.dana,d.lokasi||'',d.lebarPanjang||'',d.pagu||'',d.hps||'',d.penyedia||'',d.noKontrak||'',d.tglKontrak||'',d.kontrak,d.addKontrak10||'',d.addKe||'',d.noAdd||'',d.tglAdd||'',d.nilaiAdd||'',d.jaWaktu||'',d.mulai||'',d.selesai||'',d.pho,d.noPho||'',d.tglPho||'',d.fisik,d.realisasi,d.pctReal,d.metode||'',d.jenisKontrak||'',d.jenisBelanja||'',d.jenisInfra||'',d.ppk||'',d.pptk||'',d.staf||'',d.ketua||'',d.sekretaris||'',(d.anggota&&d.anggota[0])||'',(d.anggota&&d.anggota[1])||'',(d.anggota&&d.anggota[2])||''];}));}
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mkR(null)),'Rekap');
+  ['DAK','DAU','Bankeu','Hibah'].forEach(function(d){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mkR(d)),d+'_26');});
+  var phdr=['No','Nama','NIP','Pangkat','Golongan','Jabatan'];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([phdr].concat(PERS.map(function(p){return[p.no,p.nama,p.nip||'',p.pangkat||'',p.gol||'',p.jabatan||''];}))),'Personil');
+  var ts=new Date();var fn='BinaMarga2026_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())+'_'+pad(ts.getHours())+pad(ts.getMinutes())+'.xlsx';
+  XLSX.writeFile(wb,fn);toast('Excel didownload: '+fn);
 }
+function pad(n){return n<10?'0'+n:String(n);}
 
 // ── Export CSV ────────────────────────────────────────────
 function exportCSV(){
@@ -5187,30 +4606,291 @@ window.addEventListener("DOMContentLoaded", function() {
   });
 });
 
+
+
+// ============================================================
+//  DATA DASAR JALAN — Download / Upload / Sync
+// ============================================================
+var _rdAttr = {};
+var _rdAttrLoaded = false;
+
+function rdGet(noRuas) {
+  var base = RD.find(function(r){ return r.no === parseInt(noRuas); });
+  if (!base) return null;
+  var ov = _rdAttr[String(noRuas)];
+  return ov ? Object.assign({}, base, ov) : base;
+}
+
+function ddApplyOverrides() {
+  if (!_rdAttr || typeof _rdAttr !== 'object') return;
+  Object.keys(_rdAttr).forEach(function(noRuas) {
+    var ov = _rdAttr[noRuas];
+    if (!ov || typeof ov !== 'object') return;
+    var idx = RD.findIndex(function(r){ return String(r.no) === String(noRuas); });
+    if (idx !== -1) Object.assign(RD[idx], ov);
+  });
+}
+
+function ddLoadFromFirestore(cb) {
+  if (!db) { if (cb) cb(); return; }
+  db.collection('rd_attr').get().then(function(snap) {
+    snap.forEach(function(doc) {
+      var data = doc.data();
+      if (data && typeof data === 'object') _rdAttr[doc.id] = data;
+    });
+    _rdAttrLoaded = true;
+    ddApplyOverrides();
+    if (typeof renderUptCards === 'function') renderUptCards();
+    if (cb) cb();
+  }).catch(function(e) {
+    console.error('ddLoad error', e.code, e.message);
+    if (cb) cb();
+  });
+}
+
+function ddDownloadExcel() {
+  var hdr = ['No Ruas','Nama Ruas Jalan','Kecamatan','Desa/Kelurahan',
+    'Fungsi Jalan','Panjang (km)','Lebar (m)',
+    'Aspal (km)','Beton (km)','Telford/Kerikil (km)','Tanah (km)',
+    'Baik (km)','Sedang (km)','Rusak Ringan (km)','Rusak Berat (km)',
+    'Kondisi','Mantap','Wilayah','UPT'];
+  var rows = RD.map(function(r) {
+    return [r.no, r.nama, r.kecamatan, r.desa||'',
+      r.fungsi||'', r.panjang||0, r.lebar||0,
+      r.aspal_km||0, r.beton_km||0, r.telford_km||0, r.tanah_km||0,
+      r.baik_km||0, r.sedang_km||0, r.rr_km||0, r.rb_km||0,
+      r.kondisi||'', r.mantap||'', r.wilayah||'', r.upt||''];
+  });
+  var ws = XLSX.utils.aoa_to_sheet([hdr].concat(rows));
+  ws['!cols'] = [{wch:8},{wch:40},{wch:18},{wch:30},{wch:12},{wch:12},{wch:10},
+    {wch:10},{wch:10},{wch:14},{wch:10},{wch:10},{wch:10},{wch:14},{wch:10},
+    {wch:14},{wch:10},{wch:20},{wch:30}];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'DataDasar_Jalan');
+  var d = new Date();
+  function p(n){ return n<10?'0'+n:String(n); }
+  var fn = 'DataDasar_Jalan_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.xlsx';
+  XLSX.writeFile(wb, fn);
+  toast('⬇️ ' + fn + ' berhasil didownload');
+}
+
+function ddUploadExcel(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('dd-status');
+  if (statusEl) statusEl.textContent = '⏳ Membaca file...';
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb   = XLSX.read(e.target.result, {type:'array'});
+      var ws   = wb.Sheets['DataDasar_Jalan'] || wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if (rows.length < 2) { if (statusEl) statusEl.textContent = '❌ File kosong'; return; }
+      var hdr = rows[0].map(function(h){ return String(h).trim(); });
+      var gi  = function(name){ return hdr.indexOf(name); };
+      var iNo = gi('No Ruas');
+      if (iNo < 0) { if (statusEl) statusEl.textContent = '❌ Kolom "No Ruas" tidak ditemukan'; return; }
+      var fn2  = function(i){ return i>=0 ? (parseFloat(rows[0][i]||0)||0) : 0; };
+      var fs   = function(i){ return i>=0 ? String(rows[0][i]||'').trim() : ''; };
+      var updates = {};
+      var count   = 0;
+      rows.slice(1).forEach(function(row) {
+        var noRuas = parseInt(row[iNo]);
+        if (!noRuas || isNaN(noRuas)) return;
+        var fnr = function(i){ return i>=0 ? (parseFloat(row[i])||0) : 0; };
+        var fsr = function(i){ return i>=0 ? String(row[i]||'').trim() : ''; };
+        var safe = {
+          nama: fsr(gi('Nama Ruas Jalan')), kecamatan: fsr(gi('Kecamatan')),
+          desa: fsr(gi('Desa/Kelurahan')), fungsi: fsr(gi('Fungsi Jalan')),
+          panjang: fnr(gi('Panjang (km)')), lebar: fnr(gi('Lebar (m)')),
+          aspal_km: fnr(gi('Aspal (km)')), beton_km: fnr(gi('Beton (km)')),
+          telford_km: fnr(gi('Telford/Kerikil (km)')), tanah_km: fnr(gi('Tanah (km)')),
+          baik_km: fnr(gi('Baik (km)')), sedang_km: fnr(gi('Sedang (km)')),
+          rr_km: fnr(gi('Rusak Ringan (km)')), rb_km: fnr(gi('Rusak Berat (km)')),
+          kondisi: fsr(gi('Kondisi')), mantap: fsr(gi('Mantap')),
+          wilayah: fsr(gi('Wilayah')), upt: fsr(gi('UPT'))
+        };
+        updates[String(noRuas)] = safe;
+        count++;
+      });
+      if (statusEl) statusEl.textContent = '⏳ Menyimpan ' + count + ' ruas ke Firebase...';
+      var keys = Object.keys(updates);
+      var batches = [];
+      for (var i=0; i<keys.length; i+=490) batches.push(keys.slice(i, i+490));
+      var batchIdx = 0;
+      function doNextBatch() {
+        if (batchIdx >= batches.length) {
+          try {
+            if (updates && typeof updates === 'object') Object.assign(_rdAttr, updates);
+            ddApplyOverrides();
+            if (typeof renderUptCards === 'function') renderUptCards();
+            if (typeof refreshMapColors === 'function') refreshMapColors();
+            if (typeof renderTable === 'function') renderTable();
+            if (statusEl) statusEl.textContent = '✅ ' + count + ' ruas berhasil diupdate';
+            toast('✅ Data Dasar Jalan diupdate: ' + count + ' ruas');
+          } catch(applyErr) {
+            console.error('ddApply error:', applyErr);
+            if (statusEl) statusEl.textContent = '✅ ' + count + ' ruas tersimpan di Firebase (refresh untuk melihat perubahan)';
+          }
+          input.value = '';
+          return;
+        }
+        var batch = db.batch();
+        batches[batchIdx].forEach(function(noRuas) {
+          var ref  = db.collection('rd_attr').doc(noRuas);
+          var data = updates[noRuas];
+          var safe = {};
+          if (data && typeof data === 'object') {
+            Object.keys(data).forEach(function(k) {
+              var v = data[k];
+              if (v === undefined || v === null) safe[k] = (typeof v === 'number') ? 0 : '';
+              else if (typeof v === 'number' && isNaN(v)) safe[k] = 0;
+              else safe[k] = v;
+            });
+          }
+          batch.set(ref, safe);
+        });
+        batch.commit().then(function() {
+          batchIdx++;
+          doNextBatch();
+        }).catch(function(err) {
+          var msg = err ? (err.code === 'permission-denied'
+            ? '❌ Akses ditolak Firebase. Pastikan rules rd_attr sudah diset.'
+            : '❌ Error Firebase: ' + (err.message || err.code || 'unknown'))
+            : '❌ Error tidak dikenal';
+          if (statusEl) statusEl.textContent = msg;
+          toast(msg);
+        });
+      }
+      doNextBatch();
+    } catch(err) {
+      console.error('ddUpload error', err);
+      var errMsg = err ? (err.message || String(err)) : 'Unknown error';
+      if (errMsg.indexOf('null') !== -1 || errMsg.indexOf('undefined') !== -1)
+        errMsg = 'Format file tidak valid. Download ulang template dari aplikasi.';
+      if (statusEl) statusEl.textContent = '❌ Error membaca file: ' + errMsg;
+      toast('❌ Upload Data Jalan gagal: ' + errMsg);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============================================================
+//  TAMBAH KEGIATAN BARU
+// ============================================================
+function openTambahKegiatan() {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa menambah kegiatan'); return; }
+  ['tk-nama','tk-noruas','tk-lokasi','tk-pagu'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var dana = document.getElementById('tk-dana'); if (dana) dana.value = '';
+  var err  = document.getElementById('tk-error'); if (err) err.style.display = 'none';
+  var prev = document.getElementById('tk-pagu-preview'); if (prev) prev.textContent = '';
+  var btn  = document.getElementById('tk-submit');
+  if (btn) { btn.textContent = '💾 Simpan Kegiatan'; btn.disabled = false; }
+  var modal = document.getElementById('modal-tambah');
+  if (modal) modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(function(){ var el=document.getElementById('tk-nama'); if(el) el.focus(); }, 100);
+}
+
+function closeTambahKegiatan() {
+  var modal = document.getElementById('modal-tambah');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function submitTambahKegiatan() {
+  if (CURRENT_ROLE !== 'admin') return;
+  var nama   = (document.getElementById('tk-nama').value||'').trim();
+  var noRuas = (document.getElementById('tk-noruas').value||'').trim();
+  var dana   = (document.getElementById('tk-dana').value||'').trim();
+  var lokasi = (document.getElementById('tk-lokasi').value||'').trim();
+  var pagu   = parseFloat(document.getElementById('tk-pagu').value)||0;
+  var errEl  = document.getElementById('tk-error');
+  if (!nama || !noRuas || !dana || !lokasi) {
+    if (errEl) { errEl.textContent = '⚠️ Nama Paket, No. Ruas, Sumber Dana, dan Lokasi wajib diisi.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  var maxNo = 0;
+  (DATA||[]).forEach(function(d) { if ((d.no||0) > maxNo) maxNo = d.no; });
+  var newNo = maxNo + 1;
+  var newDoc = {
+    no: newNo, noRuas: noRuas, nama: nama, dana: dana, lokasi: lokasi, pagu: pagu, hps: 0,
+    lebarPanjang: '', penyedia: '', noKontrak: '', tglKontrak: '', kontrak: 0,
+    addKontrak10: 0, metode: '', jenisKontrak: '', jenisBelanja: '', jenisInfra: '',
+    addKe: '', noAdd: '', tglAdd: '', nilaiAdd: 0, jaWaktu: 0, mulai: '', selesai: '',
+    pho: 'Belum', noPho: '', tglPho: '', fisik: 0, realisasi: 0, pctReal: 0,
+    ppk: '', pptk: '', staf: '', ketua: '', sekretaris: '', anggota: []
+  };
+  var btn = document.getElementById('tk-submit');
+  if (btn) { btn.textContent = '⏳ Menyimpan...'; btn.disabled = true; }
+  db.collection('projects').doc(String(newNo)).set(newDoc)
+    .then(function() {
+      toast('✅ Kegiatan baru (No. ' + newNo + ') berhasil ditambahkan');
+      closeTambahKegiatan();
+      // Navigate to proyek list
+      var pEl = document.getElementById('pg-proyek');
+      if (pEl) {
+        document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('active'); });
+        pEl.classList.add('active');
+        var ni = document.querySelector('.ni[onclick*="proyek"]');
+        if (ni) { document.querySelectorAll('.ni').forEach(function(n){ n.classList.remove('active'); }); ni.classList.add('active'); }
+      }
+    })
+    .catch(function(e) {
+      if (btn) { btn.textContent = '💾 Simpan Kegiatan'; btn.disabled = false; }
+      if (errEl) { errEl.textContent = '❌ Gagal simpan: ' + (e.message||e.code||'cek koneksi'); errEl.style.display = 'block'; }
+    });
+}
 </script>
 
+<div id="mobile-menu-backdrop" onclick="closeMobileMenu()"></div>
 
-<!-- ===== CHECKLIST ADMINISTRASI MODAL ===== -->
-<div id="ck-overlay" onclick="ckHandleOverlay(event)">
-  <div class="ck-modal">
-    <div class="ck-modal-head">
-      <div class="ck-modal-head-text">
-        <div class="ck-modal-title" id="ck-title">–</div>
-        <div class="ck-modal-sub"   id="ck-sub">–</div>
+<!-- ===== MODAL TAMBAH KEGIATAN ===== -->
+<div id="modal-tambah" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:2100;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #e8e4df;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1e3a5f">➕ Tambah Kegiatan Baru</div>
+        <div style="font-size:12px;color:#9b9b96;margin-top:2px">Field utama — data lain dapat diupdate kemudian</div>
       </div>
-      <button class="ck-btn-close" onclick="ckClose()">✕</button>
+      <button onclick="closeTambahKegiatan()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9b9b96;line-height:1">✕</button>
     </div>
-    <div class="ck-toolbar">
-      <button class="ck-btn-print" onclick="ckPrint()">🖨️ Print / Cetak</button>
-      <button class="ck-btn-reset" id="ck-btn-reset" onclick="ckReset()" style="display:none">↺ Reset</button>
-      <span class="ck-prog-info" id="ck-prog">0 / 0 item</span>
-      <span class="ck-save-note">💾 Tersimpan ke Firebase</span>
+    <div style="padding:20px 24px">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Nama Paket Pekerjaan <span style="color:#dc2626">*</span></label>
+        <input id="tk-nama" type="text" placeholder="Penanganan Ruas Jalan ..." style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">No. Ruas <span style="color:#dc2626">*</span></label>
+        <input id="tk-noruas" type="text" placeholder="Contoh: 72" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Sumber Dana <span style="color:#dc2626">*</span></label>
+        <select id="tk-dana" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box;background:#fff">
+          <option value="">-- Pilih Sumber Dana --</option>
+          <option value="DAK">DAK</option><option value="DAU">DAU</option>
+          <option value="Bankeu">Bankeu</option><option value="Hibah">Hibah</option>
+        </select>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Lokasi <span style="color:#dc2626">*</span></label>
+        <input id="tk-lokasi" type="text" placeholder="Contoh: MOJOGEDANG" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Nilai Pagu APBD-P (Rp)</label>
+        <input id="tk-pagu" type="number" placeholder="5000000000" min="0" oninput="var v=parseFloat(this.value)||0;document.getElementById('tk-pagu-preview').textContent=v>0?'Rp '+v.toLocaleString('id-ID'):''" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+        <div id="tk-pagu-preview" style="font-size:11px;color:#9b9b96;margin-top:3px"></div>
+      </div>
+      <div id="tk-error" style="display:none;padding:10px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:7px;color:#dc2626;font-size:12px;margin-bottom:14px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeTambahKegiatan()" style="padding:9px 18px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit">Batal</button>
+        <button id="tk-submit" onclick="submitTambahKegiatan()" style="padding:9px 18px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">💾 Simpan Kegiatan</button>
+      </div>
     </div>
-    <div class="ck-body" id="ck-body"></div>
   </div>
 </div>
-<div id="ck-print-area" style="display:none"></div>
-
-<div id="mobile-menu-backdrop" onclick="closeMobileMenu()"></div>
 </body>
 </html>
