@@ -23,8 +23,8 @@
 
 <style>
 /* ===================================================
-   SIJAKA — SISTEM INFORMASI JALAN KABUPATEN
-   Stylesheet utama SIJAKA
+   SIBRIAN — SISTEM INFORMASI JALAN KABUPATEN
+   Stylesheet utama SIBRIAN
 =================================================== */
 
 :root{
@@ -2059,9 +2059,9 @@ function filterJalanByUpt(uptName) {
   if (ind) ind.style.display = 'inline-flex';
   if (typeof renderTable === 'function') renderTable();
   setTimeout(function(){
-    var el = document.querySelector('.table-card');
-    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 150);
+    // Scroll ke atas halaman agar tabel jalan langsung terlihat
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }, 100);
 }
 
 
@@ -2108,8 +2108,8 @@ function renderUptCards() {
   }
 
   function buildCard(u, s) {
-    var onclick = "filterJalanByUpt(" + JSON.stringify(u) + ")";
-    return "<div class=\"upt-card\" onclick=\"" + onclick + "\" title=\"Klik untuk filter data jalan\">"
+    var safeUpt = u.replace(/'/g, "\\'");
+    return "<div class=\"upt-card\" onclick=\"filterJalanByUpt('" + safeUpt + "')\" title=\"Klik untuk filter data jalan\">"
       + "<div class=\"upt-card-title\">" + u + "</div>"
       + "<div class=\"upt-card-sub\">" + (UPT_KEC[u] || '') + "</div>"
       + "<div class=\"upt-card-meta\">"
@@ -2175,6 +2175,9 @@ function showPage(page) {
   if (pageEl) pageEl.classList.add('active');
   const tab = document.getElementById('tab-' + page);
   if (tab) tab.classList.add('active');
+  // home-content (kondisi + UPT ringkasan) hanya tampil di beranda
+  var hc = document.querySelector('.home-content');
+  if (hc) hc.style.display = (page === 'beranda') ? '' : 'none';
   if (page === 'peta' && !mapMain) initMap();
   if (page === 'peta' && mapMain) setTimeout(() => mapMain.invalidateSize(), 50);
   if (page === 'binamarga') {
@@ -3568,6 +3571,29 @@ function refreshMapColors() {
 }
 
 
+// ===== DELETE PROYEK =====
+
+// ── Hapus paket dari Firestore ───────────────────────────
+function deleteProyek(no) {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa menghapus'); return; }
+  var d = DATA.filter(function(x){ return x.no === no; })[0];
+  if (!d) return;
+  var namaPaket = d.nama || ('Paket No. ' + no);
+  if (!confirm('Hapus paket berikut dari Firebase?\n\n' + namaPaket + '\n\nAksi ini tidak bisa dibatalkan.')) return;
+  db.collection('projects').doc(String(no)).delete()
+    .then(function() {
+      toast('✅ Paket berhasil dihapus');
+      // Tutup detail row jika sedang terbuka
+      var detEl = document.getElementById('det-' + no);
+      if (detEl) detEl.remove();
+      var rowEl = document.getElementById('bm-row-' + no);
+      if (rowEl) rowEl.classList.remove('expanded');
+    })
+    .catch(function(e) {
+      toast('❌ Gagal hapus: ' + (e.message || e.code));
+    });
+}
+
 // ===== BM MERGE CONTROLLER =====
 function openBmLoginModal() {
   var modal = document.getElementById('bm-login-modal');
@@ -4446,6 +4472,7 @@ function detailRow(d) {
         +'<div style="display:flex;gap:6px">'
         +'<button class="btn btn-sm" style="background:#1e5c2e;color:#fff;border-color:#1e5c2e" onclick="(function(ev){ev.stopPropagation();exportDetailDocx('+d.no+');})(event)">📄 Export Word</button>'
         +(canEdit ? '<button class="btn btn-sm btn-p" onclick="startEdit('+d.no+')">✏️ Edit</button>' : '')
+        +(CURRENT_ROLE==='admin' ? '<button class="btn btn-sm" style="background:#dc2626;color:#fff;border-color:#dc2626" onclick="(function(ev){ev.stopPropagation();deleteProyek('+d.no+');})(event)">🗑️ Hapus</button>' : '')
         +'</div>'
         +'</div>';
     }
