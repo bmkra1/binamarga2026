@@ -4928,25 +4928,24 @@ function parseRows(ws,danaKey){
   for(var r=hIdx+1;r<rows.length;r++){
     var row=rows[r];var no=parseInt(row[gi('No')]);if(!no||isNaN(no))continue;
     var kontrak=fn(row[gi('Nilai Kontrak (Rp)')])||fn(row[gi('Nilai HPS (Rp)')]);
-    var real=fn(row[gi('Realisasi Pembayaran (Rp)')]);var fisik=fn(row[gi('Prestasi Fisik %')]);
+    var real=fn(row[gi('Realisasi Pembayaran')]);var fisik=fn(row[gi('Prestasi Fisik (%)')]);
     var pct=fn(row[gi('% thd Kontrak')])||(kontrak>0?parseFloat((real/kontrak*100).toFixed(1)):0);
     var danaRaw=sv(row[gi('Sumber Dana')]);var dana=DANA_MAP[danaRaw]||danaKey||'DAK';
-    var pho=sv(row[gi('Belum')]);if(pho!=='Sudah'&&pho!=='Belum')pho='Belum';
-    var a=[sv(row[gi('Tim Teknis Anggota 1')]),sv(row[gi('Tim Teknis Anggota 2')]),sv(row[gi('Tim Teknis Anggota 3')])].filter(Boolean);
-    var ki=gi('Tim Teknis Ketua ');if(ki<0)ki=gi('Tim Teknis Ketua');
+    var pho=sv(row[gi('Status PHO')]);if(pho!=='Sudah'&&pho!=='Belum')pho='Belum';
+    var a=[sv(row[gi('Anggota 1')]),sv(row[gi('Anggota 2')]),sv(row[gi('Anggota 3')])].filter(Boolean);
     result.push({no:no,noRuas:sv(row[gi('No. Ruas')]),nama:sv(row[gi('Nama Paket Pekerjaan')]),dana:dana,lokasi:sv(row[gi('Lokasi')]),
       lebarPanjang:sv(row[gi('Lebar dan Panjang Jalan')]),pagu:fn(row[gi('Nilai Pagu APBD-P')]),hps:fn(row[gi('Nilai HPS (Rp)')]),
       penyedia:sv(row[gi('Pelaksana/ Penyedia Jasa')]),noKontrak:sv(row[gi('Nomor Kontrak')]),tglKontrak:fmtDate(row[gi('Tanggal Kontrak')]),
-      kontrak:kontrak,addKontrak10:fn(row[gi('Add Kontrak + 10%')]),addKe:sv(row[gi('Addendum Ke-')]),noAdd:sv(row[gi('Nomor Add')]),
-      tglAdd:fmtDate(row[gi('Tanggal Add')]),nilaiAdd:fn(row[gi('Nilai Kontrak Add (Rp)')]),jaWaktu:sv(row[gi('Jangka Waktu Kontrak (Hari)')]),
-      mulai:fmtDate(row[gi('Tanggal Mulai Kontrak')]),selesai:fmtDate(row[gi('Tanggal Selesai Kontrak')]),
+      kontrak:kontrak,addKontrak10:fn(row[gi('Add Kontrak +10%')]),addKe:sv(row[gi('Addendum Ke-')]),noAdd:sv(row[gi('Nomor Addendum')]),
+      tglAdd:fmtDate(row[gi('Tanggal Addendum')]),nilaiAdd:fn(row[gi('Nilai Kontrak Addendum')]),jaWaktu:sv(row[gi('Jangka Waktu (Hari)')]),
+      mulai:fmtDate(row[gi('Tanggal Mulai')]),selesai:fmtDate(row[gi('Tanggal Selesai')]),
       pho:pho,noPho:sv(row[gi('Nomor PHO/BAST')]),tglPho:fmtDate(row[gi('Tanggal PHO/BAST')]),
-      fisik:fisik,realisasi:real,pctReal:pct,metode:sv(row[gi('Metode Pengadaan Barang/Jasa (PL, Lelang, Swakelola, atau E-katalog)')]),
-      jenisKontrak:sv(row[gi('Jenis Kontrak (Harga satuan atau Lumpsum)')]),
-      jenisBelanja:sv(row[gi('Jenis Belanja (Belanja Barang dan Jasa, Belanja Modal Gedung dan Bangunan atau Belanja Modal Jalan Irigasi dan Jaringan')]),
+      fisik:fisik,realisasi:real,pctReal:pct,metode:sv(row[gi('Metode Pengadaan')]),
+      jenisKontrak:sv(row[gi('Jenis Kontrak')]),
+      jenisBelanja:sv(row[gi('Jenis Belanja')]),
       jenisInfra:sv(row[gi('Jenis Infrastruktur (Diisi: Jalan, Irigasi, Jaringan, Gedung atau Bangunan)')]),
-      ppk:sv(row[gi('PPK')]),pptk:sv(row[gi('PPTK')]),staf:sv(row[gi('Staf/Pengawas Taknis')]),
-      ketua:sv(row[ki]),sekretaris:sv(row[gi('Tim Teknis Sekretaris')]),anggota:a});
+      ppk:sv(row[gi('PPK')]),pptk:sv(row[gi('PPTK')]),staf:sv(row[gi('Staf/Pengawas')]),
+      ketua:sv(row[gi('Ketua Tim Teknis')]),sekretaris:sv(row[gi('Sekretaris Tim Teknis')]),anggota:a});
   }
   return result;
 }
