@@ -1859,6 +1859,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
     <nav style="padding:8px 6px;flex:1;overflow-y:auto">
       <div class="ni on"  id="bm-nav-dashboard"  onclick="go('dashboard',this)"><span class="ic">📊</span>Dashboard</div>
       <div class="ni"     id="bm-nav-proyek"      onclick="go('proyek',this)"><span class="ic">🛣</span>Daftar Proyek</div>
+      <div class="ni"     id="bm-nav-konsultan"   onclick="go('konsultan',this)"><span class="ic">🧑‍💼</span>Jasa Konsultansi</div>
       <div class="ni"     id="bm-nav-personil"    onclick="go('personil',this)"><span class="ic">👥</span>Personil</div>
       <div class="ni"     id="bm-nav-notifikasi"  onclick="go('notifikasi',this)"><span class="ic">🔔</span>Notifikasi<span class="nbadge" id="nb"></span></div>
       <div class="ni edit-only" id="bm-nav-upload" onclick="go('upload',this)"><span class="ic">⬆</span>Update Data</div>
@@ -1910,6 +1911,34 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       <th>NAMA PAKET PEKERJAAN</th>
       <th style="width:150px">FISIK</th>
     </tr></thead><tbody id="tb"></tbody></table></div>
+  </div>
+</div>
+
+<!-- JASA KONSULTANSI -->
+<div id="pg-konsultan" class="pg">
+  <div class="ph"><h2>Jasa Konsultansi</h2><p id="jkcnt"></p></div>
+  <div class="mg" id="jk-metrics" style="grid-template-columns:repeat(4,1fr)"></div>
+  <div class="fr">
+    <select id="jkf-status" onchange="rJK()">
+      <option value="">Semua status kontrak</option>
+      <option value="belum">Belum Kontrak</option>
+      <option value="aktif">Kontrak Aktif</option>
+      <option value="pho">Sudah PHO</option>
+    </select>
+    <select id="jkf-link" onchange="rJK()">
+      <option value="">Semua keterkaitan</option>
+      <option value="link">Terhubung Paket Fisik</option>
+      <option value="nolink">Berdiri Sendiri</option>
+    </select>
+    <input type="text" id="jkf-search" placeholder="Cari nama paket / lokasi / konsultan..." oninput="rJK()" style="flex:1;min-width:180px">
+    <button class="btn btn-g admin-only" onclick="openTambahJK()" style="display:none">➕ Tambah Paket Konsultansi</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tw"><table style="table-layout:fixed;width:100%"><thead><tr>
+      <th style="width:52px">NO</th>
+      <th>PAKET JASA KONSULTANSI</th>
+      <th style="width:170px">STATUS</th>
+    </tr></thead><tbody id="jktb"></tbody></table></div>
   </div>
 </div>
 
@@ -1982,6 +2011,45 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       <strong>Kolom yang bisa diupdate:</strong> Nama Ruas, Kecamatan, Desa, Fungsi, Panjang (km), Lebar (m),
       Aspal (km), Beton (km), Telford (km), Tanah (km), Baik (km), Sedang (km), RR (km), RB (km), Kondisi, Mantap, Wilayah, UPT.<br>
       <strong>Tidak diupdate:</strong> No Ruas (key), koordinat peta (tetap dari data awal).
+    </div>
+  </div>
+
+  <!-- JASA KONSULTANSI IMPORT SECTION -->
+  <div class="card admin-only" id="card-jk-import" style="margin-top:16px">
+    <div class="ct">
+      🧑‍💼 Import Jasa Konsultansi
+      <span style="font-size:9px;background:var(--purL);color:var(--purple);padding:1px 6px;border-radius:8px;margin-left:6px">Admin only</span>
+    </div>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">
+      Upload file rekap "Jasa Konsultansi" (.xlsx). Mode <strong>Replace</strong> &mdash;
+      seluruh data Jasa Konsultansi yang ada saat ini akan diganti dengan isi file baru.
+      Akan ditampilkan <strong>preview</strong> dulu sebelum disimpan ke Firebase.
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <button class="btn btn-p" onclick="jkDownloadExcel()" style="gap:6px">
+        ⬇️ Download Data Jasa Konsultansi Terkini (.xlsx)
+      </button>
+      <button class="btn" onclick="document.getElementById('jk-fi').click()" style="gap:6px">
+        📂 Pilih File Excel untuk Diupload
+      </button>
+      <input type="file" id="jk-fi" accept=".xlsx" style="display:none" onchange="jkImportFile(this)">
+    </div>
+    <div style="font-size:11px;color:var(--txt3);margin-bottom:6px">Download dulu, edit di Excel, lalu upload kembali sebagai dasar update.</div>
+    <div id="jk-import-msg" style="margin-top:6px;font-size:12px"></div>
+
+    <div id="jk-import-preview" style="display:none;margin-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:12px;color:var(--txt2)" id="jk-import-summary"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="jkImportCancel()">✕ Batal</button>
+          <button class="btn btn-danger" id="jk-import-confirm-btn" onclick="jkImportConfirm()">⚠️ Replace &amp; Simpan ke Firebase</button>
+        </div>
+      </div>
+      <div class="tw" style="max-height:360px;overflow-y:auto;border:1px solid var(--bdr);border-radius:var(--r)">
+        <table style="width:100%"><thead><tr>
+          <th style="width:40px">No</th><th>Paket</th><th>Lokasi</th><th>Pagu</th><th>Konsultan</th><th>Status</th><th style="width:90px">Link Ruas</th>
+        </tr></thead><tbody id="jk-import-tbody"></tbody></table>
+      </div>
     </div>
   </div>
 </div>
@@ -2918,169 +2986,91 @@ function ckReset() {
 }
 
 // ── Print ─────────────────────────────────────────────────
+
+// ── TEST PRINT (hapus setelah debug) ─────────────────────
+function testPrint() {
+  var pa = document.getElementById('ck-print-area');
+  if (!pa) { alert('ck-print-area NOT FOUND'); return; }
+  pa.innerHTML = '<div class="print-judul">TEST PRINT - BERHASIL</div>'
+    + '<div style="margin-top:20px">Ini adalah test print checklist administrasi.</div>';
+  alert('ck-print-area ditemukan! Akan buka dialog print...');
+  window.print();
+}
+
 function ckPrint() {
-  // Lookup project data same as detailRow uses
-  var k = (function() {
-    var proj = DATA.filter(function(d){
-      return String(d.noRuas) === String(_ckActive);
-    })[0];
-    // Fallback: match by paket no (for projects with no noRuas)
-    if (!proj) {
-      proj = DATA.filter(function(d){
-        return String(d.no) === String(_ckActive.replace('p',''));
-      })[0];
-    }
-    if (!proj) return { nama:'—', dana:'—', pagu:0 };
-    return { nama: proj.nama, dana: proj.dana, pagu: proj.pagu||0 };
-  })();
+  // Debug: log state
+  console.log('ckPrint called, _ckActive=', _ckActive, 'CURRENT_USER=', !!CURRENT_USER);
+  if (!_ckActive) {
+    toast('⚠️ Checklist belum terbuka. Klik badge % di detail paket terlebih dahulu.');
+    return;
+  }
 
-  var s = _ckState[_ckActive] || {};
+  var s     = _ckState[_ckActive] || {};
+  var title = (document.getElementById('ck-title') || {}).textContent || '—';
+  var sub   = (document.getElementById('ck-sub')   || {}).textContent || '—';
 
-  const rows_def = [
-    {no:'1',  label:'Dokumen Program / Penganggaran',                     indent:0},
-    {no:'2',  label:'Surat Penetapan PPK',                                indent:0},
-    {no:'3',  label:'Dokumen Perencanaan Pengadaan ( KAK, HPS )',         indent:0},
-    {no:'4',  label:'RUP/ SIRUP',                                         indent:0},
-    {no:'5',  label:'Dokumen Persiapan Pengadaan ( Spek Teknis, Gbr Rencana)', indent:0},
-    {no:'6',  label:'Dokumen Pemilihan Penyedia',                         indent:0},
-    {no:'7',  label:'Dokumen Penawaran Penyedia',                         indent:0},
-    {no:'8',  label:'Dokumen Evaluasi s/d Penetapan Penyedia',            indent:0},
-    {no:'9',  label:'SPPBJ',                                              indent:0},
-    {no:'10', label:'Dokumen Kontrak',                                    indent:0},
-    {no:'11', label:'Dokumen Kontrak Perubahan',                          indent:0},
-    {no:'12', label:'Dokumen Serah Terima Hasil Pekerjaan',               indent:0},
-    {no:'13', label:'Dokumen Pemeriksaan Lainnya',                        indent:0, grp:true},
-    {no:'1.',  label:'Surat Permohonan',                                  indent:1, ckid:'d1'},
-    {no:'2.',  label:'Surat Pernyataan Persiapan Pekerjaan',              indent:1, ckid:'d2'},
-    {no:'3.',  label:'Copy Jaminan Penawaran',                            indent:1, ckid:'d3'},
-    {no:'4.',  label:'Copy Jaminan Pelaksanaan',                          indent:1, ckid:'d4'},
-    {no:'5.',  label:'Copy Jaminan Uang Muka',                            indent:1, ckid:'d5'},
-    {no:'6.',  label:'Copy Jaminan Pemeliharaan',                         indent:1, ckid:'d6'},
-    {no:'7.',  label:'Berita Acara Pemeriksaan ( PHO )',                  indent:1, ckid:'d7'},
-    {no:'8.',  label:'Berita Acara CCO / Addendum',                       indent:1, ckid:'d8'},
-    {no:'9.',  label:'MC Pembayaran',                                     indent:1, ckid:'d9'},
-    {no:'10.', label:'MC 0',                                              indent:1, ckid:'d10'},
-    {no:'11.', label:'MC 100',                                            indent:1, ckid:'d11'},
-    {no:'12.', label:'TKDN ( Tingkat Komponen Dalam Negeri )',            indent:1, ckid:'d12'},
-    {no:'',   label:'ASPAL',                                              indent:1, grp:true},
-    {no:'a.', label:'Job Mix Formula',                                    indent:2, ckid:'e1'},
-    {no:'b.', label:'Uji Core Drill',                                     indent:2, ckid:'e2'},
-    {no:'c.', label:'Uji Ekstrasi Aspal',                                 indent:2, ckid:'e3'},
-    {no:'d.', label:'Density',                                            indent:2, ckid:'e4'},
-    {no:'',   label:'BETON',                                              indent:1, grp:true},
-    {no:'a.', label:'Jobmix ( fc / fs )',                                 indent:2, ckid:'f1'},
-    {no:'b.', label:'Core Drill',                                         indent:2, ckid:'f2'},
-    {no:'c.', label:'Uji Desak Beton / Tekan',                           indent:2, ckid:'f3'},
-    {no:'-',  label:'Benda Uji / Sample',                                 indent:2, ckid:'f4', sub:true},
-    {no:'-',  label:'Uji Hasil Core',                                     indent:2, ckid:'f5', sub:true},
-    {no:'d.', label:'Kuat Lentur ( Beton ) fs',                          indent:2, ckid:'f6'},
-    {no:'',   label:'LPA',                                                indent:1, grp:true},
-    {no:'a.', label:'Job Mix',                                            indent:2, ckid:'g1'},
-    {no:'b.', label:'Uji Ketebalan',                                      indent:2, ckid:'g2'},
-    {no:'c.', label:'Sand Cone / Kepadatan',                              indent:2, ckid:'g3'},
-    {no:'',   label:'BESI',                                               indent:1, grp:true},
-    {no:'a.', label:'Kuat Tarik',                                         indent:2, ckid:'h1'},
-    {no:'b.', label:'Berat Jenis',                                        indent:2, ckid:'h3'},
-    {no:'',   label:'MORTAR',                                             indent:1, grp:true},
-    {no:'a.', label:'Uji Mortar',                                         indent:2, ckid:'i1'},
-    {no:'13.', label:'Berita Acara Pengambilan Sampel',                   indent:1, ckid:'j1'},
-    {no:'14.', label:'Pernyataan Pengawas Lapangan',                      indent:1, ckid:'j2'},
-    {no:'15.', label:'Foto Proyek',                                       indent:1, ckid:'j3'},
-    {no:'16.', label:'Shop Drawing',                                      indent:1, ckid:'j4'},
-    {no:'17.', label:'As Built Drawing',                                  indent:1, ckid:'j5'},
-    {no:'18.', label:'Time Schedule',                                     indent:1, ckid:'j6'},
-    {no:'19.', label:'Grafik Cuaca',                                      indent:1, ckid:'j7'},
-    {no:'20.', label:'Grafik Tenaga',                                     indent:1, ckid:'j8'},
-    {no:'21.', label:'Buku Direksi',                                      indent:1, ckid:'j9'},
-    {no:'22.', label:'Buku Tamu',                                         indent:1, ckid:'j10'},
-    {no:'23.', label:'Buku Harian',                                       indent:1, ckid:'j11'},
-    {no:'24.', label:'Buku Bahan',                                        indent:1, ckid:'j12'},
-    {no:'25.', label:'Laporan Mingguan ( Proyek Fisik )',                 indent:1, ckid:'j13'},
-    {no:'26.', label:'Request',                                           indent:1, ckid:'j14'},
-    {no:'27.', label:'Surat Surat Masuk',                                 indent:1, ckid:'j15'},
-    {no:'28.', label:'Surat Surat Keluar',                                indent:1, ckid:'j16'},
-    {no:'29.', label:'Bukti Setor Astek',                                 indent:1, ckid:'k1'},
-    {no:'30.', label:'Bukti Retribusi Lab',                               indent:1, ckid:'k2'},
-    {no:'31.', label:'Bukti Setor Retribusi Kebersihan',                  indent:1, ckid:'k3'},
-    {no:'32.', label:'Bukti Setor SP3',                                   indent:1, ckid:'k4'},
-    {no:'33.', label:'Copy SSP dan PPH',                                  indent:1, ckid:'k5'},
-    {no:'34.', label:'Bukti Kirim Tiket ( Aspal Beton )',                 indent:1, ckid:'k6'},
-  ];
+  // Cari data proyek
+  var proj = DATA.filter(function(d){
+    return String(d.noRuas) === String(_ckActive) || String(d.no) === String(_ckActive.replace('p',''));
+  })[0] || {};
+  var paguFull = proj.pagu ? ('Rp ' + Number(proj.pagu).toLocaleString('id-ID') + ',-') : '—';
+  var dana     = proj.dana || '—';
 
-  const topMap = {
-    '1':'a1','2':'a2','3':'a3','4':'a4','5':'a5',
-    '6':'b1','7':'b2','8':'b3','9':'b4',
-    '10':'c1','11':'c2','12':'c3'
-  };
-
-  let rows = '';
-  rows_def.forEach(r => {
-    const ckid = r.ckid || topMap[r.no];
-    const ada  = ckid ? !!s[ckid] : false;
-    const pl   = r.indent===2 ? '18pt' : r.indent===1 ? '9pt' : '3pt';
-
-    if (r.grp) {
-      rows += `<tr class="grp">
-        <td class="no">${r.no}</td>
-        <td colspan="3" style="border:1px solid #000;padding:0pt 3pt;font-weight:bold;font-style:italic;font-size:8pt;height:10pt;padding-left:${pl}">${r.label}</td>
-      </tr>`;
-    } else {
-      rows += `<tr>
-        <td class="no">${r.no}</td>
-        <td style="border:1px solid #000;padding:0pt 3pt;padding-left:${pl};font-size:8pt;line-height:1.15;height:10pt">${r.label}</td>
-        <td class="ada">${ada ? '✓' : ''}</td>
-        <td class="tdk">${ada ? '' : ''}</td>
-        <td class="ket"></td>
-      </tr>`;
-    }
+  // Kelompokkan checklist per grup
+  var grpOrder = [], grps = {};
+  checklist.forEach(function(c) {
+    if (!grps[c.grup]) { grps[c.grup] = []; grpOrder.push(c.grup); }
+    grps[c.grup].push(c);
   });
 
-  const paguFull = 'Rp ' + k.pagu.toLocaleString('id') + ',-';
+  // Build rows HTML menggunakan CSS class (sudah ada di @media print)
+  var rows = '', no = 1;
+  grpOrder.forEach(function(grp) {
+    rows += '<tr class="grp"><td colspan="5">' + grp + '</td></tr>';
+    grps[grp].forEach(function(c) {
+      var ada = !!s[c.id];
+      rows += '<tr>'
+        + '<td class="no">' + no + '</td>'
+        + '<td>' + c.label + '</td>'
+        + '<td class="ada">' + (ada ? '&#10003;' : '') + '</td>'
+        + '<td class="tdk">' + (ada ? '' : '&#10003;') + '</td>'
+        + '<td class="ket"></td>'
+        + '</tr>';
+      no++;
+    });
+  });
 
-  document.getElementById('ck-print-area').innerHTML = `
-  <div class="print-judul">LAMPIRAN DAFTAR PEMERIKSAAN ADMINISTRASI HASIL PEKERJAAN SERAH TERIMA PERTAMA PEKERJAAN</div>
-  <div class="print-tahun">TAHUN 2026</div>
+  // Tulis ke #ck-print-area (CSS @media print sudah mengatur tampilan)
+  var pa = document.getElementById('ck-print-area');
+  if (!pa) { toast('❌ Print area tidak ditemukan di DOM'); return; }
 
-  <div class="print-info">
-    <table>
-      <tr><td class="lbl">Nama Kegiatan</td><td class="sep">:</td><td>${k.nama}</td></tr>
-      <tr><td class="lbl">Sumber Dana</td><td class="sep">:</td><td>${k.dana}</td></tr>
-      <tr><td class="lbl">Nilai Pagu</td><td class="sep">:</td><td>${paguFull}</td></tr>
-      <tr><td class="lbl">Pelaksana Kegiatan</td><td class="sep">:</td><td>___________________________________________</td></tr>
-    </table>
-  </div>
+  pa.innerHTML =
+    '<div class="print-judul">DAFTAR PEMERIKSAAN ADMINISTRASI</div>'
+    + '<div class="print-judul">SERAH TERIMA PERTAMA PEKERJAAN (PHO) / BAST</div>'
+    + '<div class="print-tahun">TAHUN ANGGARAN 2026</div>'
+    + '<div class="print-info"><table>'
+    + '<tr><td class="lbl">Nama Kegiatan</td><td class="sep">:</td><td>' + title + '</td></tr>'
+    + '<tr><td class="lbl">Sumber Dana</td><td class="sep">:</td><td>' + dana + '</td></tr>'
+    + '<tr><td class="lbl">Nilai Pagu</td><td class="sep">:</td><td>' + paguFull + '</td></tr>'
+    + '<tr><td class="lbl">Pelaksana</td><td class="sep">:</td><td>_________________________________________</td></tr>'
+    + '</table></div>'
+    + '<table class="print-table"><thead><tr>'
+    + '<th style="width:16pt">No</th>'
+    + '<th>Nama Berkas / Dokumen</th>'
+    + '<th style="width:30pt">Ada</th>'
+    + '<th style="width:34pt">Tidak Ada</th>'
+    + '<th style="width:70pt">Keterangan</th>'
+    + '</tr></thead><tbody>' + rows + '</tbody></table>'
+    + '<div class="print-sign"><table><tr>'
+    + '<td><div style="margin-bottom:2pt">Pelaksana / PT CV ________________________</div>'
+    + '<div class="sign-gap"></div><span class="sign-line">(__________________________)</span></td>'
+    + '<td><div style="margin-bottom:2pt">PjPHP</div>'
+    + '<div class="sign-gap"></div><span class="sign-line">(__________________________)</span></td>'
+    + '</tr></table></div>';
 
-  <table class="print-table">
-    <thead>
-      <tr>
-        <th style="width:16pt">NO</th>
-        <th>NAMA BERKAS</th>
-        <th style="width:30pt">ADA</th>
-        <th style="width:34pt">TIDAK ADA</th>
-        <th style="width:70pt">KETERANGAN</th>
-      </tr>
-    </thead>
-    <tbody>${rows}</tbody>
-  </table>
-
-  <div class="print-sign">
-    <table>
-      <tr>
-        <td>
-          Pelaksana<br>PT/ CV __________________________
-          <div class="sign-gap"></div>
-          <span class="sign-line">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</span>
-        </td>
-        <td>
-          PjPHP
-          <div class="sign-gap"></div>
-          <span class="sign-line">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</span>
-        </td>
-      </tr>
-    </table>
-  </div>`;
-
-  window.print();
+  // Print langsung — tidak perlu popup
+  toast('🖨️ Membuka dialog cetak...');
+  setTimeout(function(){ window.print(); }, 300);
 }
 
 // ════════════════════════════════════
@@ -3401,6 +3391,7 @@ var auth = firebase.auth();
 var CURRENT_USER  = null;   // objek user Firebase
 var CURRENT_ROLE  = null;   // 'admin' | 'editor' | 'viewer'
 var FB_LISTENER   = null;   // unsubscribe realtime listener
+var FB_LISTENER_JK = null;  // unsubscribe realtime listener (jasa_konsultansi)
 
 // ── Peran & izin ─────────────────────────────────────────
 var ROLE_PERMS = {
@@ -3477,6 +3468,7 @@ function showLoginError(msg) {
 function fbLogout() {
   // Stop realtime listener before signing out
   if (FB_LISTENER) { FB_LISTENER(); FB_LISTENER = null; }
+  if (FB_LISTENER_JK) { FB_LISTENER_JK(); FB_LISTENER_JK = null; }
   auth.signOut().then(function() {
     CURRENT_USER = null;
     CURRENT_ROLE = null;
@@ -3519,6 +3511,19 @@ function fbStartSync() {
     }, function(err) {
       showSyncStatus('⚠ Gagal: ' + err.message);
     });
+
+  if (FB_LISTENER_JK) FB_LISTENER_JK();
+  FB_LISTENER_JK = db.collection('jasa_konsultansi')
+    .orderBy('no')
+    .onSnapshot(function(snap) {
+      JKDATA = [];
+      snap.forEach(function(doc) { JKDATA.push(doc.data()); });
+      jkRelink();
+      rJK();
+      rJKMetrics();
+    }, function(err) {
+      console.error('Gagal sync jasa_konsultansi:', err.message);
+    });
 }
 
 // ── Seed Firestore dari data Excel bawaan (hanya sekali) ──
@@ -3544,6 +3549,14 @@ function seedFirestore() {
 function fbSaveProject(d, cb) {
   if (!can('canEdit')) { toast('Anda tidak punya izin edit'); return; }
   db.collection('projects').doc(String(d.no)).set(d, {merge: true})
+    .then(function() { if (cb) cb(); })
+    .catch(function(e) { toast('Gagal simpan: ' + e.message); });
+}
+
+// ── Simpan satu paket jasa konsultansi ke Firestore ───────
+function fbSaveJK(d, cb) {
+  if (!can('canEdit')) { toast('Anda tidak punya izin edit'); return; }
+  db.collection('jasa_konsultansi').doc(String(d.no)).set(d, {merge: true})
     .then(function() { if (cb) cb(); })
     .catch(function(e) { toast('Gagal simpan: ' + e.message); });
 }
@@ -3851,6 +3864,411 @@ function deleteProyek(no) {
     .catch(function(e) { toast('\u274c Gagal hapus: ' + (e.message||e.code)); });
 }
 
+// ============================================================
+//  JASA KONSULTANSI
+// ============================================================
+var JKDATA = [], jkOpenRow = null, jkEditRow = null, jkEditSnapshot = null;
+var JK_STATUS_CLS = {belum:'bl', aktif:'dak', pho:'ok'};
+var JK_STATUS_LBL = {belum:'Belum Kontrak', aktif:'Kontrak Aktif', pho:'Sudah PHO'};
+
+// Status kontrak disimpulkan dari data (bukan field tersendiri)
+function jkStatus(d) {
+  if (d.tglPho) return 'pho';
+  if (d.noKontrak || d.nilaiKontrak) return 'aktif';
+  return 'belum';
+}
+
+// Cocokkan noRuas konsultansi -> no paket fisik (projects) secara otomatis
+function jkRelink() {
+  JKDATA.forEach(function(d) {
+    d.ruasLink = null;
+    var nr = String(d.noRuas||'').trim();
+    if (!nr || nr === '—' || nr === '-') return;
+    var match = (DATA||[]).find(function(p){ return String(p.noRuas||'').trim() === nr; });
+    if (match) d.ruasLink = match.no;
+  });
+}
+
+// Cari paket jasa konsultansi yang terhubung ke suatu No. Ruas paket fisik.
+// Jika lebih dari satu cocok (jarang terjadi), ambil yang sudah berkontrak/PHO lebih dulu.
+function findJKForRuas(noRuas) {
+  var nr = String(noRuas||'').trim();
+  if (!nr || nr === '—' || nr === '-') return null;
+  var matches = (JKDATA||[]).filter(function(j){ return String(j.noRuas||'').trim() === nr; });
+  if (!matches.length) return null;
+  if (matches.length === 1) return matches[0];
+  matches.sort(function(a,b){
+    var rank = {pho:0, aktif:1, belum:2};
+    return rank[jkStatus(a)] - rank[jkStatus(b)];
+  });
+  return matches[0];
+}
+
+// Blok info konsultan (read-only) untuk ditampilkan di detail paket fisik
+function jkInfoBlock(d) {
+  var j = findJKForRuas(d.noRuas);
+  if (!j) {
+    return '<div class="det-grid">'
+      +di('Konsultan', '<span style="color:var(--txt3)">Belum ada data jasa konsultansi</span>')
+      +'</div>';
+  }
+  var st = jkStatus(j);
+  return '<div class="det-grid">'
+    +di('Konsultan', j.konsultan
+        ? esc(j.konsultan)
+        : '<span style="color:var(--txt3)">Belum kontrak</span>')
+    +di('Status Kontrak', '<span class="bd '+JK_STATUS_CLS[st]+'">'+JK_STATUS_LBL[st]+'</span>')
+    +'<div class="chips" style="margin-top:2px">'
+    +  '<span class="chip" style="cursor:pointer;color:var(--blue)" onclick="jkGoToKonsultan('+j.no+')">🔗 Lihat detail di Jasa Konsultansi</span>'
+    +'</div>'
+    +'</div>';
+}
+
+// Lompat dari baris paket fisik ke baris jasa konsultansi terkait
+function jkGoToKonsultan(no) {
+  var ni = document.getElementById('bm-nav-konsultan');
+  go('konsultan', ni);
+  jkOpenRow = no;
+  jkEditRow = null;
+  rJK();
+  setTimeout(function(){
+    var el = document.getElementById('jkdr_'+no);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 120);
+}
+
+function rJKMetrics() {
+  var total = JKDATA.length;
+  var tPagu = JKDATA.reduce(function(s,d){return s+(d.pagu||0);},0);
+  var sudahKontrak = JKDATA.filter(function(d){return jkStatus(d)!=='belum';}).length;
+  var tRealisasi = JKDATA.reduce(function(s,d){return s+(d.realisasiBayar||0);},0);
+  var el = document.getElementById('jk-metrics');
+  if (!el) return;
+  el.innerHTML = [
+    {l:'Total paket konsultansi', v:total+' paket', s:'tahun 2026'},
+    {l:'Total pagu', v:'Rp '+(tPagu/1e6).toFixed(0)+' jt', s:'seluruh paket'},
+    {l:'Sudah kontrak', v:sudahKontrak+'/'+total, s:'paket'},
+    {l:'Total realisasi bayar', v:'Rp '+(tRealisasi/1e6).toFixed(0)+' jt', s:'pembayaran'},
+  ].map(function(c){
+    return '<div class="mc"><div class="mc-l">'+c.l+'</div><div class="mc-v">'+c.v+'</div><div class="mc-s">'+c.s+'</div></div>';
+  }).join('');
+}
+
+function rJK() {
+  var elStatus = document.getElementById('jkf-status');
+  var elLink   = document.getElementById('jkf-link');
+  var elSearch = document.getElementById('jkf-search');
+  if (!elStatus || !elLink || !elSearch) return;
+  var fStatus = elStatus.value;
+  var fLink   = elLink.value;
+  var fQ      = (elSearch.value||'').toLowerCase();
+  var rows = JKDATA.filter(function(d){
+    if (fStatus && jkStatus(d)!==fStatus) return false;
+    if (fLink==='link'   && !d.ruasLink) return false;
+    if (fLink==='nolink' && d.ruasLink)  return false;
+    if (fQ) {
+      var hay = ((d.paket||'')+' '+(d.lokasi||'')+' '+(d.konsultan||'')).toLowerCase();
+      if (hay.indexOf(fQ)<0) return false;
+    }
+    return true;
+  });
+  document.getElementById('jkcnt').textContent = 'Menampilkan '+rows.length+' dari '+JKDATA.length+' paket';
+  document.getElementById('jktb').innerHTML = rows.map(jkRow).join('')
+    || '<tr><td colspan="3" style="text-align:center;color:var(--txt3);padding:16px">Belum ada data jasa konsultansi.</td></tr>';
+}
+
+function jkRow(d) {
+  var st     = jkStatus(d);
+  var open   = jkOpenRow===d.no;
+  var chevron = '<span style="font-size:9px;color:var(--txt3);margin-left:6px;display:inline-block;'
+    +'transform:'+(open?'rotate(180deg)':'rotate(0)')+';transition:transform .2s">&#x25BC;</span>';
+  var trStyle = 'cursor:pointer;user-select:none;'+(open?'background:var(--bluL);':'');
+  var h = '<tr style="'+trStyle+'" onclick="jkTog('+d.no+')">'
+    +'<td style="color:var(--txt2);font-size:12px;text-align:center;padding:12px 8px">'+d.no+'</td>'
+    +'<td style="padding:12px 14px">'
+    +  '<div style="font-size:13px;font-weight:500;color:var(--txt);line-height:1.4;margin-bottom:3px">'
+    +    esc(d.paket)+chevron
+    +  '</div>'
+    +  '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:3px">'
+    +    '<span style="font-size:11px;color:var(--txt3)">'+fv(d.lokasi)+'</span>'
+    +    (d.ruasLink ? '<span class="bd dau" style="cursor:pointer" onclick="(function(ev){ev.stopPropagation();jkGoToRuas('+d.ruasLink+');})(event)">🔗 Ruas '+esc(fv(d.noRuas))+'</span>' : '')
+    +  '</div>'
+    +'</td>'
+    +'<td style="padding:12px 14px;white-space:nowrap">'
+    +  '<span class="bd '+JK_STATUS_CLS[st]+'">'+JK_STATUS_LBL[st]+'</span>'
+    +'</td>'
+    +'</tr>';
+  if (open) h += jkDetailRow(d);
+  return h;
+}
+
+// Lompat dari baris konsultansi ke baris paket fisik terkait
+function jkGoToRuas(no) {
+  var ni = document.getElementById('bm-nav-proyek');
+  go('proyek', ni);
+  openRow = no;
+  editRow = null;
+  fp();
+  setTimeout(function(){
+    var el = document.getElementById('dr_'+no);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 120);
+}
+
+function jkDetailRow(d) {
+  var isEdit  = jkEditRow === d.no;
+  var canEdit = can('canEdit');
+  var isAdmin = CURRENT_ROLE === 'admin';
+
+  function vOrI(field, val, type) {
+    if (!isEdit || !canEdit) return fv(val);
+    type = type || 'text';
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="'+type+'" id="jkei_'+field+'_'+d.no+'" value="'+esc(sv)+'">';
+  }
+  function vOrN(field, val) {
+    if (!isEdit || !canEdit) return rp(val);
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="number" id="jkei_'+field+'_'+d.no+'" value="'+esc(sv)+'" step="any">';
+  }
+  function vOrIA(field, val) {
+    if (!isEdit || !isAdmin) return fv(val);
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="text" id="jkei_'+field+'_'+d.no+'" value="'+esc(sv)+'">';
+  }
+
+  var s = '<tr id="jkdr_'+d.no+'"><td colspan="3" style="padding:0">'
+    +'<div style="background:var(--surf2)">';
+
+  if (canEdit) {
+    if (isEdit) {
+      s += '<div class="det-edit-bar"><span>✏️ Mode Edit &mdash; '+esc(d.paket)+'</span></div>';
+    } else {
+      s += '<div class="det-edit-bar" style="background:var(--surf2);border-bottom-color:var(--bdr)">'
+        +'<span style="color:var(--txt2)">'+(d.ruasLink?('Ruas '+esc(fv(d.noRuas))+' &mdash; ') : '')+esc(d.lokasi||'')+'</span>'
+        +'<button class="btn btn-sm btn-p" onclick="jkStartEdit('+d.no+')">✏️ Edit</button>'
+        +(isAdmin ? '<button class="btn btn-sm" style="background:#dc2626;color:#fff;border-color:#dc2626" onclick="(function(ev){ev.stopPropagation();jkDelete('+d.no+');})(event)">🗑️ Hapus</button>' : '')
+        +'</div>';
+    }
+  }
+
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;padding:14px 16px">';
+
+  // LEFT COLUMN
+  s += '<div style="padding-right:16px;border-right:1px solid var(--bdr)">';
+
+  s += sec('📋 Identitas Paket');
+  s += '<div class="det-grid">'
+    +di('No.', fv(d.no))
+    +di('No. Ruas', vOrI('noRuas', d.noRuas))
+    +di('Lokasi/Kecamatan', vOrI('lokasi', d.lokasi))
+    +di('Paket Fisik Terkait', d.ruasLink
+        ? '<span class="bd dau" style="cursor:pointer" onclick="jkGoToRuas('+d.ruasLink+')">🔗 Lihat Paket No. '+d.ruasLink+'</span>'
+        : '<span style="color:var(--txt3)">Berdiri sendiri</span>')
+    +'</div>';
+
+  s += sec('💰 Anggaran');
+  s += '<div class="det-grid">'
+    +di('Nilai Pagu APBD (Rp)', vOrN('pagu', d.pagu))
+    +di('Nilai HPS (Rp)', vOrN('hps', d.hps))
+    +'</div>';
+
+  s += sec('🧑‍💼 Penyedia & Kontrak');
+  s += '<div class="det-grid">'
+    +di('Jasa Konsultan', vOrIA('konsultan', d.konsultan))
+    +di('Nomor Kontrak', vOrI('noKontrak', d.noKontrak))
+    +di('Tanggal Kontrak', vOrI('tglKontrak', d.tglKontrak, 'date'))
+    +di('Nilai Kontrak (Rp)', vOrN('nilaiKontrak', d.nilaiKontrak))
+    +di('Lama Kontrak (Hari)', vOrI('lamaKontrak', d.lamaKontrak, 'number'))
+    +di('Metode Pengadaan', vOrI('metode', d.metode))
+    +di('Jenis Kontrak', vOrI('jenisKontrak', d.jenisKontrak))
+    +'</div>';
+
+  s += '</div>'; // end left col
+
+  // RIGHT COLUMN
+  s += '<div style="padding-left:16px">';
+
+  s += sec('📅 Jangka Waktu Kontrak');
+  s += '<div class="det-grid">'
+    +di('Tanggal Mulai', vOrI('tglMulai', d.tglMulai, 'date'))
+    +di('Tanggal Selesai', vOrI('tglSelesai', d.tglSelesai, 'date'))
+    +'</div>';
+
+  s += sec('✅ Status PHO');
+  s += '<div class="det-grid">'
+    +di('Nomor PHO', vOrI('noPho', d.noPho))
+    +di('Tanggal PHO', vOrI('tglPho', d.tglPho, 'date'))
+    +'</div>';
+
+  s += sec('📊 Progres & Realisasi');
+  s += '<div class="det-grid">'
+    +'<div class="det-item"><div class="det-label">Prestasi Fisik (%)</div><div class="det-val">'
+    +(isEdit && canEdit
+      ? '<input class="det-edit-input" type="number" id="jkei_prestasiFisik_'+d.no+'" value="'+(d.prestasiFisik||0)+'" step="0.1">'
+      : '<strong style="color:var(--blue)">'+Number(d.prestasiFisik||0).toFixed(1)+'%</strong>')
+    +'</div></div>'
+    +'<div class="det-item"><div class="det-label">Realisasi Pembayaran (Rp)</div><div class="det-val">'
+    +(isEdit && canEdit
+      ? '<input class="det-edit-input" type="number" id="jkei_realisasiBayar_'+d.no+'" value="'+(d.realisasiBayar||0)+'" step="any">'
+      : '<strong>'+rp(d.realisasiBayar)+'</strong>')
+    +'</div></div>'
+    +di('% thd Kontrak', '<strong style="color:var(--green)">'+jkPctReal(d).toFixed(1)+'%</strong><span style="font-size:10px;color:var(--txt3);margin-left:4px">(otomatis)</span>')
+    +'</div>';
+
+  s += sec('👤 PPK');
+  s += '<div class="det-grid">'
+    +di('Pejabat Pembuat Komitmen', vOrIA('ppk', d.ppk))
+    +'</div>';
+
+  s += '</div>'; // end right col
+  s += '</div>'; // end grid
+
+  if (isEdit && canEdit) {
+    s += '<div class="det-save-bar">'
+      +'<button class="btn btn-g" onclick="jkCommitEdit('+d.no+')">💾 Selesai Edit</button>'
+      +'<button class="btn" onclick="jkCancelEdit('+d.no+')">✕ Batal</button>'
+      +'<span class="det-save-msg" id="jkeditmsg_'+d.no+'"></span>'
+      +'</div>';
+  }
+
+  s += '</div></td></tr>';
+  return s;
+}
+
+function jkPctReal(d) {
+  return d.nilaiKontrak>0 ? (d.realisasiBayar||0)/d.nilaiKontrak*100 : 0;
+}
+
+function jkTog(no) {
+  jkOpenRow = jkOpenRow === no ? null : no;
+  jkEditRow = null;
+  jkEditSnapshot = null;
+  rJK();
+}
+
+function jkStartEdit(no) {
+  var d = JKDATA.filter(function(x){return x.no===no;})[0];
+  if (!d) return;
+  jkEditSnapshot = JSON.parse(JSON.stringify(d));
+  jkEditRow = no;
+  rJK();
+}
+
+function jkCancelEdit(no) {
+  var d = JKDATA.filter(function(x){return x.no===no;})[0];
+  if (d && jkEditSnapshot) Object.assign(d, jkEditSnapshot);
+  jkEditRow = null;
+  jkEditSnapshot = null;
+  rJK();
+}
+
+function jkgv(field, no) {
+  var el = document.getElementById('jkei_'+field+'_'+no);
+  return el ? el.value : null;
+}
+function jkgvn(field, no) {
+  var el = document.getElementById('jkei_'+field+'_'+no);
+  return el ? (parseFloat(el.value)||0) : null;
+}
+
+function jkCommitEdit(no) {
+  var d = JKDATA.filter(function(x){return x.no===no;})[0];
+  if (!d) return;
+  if (!can('canEdit')) { toast('Tidak punya izin edit'); return; }
+  var isAdmin = CURRENT_ROLE === 'admin';
+
+  var fields = {
+    noRuas:'text', lokasi:'text', pagu:'num', hps:'num',
+    noKontrak:'text', tglKontrak:'text', nilaiKontrak:'num', lamaKontrak:'text',
+    metode:'text', jenisKontrak:'text', tglMulai:'text', tglSelesai:'text',
+    noPho:'text', tglPho:'text', prestasiFisik:'num', realisasiBayar:'num'
+  };
+  Object.keys(fields).forEach(function(f){
+    var v = fields[f]==='num' ? jkgvn(f,no) : jkgv(f,no);
+    if (v!==null) d[f] = v;
+  });
+
+  if (isAdmin) {
+    var konsultan = jkgv('konsultan', no);
+    var ppk       = jkgv('ppk', no);
+    if (konsultan!==null) d.konsultan = konsultan;
+    if (ppk!==null)       d.ppk       = ppk;
+  }
+
+  jkEditRow = null;
+  jkEditSnapshot = null;
+  rJK();
+
+  fbSaveJK(d, function() {
+    toast('✅ Data konsultansi berhasil disimpan');
+    rJKMetrics();
+  });
+}
+
+function jkDelete(no) {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa menghapus'); return; }
+  var d = JKDATA.filter(function(x){ return x.no === no; })[0];
+  if (!d) return;
+  if (!confirm('Hapus paket jasa konsultansi berikut?\n\n' + (d.paket||'Paket No. '+no) + '\n\nAksi ini tidak bisa dibatalkan.')) return;
+  db.collection('jasa_konsultansi').doc(String(no)).delete()
+    .then(function(){ toast('✅ Paket konsultansi berhasil dihapus'); })
+    .catch(function(e){ toast('❌ Gagal hapus: ' + (e.message||e.code)); });
+}
+
+function openTambahJK() {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa menambah'); return; }
+  ['jktk-paket','jktk-noruas','jktk-lokasi','jktk-pagu'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var err = document.getElementById('jktk-error'); if (err) err.style.display = 'none';
+  var modal = document.getElementById('modal-tambah-jk');
+  if (modal) modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(function(){ var el=document.getElementById('jktk-paket'); if(el) el.focus(); }, 100);
+}
+
+function closeTambahJK() {
+  var modal = document.getElementById('modal-tambah-jk');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function submitTambahJK() {
+  if (CURRENT_ROLE !== 'admin') return;
+  var paket  = (document.getElementById('jktk-paket').value||'').trim();
+  var noRuas = (document.getElementById('jktk-noruas').value||'').trim() || '—';
+  var lokasi = (document.getElementById('jktk-lokasi').value||'').trim();
+  var pagu   = parseFloat(document.getElementById('jktk-pagu').value)||0;
+  var errEl  = document.getElementById('jktk-error');
+  if (!paket || !lokasi) {
+    if (errEl) { errEl.textContent = '⚠️ Nama Paket dan Lokasi wajib diisi.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  var maxNo = 0;
+  (JKDATA||[]).forEach(function(d){ if ((d.no||0) > maxNo) maxNo = d.no; });
+  var newNo = maxNo + 1;
+  var newDoc = {
+    no:newNo, noRuas:noRuas, paket:paket, lokasi:lokasi, pagu:pagu, hps:0,
+    konsultan:'', noKontrak:'', tglKontrak:'', nilaiKontrak:0, lamaKontrak:'',
+    tglMulai:'', tglSelesai:'', noPho:'', tglPho:'', prestasiFisik:0, realisasiBayar:0,
+    metode:'E-PL', jenisKontrak:'Waktu Penugasan', ppk:''
+  };
+  var btn = document.getElementById('jktk-submit');
+  if (btn) { btn.textContent = '⏳ Menyimpan...'; btn.disabled = true; }
+  db.collection('jasa_konsultansi').doc(String(newNo)).set(newDoc)
+    .then(function(){
+      toast('✅ Paket konsultansi baru (No. ' + newNo + ') berhasil ditambahkan');
+      closeTambahJK();
+      if (btn) { btn.textContent = '💾 Simpan'; btn.disabled = false; }
+    })
+    .catch(function(e){
+      if (btn) { btn.textContent = '💾 Simpan'; btn.disabled = false; }
+      if (errEl) { errEl.textContent = '❌ Gagal simpan: ' + (e.message||e.code||'cek koneksi'); errEl.style.display = 'block'; }
+    });
+}
+
 function rAll() {
   rMetrics();
   rDashboard();
@@ -3858,6 +4276,9 @@ function rAll() {
   rPersonil();
   rNotif();
   initEsel();
+  jkRelink();
+  rJK();
+  rJKMetrics();
 }
 
 // ── Metric cards ──────────────────────────────────────────
@@ -4175,6 +4596,9 @@ function detailRow(d) {
     +di('Tanggal Addendum', vOrI('tglAdd',d.tglAdd,'date'))
     +di('Nilai Kontrak Addendum', vOrN('nilaiAdd',d.nilaiAdd))
     +'</div>';
+
+  s += sec('🧑\u200d💼 Jasa Konsultansi');
+  s += jkInfoBlock(d);
 
   s += '</div>'; // end left col
 
@@ -4560,26 +4984,279 @@ function onDrop(e){e.preventDefault();document.getElementById('dz').classList.re
 function onDov(e){e.preventDefault();document.getElementById('dz').classList.add('dov');}
 function onDlv(){document.getElementById('dz').classList.remove('dov');}
 
+// ── Import Excel: Jasa Konsultansi (mode Replace + Preview) ──
+var JK_IMPORT_STAGED = null; // hasil parse, menunggu konfirmasi
+
+// Header sesuai file rekap "JASA_KONSULTANSI.xlsx" (header 3-baris, baris ke-3 dipakai sbg acuan kolom utama)
+function jkParseSheet(ws) {
+  var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  var hIdx = -1;
+  for (var i=0; i<Math.min(rows.length,12); i++) {
+    if (rows[i].some(function(v){return String(v).trim()==='NO';}) &&
+        rows[i].some(function(v){return String(v).indexOf('Program/Kegiatan/Paket')>=0;})) { hIdx = i; break; }
+  }
+  if (hIdx < 0) return [];
+  var hdrs = rows[hIdx].map(function(v){return String(v).trim();});
+  function gi(name){ return hdrs.indexOf(name); }
+  var cNo = gi('NO'), cNoRuas = gi('NO RUAS'), cPaket = gi('Program/Kegiatan/Paket'),
+      cLokasi = gi('Lokasi/Kecamatan'), cPagu = gi('Nilai Pagu APBD (Rp.)'), cHps = gi('Nilai HPS  (Rp.)'),
+      cKonsultan = hdrs.indexOf(' Jasa Konsultan')>=0 ? hdrs.indexOf(' Jasa Konsultan') : gi('Jasa Konsultan'),
+      cNoKontrak = gi('No. Kontrak'), cTglKontrak = gi('Tanggal Kontrak'), cNilaiKontrak = gi('Nilai Kontrak (Rp.)'),
+      cLama = gi('Lama Kontrak (Hari)'), cMulai = gi('Tanggal Mulai Kontrak'), cSelesai = gi('Tanggal Selesai Kontrak'),
+      cNoPho = gi('Nomor PHO'), cTglPho = gi('Tanggal PHO'), cFisik = gi('Prestasi Fisik (%)'),
+      cRealisasi = gi('Realisasi Pembayaran (Rp.)'), cMetode = gi('Metode Pengadaan Barang/Jasa'),
+      cJenisKontrak = gi('Jenis Kontrak'), cPpk = gi('PPK');
+
+  function sv2(v){ if(v===null||v===undefined) return ''; var s=String(v).trim(); return (s==='undefined'||s==='null'||s==='—'||s==='-')?'':s; }
+  function fn2(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+  function fd2(v){
+    if (!v) return '';
+    if (v instanceof Date) return v.toISOString().slice(0,10);
+    if (typeof v==='number') { // serial date excel
+      var d = new Date(Math.round((v-25569)*86400*1000));
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+    }
+    if (typeof v==='string' && /\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+    return '';
+  }
+
+  var out = [];
+  for (var r=hIdx+1; r<rows.length; r++) {
+    var row = rows[r];
+    var no = parseInt(row[cNo]);
+    if (!no || isNaN(no)) continue;
+    var paket = sv2(row[cPaket]);
+    if (!paket) continue;
+    out.push({
+      no: no,
+      noRuas: sv2(row[cNoRuas]) || '—',
+      paket: paket,
+      lokasi: sv2(row[cLokasi]),
+      pagu: fn2(row[cPagu]),
+      hps: fn2(row[cHps]),
+      konsultan: sv2(row[cKonsultan]),
+      noKontrak: sv2(row[cNoKontrak]),
+      tglKontrak: fd2(row[cTglKontrak]),
+      nilaiKontrak: fn2(row[cNilaiKontrak]),
+      lamaKontrak: sv2(row[cLama]),
+      tglMulai: fd2(row[cMulai]),
+      tglSelesai: fd2(row[cSelesai]),
+      noPho: sv2(row[cNoPho]),
+      tglPho: fd2(row[cTglPho]),
+      prestasiFisik: fn2(row[cFisik]),
+      realisasiBayar: fn2(row[cRealisasi]),
+      metode: sv2(row[cMetode]) || 'E-PL',
+      jenisKontrak: sv2(row[cJenisKontrak]) || 'Waktu Penugasan',
+      ppk: sv2(row[cPpk])
+    });
+  }
+  return out;
+}
+
+function jkDownloadExcel() {
+  var hdr = ['NO','NO RUAS','Program/Kegiatan/Paket','Lokasi/Kecamatan','Nilai Pagu APBD (Rp.)','Nilai HPS  (Rp.)',
+    ' Jasa Konsultan','No. Kontrak','Tanggal Kontrak','Nilai Kontrak (Rp.)','Lama Kontrak (Hari)',
+    'Tanggal Mulai Kontrak','Tanggal Selesai Kontrak','Nomor PHO','Tanggal PHO','Prestasi Fisik (%)',
+    'Realisasi Pembayaran (Rp.)','% thd Kontrak','Metode Pengadaan Barang/Jasa','Jenis Kontrak','PPK'];
+  var rows = (JKDATA||[]).slice().sort(function(a,b){return a.no-b.no;}).map(function(d){
+    var pct = jkPctReal(d);
+    return [d.no, d.noRuas||'', d.paket||'', d.lokasi||'', d.pagu||0, d.hps||0,
+      d.konsultan||'', d.noKontrak||'', d.tglKontrak||'', d.nilaiKontrak||0, d.lamaKontrak||'',
+      d.tglMulai||'', d.tglSelesai||'', d.noPho||'', d.tglPho||'', d.prestasiFisik||0,
+      d.realisasiBayar||0, pct?parseFloat(pct.toFixed(1)):0, d.metode||'', d.jenisKontrak||'', d.ppk||''];
+  });
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([hdr].concat(rows)), 'Realisasi Konsultan');
+  var ts = new Date();
+  var fn = 'JasaKonsultansi2026_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())+'_'+pad(ts.getHours())+pad(ts.getMinutes())+'.xlsx';
+  XLSX.writeFile(wb, fn);
+  toast('Excel Jasa Konsultansi didownload: '+fn);
+}
+
+function jkImportFile(input) {
+  var f = input.files[0];
+  if (!f) return;
+  var msg = document.getElementById('jk-import-msg');
+  msg.innerHTML = '<span style="color:var(--txt2)">⏳ Membaca file...</span>';
+  document.getElementById('jk-import-preview').style.display = 'none';
+  JK_IMPORT_STAGED = null;
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
+      var sheetName = wb.SheetNames.find(function(n){ return n.toLowerCase().indexOf('konsultan')>=0; }) || wb.SheetNames[0];
+      var parsed = jkParseSheet(wb.Sheets[sheetName]);
+      if (!parsed.length) {
+        msg.innerHTML = '<span style="color:var(--red)">❌ Tidak ada data terbaca. Pastikan file sesuai format rekap Jasa Konsultansi.</span>';
+        return;
+      }
+      // Jalankan auto-matching ke paket fisik untuk preview
+      parsed.forEach(function(d) {
+        d.ruasLink = null;
+        var nr = String(d.noRuas||'').trim();
+        if (nr && nr!=='—' && nr!=='-') {
+          var match = (DATA||[]).find(function(p){ return String(p.noRuas||'').trim()===nr; });
+          if (match) d.ruasLink = match.no;
+        }
+      });
+      JK_IMPORT_STAGED = parsed;
+      msg.innerHTML = '<span style="color:var(--green)">✅ '+parsed.length+' paket terbaca dari sheet "'+esc(sheetName)+'". Periksa preview di bawah sebelum disimpan.</span>';
+      jkImportRenderPreview(parsed);
+    } catch (err) {
+      msg.innerHTML = '<span style="color:var(--red)">❌ Gagal membaca file: '+esc(err.message)+'</span>';
+    }
+  };
+  reader.readAsArrayBuffer(f);
+  input.value = ''; // allow re-selecting same file later
+}
+
+function jkImportRenderPreview(rows) {
+  var sudahKontrak = rows.filter(function(d){ return d.noKontrak || d.nilaiKontrak; }).length;
+  var terhubung = rows.filter(function(d){ return d.ruasLink; }).length;
+  var existing = (JKDATA||[]).length;
+  document.getElementById('jk-import-summary').innerHTML =
+    '<strong>'+rows.length+' paket</strong> akan menggantikan <strong>'+existing+' paket</strong> yang ada saat ini &mdash; '
+    +sudahKontrak+' sudah berkontrak, '+terhubung+' terhubung ke paket fisik.';
+  document.getElementById('jk-import-tbody').innerHTML = rows.map(function(d){
+    var st = jkStatus(d);
+    return '<tr>'
+      +'<td style="text-align:center">'+d.no+'</td>'
+      +'<td style="max-width:280px;white-space:normal">'+esc(d.paket)+'</td>'
+      +'<td>'+esc(d.lokasi||'—')+'</td>'
+      +'<td style="white-space:nowrap">'+rp(d.pagu)+'</td>'
+      +'<td>'+(d.konsultan?esc(d.konsultan):'<span style="color:var(--txt3)">&mdash;</span>')+'</td>'
+      +'<td><span class="bd '+JK_STATUS_CLS[st]+'">'+JK_STATUS_LBL[st]+'</span></td>'
+      +'<td>'+(d.ruasLink?('<span class="bd dau">🔗 Ruas '+esc(d.noRuas)+'</span>'):'<span style="color:var(--txt3);font-size:11px">—</span>')+'</td>'
+      +'</tr>';
+  }).join('');
+  document.getElementById('jk-import-preview').style.display = 'block';
+}
+
+function jkImportCancel() {
+  JK_IMPORT_STAGED = null;
+  document.getElementById('jk-import-preview').style.display = 'none';
+  document.getElementById('jk-import-msg').innerHTML = '';
+}
+
+function jkImportConfirm() {
+  if (!JK_IMPORT_STAGED || !JK_IMPORT_STAGED.length) return;
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa import data'); return; }
+  if (!confirm('Ganti SELURUH data Jasa Konsultansi dengan '+JK_IMPORT_STAGED.length+' paket dari file ini?\n\nData lama yang tidak ada di file baru akan terhapus permanen. Aksi ini tidak bisa dibatalkan.')) return;
+
+  var btn = document.getElementById('jk-import-confirm-btn');
+  var msg = document.getElementById('jk-import-msg');
+  btn.disabled = true; btn.textContent = '⏳ Menghapus data lama...';
+
+  db.collection('jasa_konsultansi').get().then(function(snap) {
+    var docs = [];
+    snap.forEach(function(doc) { docs.push(doc.ref); });
+    var CHUNK = 400;
+    function deleteChunk(idx, done) {
+      if (idx >= docs.length) { done(); return; }
+      var batch = db.batch();
+      var end = Math.min(idx+CHUNK, docs.length);
+      for (var i=idx; i<end; i++) batch.delete(docs[i]);
+      batch.commit().then(function(){ deleteChunk(end, done); });
+    }
+    return new Promise(function(resolve, reject) {
+      try { deleteChunk(0, resolve); } catch(e) { reject(e); }
+    });
+  }).then(function() {
+    btn.textContent = '⏳ Menyimpan data baru...';
+    var items = JK_IMPORT_STAGED;
+    var CHUNK = 400;
+    function writeChunk(idx, done) {
+      if (idx >= items.length) { done(); return; }
+      var batch = db.batch();
+      var end = Math.min(idx+CHUNK, items.length);
+      for (var i=idx; i<end; i++) {
+        var d = Object.assign({}, items[i]);
+        delete d.ruasLink; // ruasLink dihitung ulang otomatis oleh jkRelink(), tidak disimpan
+        batch.set(db.collection('jasa_konsultansi').doc(String(d.no)), d);
+      }
+      batch.commit().then(function(){ writeChunk(end, done); })
+        .catch(function(e){ throw e; });
+    }
+    return new Promise(function(resolve, reject) {
+      try { writeChunk(0, resolve); } catch(e) { reject(e); }
+    });
+  }).then(function() {
+    toast('✅ Import berhasil — '+JK_IMPORT_STAGED.length+' paket Jasa Konsultansi tersinkron');
+    msg.innerHTML = '<span style="color:var(--green)">✅ Import berhasil. Data tersinkron ke semua pengguna.</span>';
+    jkImportCancel();
+    btn.disabled = false; btn.textContent = '⚠️ Replace & Simpan ke Firebase';
+  }).catch(function(e) {
+    msg.innerHTML = '<span style="color:var(--red)">❌ Gagal import: '+esc(e.message||e.code)+'</span>';
+    btn.disabled = false; btn.textContent = '⚠️ Replace & Simpan ke Firebase';
+  });
+}
+
 // ── Download Excel ────────────────────────────────────────
 function downloadExcel(){
   var wb=XLSX.utils.book_new();
+  // Urutan kolom disesuaikan dengan kesepakatan 0603: Metode Pengadaan/Jenis Kontrak/Jenis Belanja
+  // dipindah ke setelah 'Add Kontrak +10%' (bukan di akhir), agar kolom PPK jatuh di AD (sesuai formula cek_personil)
   var hdr=['No','No. Ruas','Nama Paket Pekerjaan','Sumber Dana','Lokasi','Lebar dan Panjang Jalan',
     'Nilai Pagu APBD-P','Nilai HPS (Rp)','Pelaksana/ Penyedia Jasa','Nomor Kontrak','Tanggal Kontrak',
-    'Nilai Kontrak (Rp)','Add Kontrak + 10%','Addendum Ke-','Nomor Add','Tanggal Add','Nilai Kontrak Add (Rp)',
-    'Jangka Waktu Kontrak (Hari)','Tanggal Mulai Kontrak','Tanggal Selesai Kontrak','Belum','Nomor PHO/BAST',
-    'Tanggal PHO/BAST','Prestasi Fisik %','Realisasi Pembayaran (Rp)','% thd Kontrak',
-    'Metode Pengadaan Barang/Jasa (PL, Lelang, Swakelola, atau E-katalog)','Jenis Kontrak (Harga satuan atau Lumpsum)',
-    'Jenis Belanja (Belanja Barang dan Jasa, Belanja Modal Gedung dan Bangunan atau Belanja Modal Jalan Irigasi dan Jaringan',
-    'Jenis Infrastruktur (Diisi: Jalan, Irigasi, Jaringan, Gedung atau Bangunan)',
-    'PPK','PPTK','Staf/Pengawas Taknis','Tim Teknis Ketua ','Tim Teknis Sekretaris',
-    'Tim Teknis Anggota 1','Tim Teknis Anggota 2','Tim Teknis Anggota 3'];
+    'Nilai Kontrak (Rp)','Add Kontrak +10%',
+    'Metode Pengadaan','Jenis Kontrak','Jenis Belanja',
+    'Addendum Ke-','Nomor Addendum','Tanggal Addendum','Nilai Kontrak Addendum',
+    'Jangka Waktu (Hari)','Tanggal Mulai','Tanggal Selesai','Status PHO','Nomor PHO/BAST',
+    'Tanggal PHO/BAST','Prestasi Fisik (%)','Realisasi Pembayaran','% thd Kontrak',
+    'PPK','PPTK','Staf/Pengawas','Ketua Tim Teknis','Sekretaris Tim Teknis',
+    'Anggota 1','Anggota 2','Anggota 3'];
   var DL={'DAK':'Dana Alokasi Khusus (DAK)','DAU':'Dana Alokasi Umum (DAU)','Bankeu':'Bantuan Provinsi (Banprov)','Hibah':'Belanja Barang untuk dijual/Diserahkan kepada Masyarakat'};
   function mkR(fd){var rows=fd?DATA.filter(function(d){return d.dana===fd;}):DATA;
-    return[hdr].concat(rows.map(function(d){return[d.no,d.noRuas||'',d.nama,DL[d.dana]||d.dana,d.lokasi||'',d.lebarPanjang||'',d.pagu||'',d.hps||'',d.penyedia||'',d.noKontrak||'',d.tglKontrak||'',d.kontrak,d.addKontrak10||'',d.addKe||'',d.noAdd||'',d.tglAdd||'',d.nilaiAdd||'',d.jaWaktu||'',d.mulai||'',d.selesai||'',d.pho,d.noPho||'',d.tglPho||'',d.fisik,d.realisasi,d.pctReal,d.metode||'',d.jenisKontrak||'',d.jenisBelanja||'',d.jenisInfra||'',d.ppk||'',d.pptk||'',d.staf||'',d.ketua||'',d.sekretaris||'',(d.anggota&&d.anggota[0])||'',(d.anggota&&d.anggota[1])||'',(d.anggota&&d.anggota[2])||''];}));}
+    return[hdr].concat(rows.map(function(d){return[d.no,d.noRuas||'',d.nama,DL[d.dana]||d.dana,d.lokasi||'',d.lebarPanjang||'',d.pagu||'',d.hps||'',d.penyedia||'',d.noKontrak||'',d.tglKontrak||'',d.kontrak,d.addKontrak10||'',d.metode||'',d.jenisKontrak||'',d.jenisBelanja||'',d.addKe||'',d.noAdd||'',d.tglAdd||'',d.nilaiAdd||'',d.jaWaktu||'',d.mulai||'',d.selesai||'',d.pho,d.noPho||'',d.tglPho||'',d.fisik,d.realisasi,d.pctReal,d.ppk||'',d.pptk||'',d.staf||'',d.ketua||'',d.sekretaris||'',(d.anggota&&d.anggota[0])||'',(d.anggota&&d.anggota[1])||'',(d.anggota&&d.anggota[2])||''];}));}
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mkR(null)),'Rekap');
-  ['DAK','DAU','Bankeu','Hibah'].forEach(function(d){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mkR(d)),d+'_26');});
+  // Sheet per sumber dana (DAK_26/DAU_26/Bankeu_26/Hibah_26) dihapus sesuai kesepakatan 0603 — hanya 1 sheet Rekap
   var phdr=['No','Nama','NIP','Pangkat','Golongan','Jabatan'];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([phdr].concat(PERS.map(function(p){return[p.no,p.nama,p.nip||'',p.pangkat||'',p.gol||'',p.jabatan||''];}))),'Personil');
+
+  // ── Sheet check_list (checklist administrasi per paket per item) ──
+  if (typeof ckBuildExcelSheet === 'function') {
+    try {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ckBuildExcelSheet()), 'check_list');
+    } catch(e) { console.error('check_list sheet error:', e); }
+  }
+
+  // ── Sheet cek_personil (rekap COUNTIF jumlah personil per kegiatan) ──
+  try {
+    var cpHdr = ['No','Nama','Total','PPK','PPTK','Staf','Ketua','Sekr','Ang1','Ang2','Ang3'];
+    var cpRows = [cpHdr];
+    PERS.forEach(function(p, idx) {
+      var r = idx + 2; // baris di sheet Personil (header di baris 1)
+      cpRows.push([
+        idx + 1, p.nama,
+        {f: 'SUM(D'+r+':K'+r+')'},
+        {f: 'COUNTIF(Rekap!AD$2:AD$997,Personil!B'+r+')'},
+        {f: 'COUNTIF(Rekap!AE$2:AE$997,Personil!B'+r+')'},
+        {f: 'COUNTIF(Rekap!AF$2:AF$997,Personil!B'+r+')'},
+        {f: 'COUNTIF(Rekap!AG$2:AG$997,Personil!B'+r+')'},
+        {f: 'COUNTIF(Rekap!AH$2:AH$997,Personil!B'+r+')'},
+        {f: 'COUNTIF(Rekap!AI$2:AI$997,Personil!B'+r+')'},
+        {f: 'COUNTIF(Rekap!AJ$2:AJ$997,Personil!B'+r+')'},
+        {f: 'COUNTIF(Rekap!AK$2:AK$997,Personil!B'+r+')'}
+      ]);
+    });
+    var wsCp = XLSX.utils.aoa_to_sheet([cpHdr]);
+    cpRows.slice(1).forEach(function(row, i) {
+      var rr = i + 2;
+      row.forEach(function(cell, ci) {
+        var addr = XLSX.utils.encode_cell({r: rr-1, c: ci});
+        if (cell && typeof cell === 'object' && cell.f) {
+          wsCp[addr] = {t: 'n', f: cell.f};
+        } else {
+          wsCp[addr] = {t: typeof cell === 'number' ? 'n' : 's', v: cell};
+        }
+      });
+    });
+    var lastRow = cpRows.length;
+    wsCp['!ref'] = 'A1:K' + lastRow;
+    XLSX.utils.book_append_sheet(wb, wsCp, 'cek_personil');
+  } catch(e) { console.error('cek_personil sheet error:', e); }
+
   var ts=new Date();var fn='BinaMarga2026_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())+'_'+pad(ts.getHours())+pad(ts.getMinutes())+'.xlsx';
   XLSX.writeFile(wb,fn);toast('Excel didownload: '+fn);
 }
@@ -4602,7 +5279,6 @@ function go(id,el){
   if(el) el.classList.add('on');
   if(id==='admin') loadAdminUsers();
 }
-function toast(msg,dur){var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(function(){t.style.display='none';},dur||3000);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 
@@ -4909,6 +5585,42 @@ function submitTambahKegiatan() {
   </div>
 </div>
 
+<!-- ===== MODAL TAMBAH JASA KONSULTANSI ===== -->
+<div id="modal-tambah-jk" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:2100;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #e8e4df;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1e3a5f">➕ Tambah Paket Jasa Konsultansi</div>
+        <div style="font-size:12px;color:#9b9b96;margin-top:2px">No. Ruas akan otomatis terhubung jika cocok dengan paket fisik</div>
+      </div>
+      <button onclick="closeTambahJK()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9b9b96;line-height:1">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Nama Paket Jasa Konsultansi <span style="color:#dc2626">*</span></label>
+        <input id="jktk-paket" type="text" placeholder="Belanja Jasa Konsultansi ..." style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">No. Ruas <span style="font-weight:400;color:#9b9b96">(kosongkan jika non-fisik, isi — )</span></label>
+        <input id="jktk-noruas" type="text" placeholder="Contoh: 72 atau —" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Lokasi/Kecamatan <span style="color:#dc2626">*</span></label>
+        <input id="jktk-lokasi" type="text" placeholder="Contoh: MOJOGEDANG" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Nilai Pagu APBD (Rp)</label>
+        <input id="jktk-pagu" type="number" placeholder="70000000" min="0" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div id="jktk-error" style="display:none;padding:10px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:7px;color:#dc2626;font-size:12px;margin-bottom:14px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeTambahJK()" style="padding:9px 18px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit">Batal</button>
+        <button id="jktk-submit" onclick="submitTambahJK()" style="padding:9px 18px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== CHECKLIST ADMINISTRASI OVERLAY ===== -->
 <div id="ck-overlay" onclick="ckHandleOverlay(event)">
   <div style="background:#fff;border-radius:14px;width:100%;max-width:780px;
@@ -4931,6 +5643,7 @@ function submitTambahKegiatan() {
                 padding:10px 16px;background:#f8f7f5;border-bottom:1px solid #e8e4df;
                 gap:8px;flex-wrap:wrap">
       <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="testPrint()" style="padding:6px 12px;background:#666;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">🧪 Test</button>
         <button onclick="ckPrint()"
                 style="padding:6px 12px;background:#1e3a5f;color:#fff;border:none;
                        border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit">
@@ -4955,5 +5668,7 @@ function submitTambahKegiatan() {
     </div>
   </div>
 </div>
+
+<div id="ck-print-area"></div>
 </body>
 </html>
