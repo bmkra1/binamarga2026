@@ -4384,12 +4384,12 @@ function mtPctReal(d) {
 function rMTBudget() {
   var el = document.getElementById('mt-budget-cards');
   if (!el) return;
-  var terpakai = (MTDATA||[]).reduce(function(s,d){return s+(d.realisasi||0);},0);
+  var terpakai = (MTDATA||[]).reduce(function(s,d){return s+(d.nilaiKontrak||0);},0);
   var sisa = MT_TOTAL_BUDGET - terpakai;
   var sisaColor = sisa<0 ? 'var(--red)' : (sisa < MT_TOTAL_BUDGET*0.1 ? 'var(--amber)' : 'var(--green)');
   el.innerHTML = [
     {l:'Total Anggaran', v:'Rp '+Number(MT_TOTAL_BUDGET).toLocaleString('id-ID'), s:'pagu DPA 2026', c:'var(--txt)'},
-    {l:'Anggaran Terpakai', v:'Rp '+Number(terpakai).toLocaleString('id-ID'), s:'realisasi pembayaran', c:'var(--blue)'},
+    {l:'Anggaran Terpakai', v:'Rp '+Number(terpakai).toLocaleString('id-ID'), s:'nilai kontrak', c:'var(--blue)'},
     {l:'Sisa Anggaran', v:'Rp '+Number(sisa).toLocaleString('id-ID'), s:'tersedia', c:sisaColor},
   ].map(function(c){
     return '<div class="mc"><div class="mc-l">'+c.l+'</div><div class="mc-v" style="color:'+c.c+'">'+c.v+'</div><div class="mc-s">'+c.s+'</div></div>';
@@ -6369,7 +6369,7 @@ function submitTambahKegiatan() {
       <div style="margin-bottom:14px">
         <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Total Anggaran (Pagu DPA, Rp)</label>
         <input id="mtbg-total" type="number" placeholder="2560588500" min="0" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
-        <div style="font-size:11px;color:#9b9b96;margin-top:5px">Anggaran Terpakai &amp; Sisa Anggaran dihitung otomatis dari total ini dikurangi realisasi pembayaran seluruh paket.</div>
+        <div style="font-size:11px;color:#9b9b96;margin-top:5px">Anggaran Terpakai &amp; Sisa Anggaran dihitung otomatis dari total ini dikurangi nilai kontrak seluruh paket.</div>
       </div>
       <div id="mtbg-error" style="display:none;padding:10px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:7px;color:#dc2626;font-size:12px;margin-bottom:14px"></div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
