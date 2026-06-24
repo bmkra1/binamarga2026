@@ -600,6 +600,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 .bm-app .bd{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
 .bm-app .dak{background:#deeaf8;color:#0a3d6b}.bm-app .dau{background:#e5f0d8;color:#244408}
 .bm-app .bnk{background:#faeeda;color:#5a3800}.bm-app .hib{background:#eeedfd;color:#2f2880}
+.bm-app .mnt{background:#e2e8f0;color:#334155}
 .bm-app .ok{background:#e5f0d8;color:#244408}.bm-app .bl{background:#fce8e8;color:#5a1515}
 
 /* TABLE */
@@ -721,11 +722,13 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
 .bm-app .dana-card.dau-c{border-top-color:var(--green)}
 .bm-app .dana-card.bnk-c{border-top-color:var(--amber)}
 .bm-app .dana-card.hib-c{border-top-color:var(--purple)}
+.bm-app .dana-card.mnt-c{border-top-color:#475569}
 .bm-app .dc-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 .bm-app .dak-c .dc-title{color:var(--blue)}
 .bm-app .dau-c .dc-title{color:var(--green)}
 .bm-app .bnk-c .dc-title{color:var(--amber)}
 .bm-app .hib-c .dc-title{color:var(--purple)}
+.bm-app .mnt-c .dc-title{color:#475569}
 .bm-app .dc-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px}
 .bm-app .dc-lbl{color:var(--txt2)}
 .bm-app .dc-val{font-weight:700;color:var(--txt)}
@@ -1860,6 +1863,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       <div class="ni on"  id="bm-nav-dashboard"  onclick="go('dashboard',this)"><span class="ic">📊</span>Dashboard</div>
       <div class="ni"     id="bm-nav-proyek"      onclick="go('proyek',this)"><span class="ic">🛣</span>Daftar Proyek</div>
       <div class="ni"     id="bm-nav-konsultan"   onclick="go('konsultan',this)"><span class="ic">🧑‍💼</span>Jasa Konsultansi</div>
+      <div class="ni"     id="bm-nav-maintenance" onclick="go('maintenance',this)"><span class="ic">🔧</span>Maintenance</div>
       <div class="ni"     id="bm-nav-personil"    onclick="go('personil',this)"><span class="ic">👥</span>Personil</div>
       <div class="ni"     id="bm-nav-notifikasi"  onclick="go('notifikasi',this)"><span class="ic">🔔</span>Notifikasi<span class="nbadge" id="nb"></span></div>
       <div class="ni edit-only" id="bm-nav-upload" onclick="go('upload',this)"><span class="ic">⬆</span>Update Data</div>
@@ -1939,6 +1943,42 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--gray1);col
       <th>PAKET JASA KONSULTANSI</th>
       <th style="width:170px">STATUS</th>
     </tr></thead><tbody id="jktb"></tbody></table></div>
+  </div>
+</div>
+
+<!-- MAINTENANCE -->
+<div id="pg-maintenance" class="pg">
+  <div class="ph"><h2>Maintenance</h2><p id="mtcnt"></p></div>
+  <div class="mg" id="mt-budget-cards" style="grid-template-columns:repeat(3,1fr)"></div>
+  <div class="fr">
+    <input type="text" id="mtf-search" placeholder="Cari uraian kegiatan / penyedia..." oninput="rMT()" style="flex:1;min-width:180px">
+    <button class="btn" onclick="openEditBudgetMT()">💰 Set Total Anggaran</button>
+    <button class="btn btn-p" onclick="mtDownloadExcel()" style="gap:6px">⬇️ Download Excel</button>
+    <button class="btn" onclick="document.getElementById('mt-fi').click()" style="gap:6px">⬆️ Upload Excel</button>
+    <input type="file" id="mt-fi" accept=".xlsx" style="display:none" onchange="mtImportFile(this)">
+    <button class="btn btn-g admin-only" onclick="openTambahMT()" style="display:none">➕ Tambah Kegiatan</button>
+  </div>
+  <div id="mt-import-msg" style="margin-top:-6px;margin-bottom:6px;font-size:12px"></div>
+  <div id="mt-import-preview" style="display:none;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:var(--txt2)" id="mt-import-summary"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="mtImportCancel()">✕ Batal</button>
+        <button class="btn btn-danger" id="mt-import-confirm-btn" onclick="mtImportConfirm()">⚠️ Replace &amp; Simpan ke Firebase</button>
+      </div>
+    </div>
+    <div class="tw" style="max-height:360px;overflow-y:auto;border:1px solid var(--bdr);border-radius:var(--r)">
+      <table style="width:100%"><thead><tr>
+        <th style="width:40px">No</th><th>Uraian Kegiatan</th><th>Penyedia</th><th>Pagu</th><th>Realisasi</th>
+      </tr></thead><tbody id="mt-import-tbody"></tbody></table>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tw"><table style="table-layout:fixed;width:100%"><thead><tr>
+      <th style="width:52px">NO</th>
+      <th>URAIAN KEGIATAN</th>
+      <th style="width:170px">STATUS</th>
+    </tr></thead><tbody id="mttb"></tbody></table></div>
   </div>
 </div>
 
@@ -2862,6 +2902,28 @@ function ckLoadBtnPct(noRuas, paketNo) {
   });
 }
 
+// ── Versi namespaced (id elemen & key Firestore custom) ────
+// Dipakai modul lain (mis. Maintenance) agar tidak bertabrakan
+// dengan id "ck-pct-{no}" milik Daftar Proyek saat no kebetulan sama.
+function ckLoadBtnPctNS(key, btnId) {
+  function updateBtn() {
+    var p  = ckGetProg(key);
+    var el = document.getElementById(btnId);
+    if (!el) return;
+    var col = p.pct >= 67 ? '#16a34a' : p.pct >= 33 ? '#b45309' : '#dc2626';
+    el.style.background = col;
+    el.textContent = p.pct + '%';
+  }
+  if (_ckState[key] !== undefined) { updateBtn(); return; }
+  db.collection('checklist').doc(key).get().then(function(doc) {
+    _ckState[key] = doc.exists ? doc.data() : {};
+    updateBtn();
+  }).catch(function() {
+    _ckState[key] = {};
+    updateBtn();
+  });
+}
+
 // ── Open modal ───────────────────────────────────────────
 function ckOpen(noRuas, namaProyek, lokasiProyek, paketNo) {
   // Cek login
@@ -3392,6 +3454,8 @@ var CURRENT_USER  = null;   // objek user Firebase
 var CURRENT_ROLE  = null;   // 'admin' | 'editor' | 'viewer'
 var FB_LISTENER   = null;   // unsubscribe realtime listener
 var FB_LISTENER_JK = null;  // unsubscribe realtime listener (jasa_konsultansi)
+var FB_LISTENER_MT = null;  // unsubscribe realtime listener (maintenance_paket)
+var FB_LISTENER_MTB = null; // unsubscribe realtime listener (maintenance_settings)
 
 // ── Peran & izin ─────────────────────────────────────────
 var ROLE_PERMS = {
@@ -3469,6 +3533,8 @@ function fbLogout() {
   // Stop realtime listener before signing out
   if (FB_LISTENER) { FB_LISTENER(); FB_LISTENER = null; }
   if (FB_LISTENER_JK) { FB_LISTENER_JK(); FB_LISTENER_JK = null; }
+  if (FB_LISTENER_MT) { FB_LISTENER_MT(); FB_LISTENER_MT = null; }
+  if (FB_LISTENER_MTB) { FB_LISTENER_MTB(); FB_LISTENER_MTB = null; }
   auth.signOut().then(function() {
     CURRENT_USER = null;
     CURRENT_ROLE = null;
@@ -3524,6 +3590,27 @@ function fbStartSync() {
     }, function(err) {
       console.error('Gagal sync jasa_konsultansi:', err.message);
     });
+
+  if (FB_LISTENER_MT) FB_LISTENER_MT();
+  FB_LISTENER_MT = db.collection('maintenance_paket')
+    .orderBy('no')
+    .onSnapshot(function(snap) {
+      MTDATA = [];
+      snap.forEach(function(doc) { MTDATA.push(doc.data()); });
+      rMT();
+      rMTBudget();
+    }, function(err) {
+      console.error('Gagal sync maintenance_paket:', err.message);
+    });
+
+  if (FB_LISTENER_MTB) FB_LISTENER_MTB();
+  FB_LISTENER_MTB = db.collection('maintenance_settings').doc('budget')
+    .onSnapshot(function(doc) {
+      MT_TOTAL_BUDGET = doc.exists ? (doc.data().total||0) : 0;
+      rMTBudget();
+    }, function(err) {
+      console.error('Gagal sync maintenance_settings:', err.message);
+    });
 }
 
 // ── Seed Firestore dari data Excel bawaan (hanya sekali) ──
@@ -3557,6 +3644,14 @@ function fbSaveProject(d, cb) {
 function fbSaveJK(d, cb) {
   if (!can('canEdit')) { toast('Anda tidak punya izin edit'); return; }
   db.collection('jasa_konsultansi').doc(String(d.no)).set(d, {merge: true})
+    .then(function() { if (cb) cb(); })
+    .catch(function(e) { toast('Gagal simpan: ' + e.message); });
+}
+
+// ── Simpan satu paket maintenance ke Firestore ────────────
+function fbSaveMT(d, cb) {
+  if (!can('canEdit')) { toast('Anda tidak punya izin edit'); return; }
+  db.collection('maintenance_paket').doc(String(d.no)).set(d, {merge: true})
     .then(function() { if (cb) cb(); })
     .catch(function(e) { toast('Gagal simpan: ' + e.message); });
 }
@@ -4269,6 +4364,620 @@ function submitTambahJK() {
     });
 }
 
+// ============================================================
+//  MAINTENANCE
+// ============================================================
+var MTDATA = [], MT_TOTAL_BUDGET = 0, mtOpenRow = null, mtEditRow = null, mtEditSnapshot = null;
+var MT_STATUS_CLS = {belum:'bl', aktif:'dak', pho:'ok'};
+var MT_STATUS_LBL = {belum:'Belum Kontrak', aktif:'Kontrak Aktif', pho:'Sudah PHO'};
+
+function mtStatus(d) {
+  if (d.tglPho || d.statusPho==='Sudah') return 'pho';
+  if (d.noKontrak || d.nilaiKontrak) return 'aktif';
+  return 'belum';
+}
+
+function mtPctReal(d) {
+  return d.nilaiKontrak>0 ? (d.realisasi||0)/d.nilaiKontrak*100 : 0;
+}
+
+function rMTBudget() {
+  var el = document.getElementById('mt-budget-cards');
+  if (!el) return;
+  var terpakai = (MTDATA||[]).reduce(function(s,d){return s+(d.realisasi||0);},0);
+  var sisa = MT_TOTAL_BUDGET - terpakai;
+  var sisaColor = sisa<0 ? 'var(--red)' : (sisa < MT_TOTAL_BUDGET*0.1 ? 'var(--amber)' : 'var(--green)');
+  el.innerHTML = [
+    {l:'Total Anggaran', v:'Rp '+Number(MT_TOTAL_BUDGET).toLocaleString('id-ID'), s:'pagu DPA 2026', c:'var(--txt)'},
+    {l:'Anggaran Terpakai', v:'Rp '+Number(terpakai).toLocaleString('id-ID'), s:'realisasi pembayaran', c:'var(--blue)'},
+    {l:'Sisa Anggaran', v:'Rp '+Number(sisa).toLocaleString('id-ID'), s:'tersedia', c:sisaColor},
+  ].map(function(c){
+    return '<div class="mc"><div class="mc-l">'+c.l+'</div><div class="mc-v" style="color:'+c.c+'">'+c.v+'</div><div class="mc-s">'+c.s+'</div></div>';
+  }).join('');
+}
+
+function rMT() {
+  var elSearch = document.getElementById('mtf-search');
+  if (!elSearch) return;
+  var fQ = (elSearch.value||'').toLowerCase();
+  var rows = (MTDATA||[]).filter(function(d){
+    if (fQ) {
+      var hay = ((d.uraian||'')+' '+(d.penyedia||'')).toLowerCase();
+      if (hay.indexOf(fQ)<0) return false;
+    }
+    return true;
+  });
+  document.getElementById('mtcnt').textContent = 'Menampilkan '+rows.length+' dari '+(MTDATA||[]).length+' paket';
+  document.getElementById('mttb').innerHTML = rows.map(mtRow).join('')
+    || '<tr><td colspan="3" style="text-align:center;color:var(--txt3);padding:16px">Belum ada data maintenance.</td></tr>';
+}
+
+function mtRow(d) {
+  var st = mtStatus(d);
+  var open = mtOpenRow===d.no;
+  var chevron = '<span style="font-size:9px;color:var(--txt3);margin-left:6px;display:inline-block;'
+    +'transform:'+(open?'rotate(180deg)':'rotate(0)')+';transition:transform .2s">&#x25BC;</span>';
+  var trStyle = 'cursor:pointer;user-select:none;'+(open?'background:var(--bluL);':'');
+  var h = '<tr style="'+trStyle+'" onclick="mtTog('+d.no+')">'
+    +'<td style="color:var(--txt2);font-size:12px;text-align:center;padding:12px 8px">'+d.no+'</td>'
+    +'<td style="padding:12px 14px">'
+    +  '<div style="font-size:13px;font-weight:500;color:var(--txt);line-height:1.4;margin-bottom:3px">'
+    +    esc(d.uraian)+chevron
+    +  '</div>'
+    +  (d.penyedia ? '<div style="font-size:11px;color:var(--txt3);margin-top:3px">'+esc(d.penyedia)+'</div>' : '')
+    +'</td>'
+    +'<td style="padding:12px 14px;white-space:nowrap">'
+    +  '<span class="bd '+MT_STATUS_CLS[st]+'">'+MT_STATUS_LBL[st]+'</span>'
+    +'</td>'
+    +'</tr>';
+  if (open) h += mtDetailRow(d);
+  return h;
+}
+
+function mtDetailRow(d) {
+  var isEdit  = mtEditRow === d.no;
+  var canEdit = can('canEdit');
+  var isAdmin = CURRENT_ROLE === 'admin';
+
+  function vOrI(field, val, type) {
+    if (!isEdit || !canEdit) return fv(val);
+    type = type || 'text';
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="'+type+'" id="mtei_'+field+'_'+d.no+'" value="'+esc(sv)+'">';
+  }
+  function vOrN(field, val) {
+    if (!isEdit || !canEdit) return rp(val);
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="number" id="mtei_'+field+'_'+d.no+'" value="'+esc(sv)+'" step="any">';
+  }
+  function vOrIA(field, val) {
+    if (!isEdit || !isAdmin) return fv(val);
+    var sv = (val===undefined||val===null) ? '' : String(val);
+    return '<input class="det-edit-input" type="text" id="mtei_'+field+'_'+d.no+'" value="'+esc(sv)+'">';
+  }
+
+  var s = '<tr id="mtdr_'+d.no+'"><td colspan="3" style="padding:0">'
+    +'<div style="background:var(--surf2)">';
+
+  if (canEdit) {
+    if (isEdit) {
+      s += '<div class="det-edit-bar"><span>✏️ Mode Edit &mdash; '+esc(d.uraian)+'</span></div>';
+    } else {
+      s += '<div class="det-edit-bar" style="background:var(--surf2);border-bottom-color:var(--bdr)">'
+        +'<span style="color:var(--txt2)">'+(d.penyedia?esc(d.penyedia):'Belum ada penyedia')+'</span>'
+        +'<button class="btn btn-sm btn-p" onclick="mtStartEdit('+d.no+')">✏️ Edit</button>'
+        +(isAdmin ? '<button class="btn btn-sm" style="background:#dc2626;color:#fff;border-color:#dc2626" onclick="(function(ev){ev.stopPropagation();mtDelete('+d.no+');})(event)">🗑️ Hapus</button>' : '')
+        +'</div>';
+    }
+  }
+
+  s += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;padding:14px 16px">';
+
+  // LEFT COLUMN
+  s += '<div style="padding-right:16px;border-right:1px solid var(--bdr)">';
+
+  s += sec('📋 Identitas Kegiatan');
+  s += '<div class="det-grid">'
+    +di('No.', fv(d.no))
+    +di('Uraian Kegiatan', vOrI('uraian', d.uraian))
+    +'</div>';
+
+  s += sec('💰 Anggaran');
+  s += '<div class="det-grid">'
+    +di('Nilai Pagu APBD-P (Rp)', vOrN('pagu', d.pagu))
+    +di('Nilai HPS (Rp)', vOrN('hps', d.hps))
+    +'</div>';
+
+  s += sec('🧑\u200d💼 Penyedia & Kontrak');
+  s += '<div class="det-grid">'
+    +di('Pelaksana/Penyedia Jasa', vOrIA('penyedia', d.penyedia))
+    +di('Nomor Kontrak', vOrI('noKontrak', d.noKontrak))
+    +di('Tanggal Kontrak', vOrI('tglKontrak', d.tglKontrak, 'date'))
+    +di('Nilai Kontrak (Rp)', vOrN('nilaiKontrak', d.nilaiKontrak))
+    +di('Add Kontrak +10% (Rp)', vOrN('addKontrak10', d.addKontrak10))
+    +di('Metode Pengadaan', vOrI('metode', d.metode))
+    +di('Jenis Kontrak', vOrI('jenisKontrak', d.jenisKontrak))
+    +di('Jenis Belanja', vOrI('jenisBelanja', d.jenisBelanja))
+    +'</div>';
+
+  s += sec('📝 Addendum Terakhir');
+  s += '<div class="det-grid">'
+    +di('Addendum Ke-', vOrI('addKe', d.addKe))
+    +di('Nomor Addendum', vOrI('noAdd', d.noAdd))
+    +di('Tanggal Addendum', vOrI('tglAdd', d.tglAdd, 'date'))
+    +di('Nilai Kontrak Addendum (Rp)', vOrN('nilaiAdd', d.nilaiAdd))
+    +'</div>';
+
+  s += '</div>'; // end left col
+
+  // RIGHT COLUMN
+  s += '<div style="padding-left:16px">';
+
+  s += sec('📅 Jangka Waktu Kontrak');
+  s += '<div class="det-grid">'
+    +di('Jangka Waktu (Hari)', vOrI('jaWaktu', d.jaWaktu))
+    +di('Tanggal Mulai', vOrI('tglMulai', d.tglMulai, 'date'))
+    +di('Tanggal Selesai', vOrI('tglSelesai', d.tglSelesai, 'date'))
+    +'</div>';
+
+  s += sec('✅ Status PHO');
+  s += '<div class="det-grid">'
+    +di('Nomor PHO/BAST', vOrI('noPho', d.noPho))
+    +di('Tanggal PHO/BAST', vOrI('tglPho', d.tglPho, 'date'))
+    +'</div>';
+
+  // ── List Administrasi (checklist 57 item, namespace "mt" agar tidak
+  //    bertabrakan dengan id/key checklist milik Daftar Proyek) ──────
+  s += sec('📋 List Administrasi');
+  var _mtCkKey = 'mt' + d.no;
+  var _mtBtnId = 'ck-pct-mt-' + d.no;
+  s += '<div style="padding:4px 0 8px">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<span id="'+_mtBtnId+'" '
+    +'data-ckkey="'+esc(_mtCkKey)+'" data-nama="'+esc(d.uraian||'')+'" data-no="'+d.no+'" '
+    +'style="display:inline-block;padding:4px 10px;border-radius:20px;'
+    +'font-size:12px;font-weight:700;color:#fff;background:#dc2626;cursor:pointer" '
+    +'onclick="(function(ev){ev.stopPropagation();var el=ev.currentTarget;'
+    +'ckOpen(el.dataset.ckkey,el.dataset.nama,\'Maintenance\',parseInt(el.dataset.no));})(event)">0%</span>'
+    +'<span style="font-size:12px;color:#9b9b96">klik untuk buka</span>'
+    +'</div></div>';
+  setTimeout(function(){ ckLoadBtnPctNS(_mtCkKey, _mtBtnId); }, 50);
+
+  s += sec('📊 Progres & Realisasi');
+  s += '<div class="det-grid">'
+    +'<div class="det-item"><div class="det-label">Prestasi Fisik (%)</div><div class="det-val">'
+    +(isEdit && canEdit
+      ? '<input class="det-edit-input" type="number" id="mtei_fisik_'+d.no+'" value="'+(d.fisik||0)+'" step="0.1">'
+      : '<strong style="color:var(--blue)">'+Number(d.fisik||0).toFixed(1)+'%</strong>')
+    +'</div></div>'
+    +'<div class="det-item"><div class="det-label">Realisasi Pembayaran (Rp)</div><div class="det-val">'
+    +(isEdit && canEdit
+      ? '<input class="det-edit-input" type="number" id="mtei_realisasi_'+d.no+'" value="'+(d.realisasi||0)+'" step="any">'
+      : '<strong>'+rp(d.realisasi)+'</strong>')
+    +'</div></div>'
+    +di('% thd Kontrak', '<strong style="color:var(--green)">'+mtPctReal(d).toFixed(1)+'%</strong><span style="font-size:10px;color:var(--txt3);margin-left:4px">(otomatis)</span>')
+    +'</div>';
+
+  s += sec('👤 Pelaksana & Tim Teknis');
+  s += '<div class="det-grid">'
+    +di('PPK', vOrIA('ppk', d.ppk))
+    +di('PPTK', vOrIA('pptk', d.pptk))
+    +di('Staf/Pengawas', vOrIA('staf', d.staf))
+    +di('Ketua Tim Teknis', vOrIA('ketua', d.ketua))
+    +di('Sekretaris Tim Teknis', vOrIA('sekretaris', d.sekretaris))
+    +di('Anggota 1', vOrIA('anggota1', (d.anggota&&d.anggota[0])||''))
+    +di('Anggota 2', vOrIA('anggota2', (d.anggota&&d.anggota[1])||''))
+    +di('Anggota 3', vOrIA('anggota3', (d.anggota&&d.anggota[2])||''))
+    +'</div>';
+
+  s += '</div>'; // end right col
+  s += '</div>'; // end grid
+
+  if (isEdit && canEdit) {
+    s += '<div class="det-save-bar">'
+      +'<button class="btn btn-g" onclick="mtCommitEdit('+d.no+')">💾 Selesai Edit</button>'
+      +'<button class="btn" onclick="mtCancelEdit('+d.no+')">✕ Batal</button>'
+      +'<span class="det-save-msg" id="mteditmsg_'+d.no+'"></span>'
+      +'</div>';
+  }
+
+  s += '</div></td></tr>';
+  return s;
+}
+
+function mtTog(no) {
+  mtOpenRow = mtOpenRow === no ? null : no;
+  mtEditRow = null;
+  mtEditSnapshot = null;
+  rMT();
+}
+
+function mtStartEdit(no) {
+  var d = MTDATA.filter(function(x){return x.no===no;})[0];
+  if (!d) return;
+  mtEditSnapshot = JSON.parse(JSON.stringify(d));
+  mtEditRow = no;
+  rMT();
+}
+
+function mtCancelEdit(no) {
+  var d = MTDATA.filter(function(x){return x.no===no;})[0];
+  if (d && mtEditSnapshot) Object.assign(d, mtEditSnapshot);
+  mtEditRow = null;
+  mtEditSnapshot = null;
+  rMT();
+}
+
+function mtgv(field, no) {
+  var el = document.getElementById('mtei_'+field+'_'+no);
+  return el ? el.value : null;
+}
+function mtgvn(field, no) {
+  var el = document.getElementById('mtei_'+field+'_'+no);
+  return el ? (parseFloat(el.value)||0) : null;
+}
+
+function mtCommitEdit(no) {
+  var d = MTDATA.filter(function(x){return x.no===no;})[0];
+  if (!d) return;
+  if (!can('canEdit')) { toast('Tidak punya izin edit'); return; }
+  var isAdmin = CURRENT_ROLE === 'admin';
+
+  var fields = {
+    uraian:'text', pagu:'num', hps:'num',
+    noKontrak:'text', tglKontrak:'text', nilaiKontrak:'num', addKontrak10:'num',
+    metode:'text', jenisKontrak:'text', jenisBelanja:'text',
+    addKe:'text', noAdd:'text', tglAdd:'text', nilaiAdd:'num',
+    jaWaktu:'text', tglMulai:'text', tglSelesai:'text',
+    noPho:'text', tglPho:'text', fisik:'num', realisasi:'num'
+  };
+  Object.keys(fields).forEach(function(f){
+    var v = fields[f]==='num' ? mtgvn(f,no) : mtgv(f,no);
+    if (v!==null) d[f] = v;
+  });
+  d.statusPho = d.tglPho ? 'Sudah' : 'Belum';
+
+  if (isAdmin) {
+    ['penyedia','ppk','pptk','staf','ketua','sekretaris'].forEach(function(f){
+      var v = mtgv(f, no);
+      if (v!==null) d[f] = v;
+    });
+    var a1 = mtgv('anggota1', no), a2 = mtgv('anggota2', no), a3 = mtgv('anggota3', no);
+    if (a1!==null || a2!==null || a3!==null) {
+      d.anggota = [a1||'', a2||'', a3||''].filter(Boolean);
+    }
+  }
+
+  mtEditRow = null;
+  mtEditSnapshot = null;
+  rMT();
+
+  fbSaveMT(d, function() {
+    toast('✅ Data maintenance berhasil disimpan');
+    rMTBudget();
+  });
+}
+
+function mtDelete(no) {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa menghapus'); return; }
+  var d = MTDATA.filter(function(x){ return x.no === no; })[0];
+  if (!d) return;
+  if (!confirm('Hapus kegiatan maintenance berikut?\n\n' + (d.uraian||'Paket No. '+no) + '\n\nAksi ini tidak bisa dibatalkan.')) return;
+  db.collection('maintenance_paket').doc(String(no)).delete()
+    .then(function(){ toast('✅ Kegiatan maintenance berhasil dihapus'); })
+    .catch(function(e){ toast('❌ Gagal hapus: ' + (e.message||e.code)); });
+}
+
+function openTambahMT() {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa menambah'); return; }
+  ['mttk-uraian','mttk-pagu'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var err = document.getElementById('mttk-error'); if (err) err.style.display = 'none';
+  var modal = document.getElementById('modal-tambah-mt');
+  if (modal) modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(function(){ var el=document.getElementById('mttk-uraian'); if(el) el.focus(); }, 100);
+}
+
+function closeTambahMT() {
+  var modal = document.getElementById('modal-tambah-mt');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function submitTambahMT() {
+  if (CURRENT_ROLE !== 'admin') return;
+  var uraian = (document.getElementById('mttk-uraian').value||'').trim();
+  var pagu   = parseFloat(document.getElementById('mttk-pagu').value)||0;
+  var errEl  = document.getElementById('mttk-error');
+  if (!uraian) {
+    if (errEl) { errEl.textContent = '⚠️ Uraian Kegiatan wajib diisi.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  var maxNo = 0;
+  (MTDATA||[]).forEach(function(d){ if ((d.no||0) > maxNo) maxNo = d.no; });
+  var newNo = maxNo + 1;
+  var newDoc = {
+    no:newNo, uraian:uraian, pagu:pagu, hps:0, penyedia:'',
+    noKontrak:'', tglKontrak:'', nilaiKontrak:0, addKontrak10:0,
+    metode:'', jenisKontrak:'', jenisBelanja:'',
+    addKe:'', noAdd:'', tglAdd:'', nilaiAdd:0,
+    jaWaktu:'', tglMulai:'', tglSelesai:'',
+    statusPho:'Belum', noPho:'', tglPho:'', fisik:0, realisasi:0,
+    ppk:'', pptk:'', staf:'', ketua:'', sekretaris:'', anggota:[]
+  };
+  var btn = document.getElementById('mttk-submit');
+  if (btn) { btn.textContent = '⏳ Menyimpan...'; btn.disabled = true; }
+  db.collection('maintenance_paket').doc(String(newNo)).set(newDoc)
+    .then(function(){
+      toast('✅ Kegiatan maintenance baru (No. ' + newNo + ') berhasil ditambahkan');
+      closeTambahMT();
+      if (btn) { btn.textContent = '💾 Simpan'; btn.disabled = false; }
+    })
+    .catch(function(e){
+      if (btn) { btn.textContent = '💾 Simpan'; btn.disabled = false; }
+      if (errEl) { errEl.textContent = '❌ Gagal simpan: ' + (e.message||e.code||'cek koneksi'); errEl.style.display = 'block'; }
+    });
+}
+
+// ── Set Total Anggaran (manual, admin only) ───────────────
+function openEditBudgetMT() {
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa mengubah total anggaran'); return; }
+  var el = document.getElementById('mtbg-total');
+  if (el) el.value = MT_TOTAL_BUDGET || '';
+  var err = document.getElementById('mtbg-error'); if (err) err.style.display = 'none';
+  var modal = document.getElementById('modal-budget-mt');
+  if (modal) modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditBudgetMT() {
+  var modal = document.getElementById('modal-budget-mt');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function submitBudgetMT() {
+  if (CURRENT_ROLE !== 'admin') return;
+  var total = parseFloat(document.getElementById('mtbg-total').value)||0;
+  var errEl = document.getElementById('mtbg-error');
+  var btn = document.getElementById('mtbg-submit');
+  if (btn) { btn.textContent = '⏳ Menyimpan...'; btn.disabled = true; }
+  db.collection('maintenance_settings').doc('budget').set({total: total})
+    .then(function(){
+      toast('✅ Total Anggaran Maintenance berhasil diperbarui');
+      closeEditBudgetMT();
+      if (btn) { btn.textContent = '💾 Simpan'; btn.disabled = false; }
+    })
+    .catch(function(e){
+      if (btn) { btn.textContent = '💾 Simpan'; btn.disabled = false; }
+      if (errEl) { errEl.textContent = '❌ Gagal simpan: ' + (e.message||e.code||'cek koneksi'); errEl.style.display = 'block'; }
+    });
+}
+
+// ── Import Excel: Maintenance (mode Replace + Preview) ────
+var MT_IMPORT_STAGED = null;
+
+function mtParseSheet(ws) {
+  var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  var hIdx = -1;
+  for (var i=0; i<Math.min(rows.length,12); i++) {
+    if (rows[i].some(function(v){return String(v).trim()==='Uraian Kegiatan';})) { hIdx = i; break; }
+  }
+  if (hIdx < 0) return {items:[], totalAnggaran:null};
+
+  // Baca Total Anggaran dari baris ringkasan di atas header
+  // (baris "Total Angg..." pertama yang BUKAN baris "...Telah digunakan" atau "...Tersedia")
+  var totalAnggaran = null;
+  for (var r2=0; r2<hIdx; r2++) {
+    var label2 = String(rows[r2][0]||'');
+    if (label2.indexOf('Total Angg')>=0 && label2.indexOf('digunakan')<0 && label2.indexOf('Tersedia')<0) {
+      var v2 = parseFloat(rows[r2][1]);
+      if (!isNaN(v2)) { totalAnggaran = v2; break; }
+    }
+  }
+
+  var hdrs = rows[hIdx].map(function(v){return String(v).trim();});
+  function gi(name){ return hdrs.indexOf(name); }
+  function sv2(v){ if(v===null||v===undefined) return ''; var s=String(v).trim(); return (s==='undefined'||s==='null'||s==='—'||s==='-')?'':s; }
+  function fn2(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+  function fd2(v){
+    if (!v) return '';
+    if (v instanceof Date) return v.toISOString().slice(0,10);
+    if (typeof v==='number') {
+      var d = new Date(Math.round((v-25569)*86400*1000));
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+    }
+    if (typeof v==='string' && /\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+    return '';
+  }
+
+  var cUraian=gi('Uraian Kegiatan'), cPagu=gi('Nilai Pagu APBD-P'), cHps=gi('Nilai HPS (Rp)'),
+      cPenyedia=gi('Pelaksana/ Penyedia Jasa'), cNoKontrak=gi('Nomor Kontrak'), cTglKontrak=gi('Tanggal Kontrak'),
+      cNilaiKontrak=gi('Nilai Kontrak (Rp)'), cAdd10=gi('Add Kontrak +10%'), cMetode=gi('Metode Pengadaan'),
+      cJenisKontrak=gi('Jenis Kontrak'), cJenisBelanja=gi('Jenis Belanja'), cAddKe=gi('Addendum Ke-'),
+      cNoAdd=gi('Nomor Addendum'), cTglAdd=gi('Tanggal Addendum'), cNilaiAdd=gi('Nilai Kontrak Addendum'),
+      cJaWaktu=gi('Jangka Waktu (Hari)'), cMulai=gi('Tanggal Mulai'), cSelesai=gi('Tanggal Selesai'),
+      cStatusPho=gi('Status PHO'), cNoPho=gi('Nomor PHO/BAST'), cTglPho=gi('Tanggal PHO/BAST'),
+      cFisik=gi('Prestasi Fisik (%)'), cRealisasi=gi('Realisasi Pembayaran'), cPpk=gi('PPK'), cPptk=gi('PPTK'),
+      cStaf=gi('Staf/Pengawas'), cKetua=gi('Ketua Tim Teknis'), cSekretaris=gi('Sekretaris Tim Teknis'),
+      cA1=gi('Anggota 1'), cA2=gi('Anggota 2'), cA3=gi('Anggota 3');
+
+  var out = [];
+  var no = 0;
+  for (var r3=hIdx+1; r3<rows.length; r3++) {
+    var row = rows[r3];
+    var uraian = sv2(row[cUraian]);
+    if (!uraian) continue;
+    no++;
+    var pho = sv2(row[cStatusPho]);
+    out.push({
+      no: no, uraian: uraian, pagu: fn2(row[cPagu]), hps: fn2(row[cHps]),
+      penyedia: sv2(row[cPenyedia]), noKontrak: sv2(row[cNoKontrak]), tglKontrak: fd2(row[cTglKontrak]),
+      nilaiKontrak: fn2(row[cNilaiKontrak]), addKontrak10: fn2(row[cAdd10]),
+      metode: sv2(row[cMetode]), jenisKontrak: sv2(row[cJenisKontrak]), jenisBelanja: sv2(row[cJenisBelanja]),
+      addKe: sv2(row[cAddKe]), noAdd: sv2(row[cNoAdd]), tglAdd: fd2(row[cTglAdd]), nilaiAdd: fn2(row[cNilaiAdd]),
+      jaWaktu: sv2(row[cJaWaktu]), tglMulai: fd2(row[cMulai]), tglSelesai: fd2(row[cSelesai]),
+      statusPho: (pho==='Sudah'?'Sudah':'Belum'), noPho: sv2(row[cNoPho]), tglPho: fd2(row[cTglPho]),
+      fisik: fn2(row[cFisik]), realisasi: fn2(row[cRealisasi]),
+      ppk: sv2(row[cPpk]), pptk: sv2(row[cPptk]), staf: sv2(row[cStaf]),
+      ketua: sv2(row[cKetua]), sekretaris: sv2(row[cSekretaris]),
+      anggota: [sv2(row[cA1]), sv2(row[cA2]), sv2(row[cA3])].filter(Boolean)
+    });
+  }
+  return {items: out, totalAnggaran: totalAnggaran};
+}
+
+function mtImportFile(input) {
+  var f = input.files[0];
+  if (!f) return;
+  var msg = document.getElementById('mt-import-msg');
+  msg.innerHTML = '<span style="color:var(--txt2)">⏳ Membaca file...</span>';
+  document.getElementById('mt-import-preview').style.display = 'none';
+  MT_IMPORT_STAGED = null;
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
+      var sheetName = wb.SheetNames.find(function(n){ return n.toLowerCase().indexOf('maintenance')>=0; }) || wb.SheetNames[0];
+      var parsed = mtParseSheet(wb.Sheets[sheetName]);
+      if (!parsed.items.length) {
+        msg.innerHTML = '<span style="color:var(--red)">❌ Tidak ada data terbaca. Pastikan file sesuai format rekap Maintenance.</span>';
+        return;
+      }
+      MT_IMPORT_STAGED = parsed;
+      var budgetNote = parsed.totalAnggaran!==null ? (' Total Anggaran terbaca: Rp '+Number(parsed.totalAnggaran).toLocaleString('id-ID')+'.') : '';
+      msg.innerHTML = '<span style="color:var(--green)">✅ '+parsed.items.length+' kegiatan terbaca dari sheet "'+esc(sheetName)+'".'+budgetNote+' Periksa preview di bawah sebelum disimpan.</span>';
+      mtImportRenderPreview(parsed.items);
+    } catch (err) {
+      msg.innerHTML = '<span style="color:var(--red)">❌ Gagal membaca file: '+esc(err.message)+'</span>';
+    }
+  };
+  reader.readAsArrayBuffer(f);
+  input.value = '';
+}
+
+function mtImportRenderPreview(rows) {
+  var totalPagu = rows.reduce(function(s,d){return s+(d.pagu||0);},0);
+  var totalReal = rows.reduce(function(s,d){return s+(d.realisasi||0);},0);
+  var existing = (MTDATA||[]).length;
+  document.getElementById('mt-import-summary').innerHTML =
+    '<strong>'+rows.length+' kegiatan</strong> akan menggantikan <strong>'+existing+' kegiatan</strong> yang ada saat ini &mdash; '
+    +'total pagu Rp '+(totalPagu/1e6).toFixed(0)+' jt, realisasi Rp '+(totalReal/1e6).toFixed(0)+' jt.';
+  document.getElementById('mt-import-tbody').innerHTML = rows.map(function(d){
+    return '<tr>'
+      +'<td style="text-align:center">'+d.no+'</td>'
+      +'<td style="max-width:320px;white-space:normal">'+esc(d.uraian)+'</td>'
+      +'<td>'+(d.penyedia?esc(d.penyedia):'<span style="color:var(--txt3)">&mdash;</span>')+'</td>'
+      +'<td style="white-space:nowrap">'+rp(d.pagu)+'</td>'
+      +'<td style="white-space:nowrap">'+rp(d.realisasi)+'</td>'
+      +'</tr>';
+  }).join('');
+  document.getElementById('mt-import-preview').style.display = 'block';
+}
+
+function mtImportCancel() {
+  MT_IMPORT_STAGED = null;
+  document.getElementById('mt-import-preview').style.display = 'none';
+  document.getElementById('mt-import-msg').innerHTML = '';
+}
+
+function mtImportConfirm() {
+  if (!MT_IMPORT_STAGED || !MT_IMPORT_STAGED.items.length) return;
+  if (CURRENT_ROLE !== 'admin') { toast('Hanya admin yang bisa import data'); return; }
+  var items = MT_IMPORT_STAGED.items;
+  var totalAnggaran = MT_IMPORT_STAGED.totalAnggaran;
+  var budgetMsg = totalAnggaran!==null ? ('\n\nTotal Anggaran juga akan diperbarui menjadi Rp '+Number(totalAnggaran).toLocaleString('id-ID')+'.') : '';
+  if (!confirm('Ganti SELURUH data Maintenance dengan '+items.length+' kegiatan dari file ini?\n\nData lama yang tidak ada di file baru akan terhapus permanen.'+budgetMsg+'\n\nAksi ini tidak bisa dibatalkan.')) return;
+
+  var btn = document.getElementById('mt-import-confirm-btn');
+  var msg = document.getElementById('mt-import-msg');
+  btn.disabled = true; btn.textContent = '⏳ Menghapus data lama...';
+
+  db.collection('maintenance_paket').get().then(function(snap) {
+    var docs = [];
+    snap.forEach(function(doc) { docs.push(doc.ref); });
+    var CHUNK = 400;
+    return new Promise(function(resolve, reject) {
+      function deleteChunk(idx) {
+        if (idx >= docs.length) { resolve(); return; }
+        var batch = db.batch();
+        var end = Math.min(idx+CHUNK, docs.length);
+        for (var i=idx; i<end; i++) batch.delete(docs[i]);
+        batch.commit().then(function(){ deleteChunk(end); }).catch(reject);
+      }
+      deleteChunk(0);
+    });
+  }).then(function() {
+    btn.textContent = '⏳ Menyimpan data baru...';
+    var CHUNK = 400;
+    return new Promise(function(resolve, reject) {
+      function writeChunk(idx) {
+        if (idx >= items.length) { resolve(); return; }
+        var batch = db.batch();
+        var end = Math.min(idx+CHUNK, items.length);
+        for (var i=idx; i<end; i++) {
+          batch.set(db.collection('maintenance_paket').doc(String(items[i].no)), items[i]);
+        }
+        batch.commit().then(function(){ writeChunk(end); }).catch(reject);
+      }
+      writeChunk(0);
+    });
+  }).then(function() {
+    if (totalAnggaran !== null) {
+      return db.collection('maintenance_settings').doc('budget').set({total: totalAnggaran});
+    }
+  }).then(function() {
+    toast('✅ Import berhasil — '+items.length+' kegiatan Maintenance tersinkron');
+    msg.innerHTML = '<span style="color:var(--green)">✅ Import berhasil. Data tersinkron ke semua pengguna.</span>';
+    mtImportCancel();
+    btn.disabled = false; btn.textContent = '⚠️ Replace & Simpan ke Firebase';
+  }).catch(function(e) {
+    msg.innerHTML = '<span style="color:var(--red)">❌ Gagal import: '+esc(e.message||e.code)+'</span>';
+    btn.disabled = false; btn.textContent = '⚠️ Replace & Simpan ke Firebase';
+  });
+}
+
+function mtDownloadExcel() {
+  var hdr = ['Uraian Kegiatan','Nilai Pagu APBD-P','Nilai HPS (Rp)','Pelaksana/ Penyedia Jasa','Nomor Kontrak',
+    'Tanggal Kontrak','Nilai Kontrak (Rp)','Add Kontrak +10%','Metode Pengadaan','Jenis Kontrak','Jenis Belanja',
+    'Addendum Ke-','Nomor Addendum','Tanggal Addendum','Nilai Kontrak Addendum','Jangka Waktu (Hari)',
+    'Tanggal Mulai','Tanggal Selesai','Status PHO','Nomor PHO/BAST','Tanggal PHO/BAST','Prestasi Fisik (%)',
+    'Realisasi Pembayaran','% thd Kontrak','PPK','PPTK','Staf/Pengawas','Ketua Tim Teknis','Sekretaris Tim Teknis',
+    'Anggota 1','Anggota 2','Anggota 3'];
+  var rows = (MTDATA||[]).slice().sort(function(a,b){return a.no-b.no;}).map(function(d){
+    var pct = mtPctReal(d);
+    var a = d.anggota||[];
+    return [d.uraian||'', d.pagu||0, d.hps||0, d.penyedia||'', d.noKontrak||'', d.tglKontrak||'',
+      d.nilaiKontrak||0, d.addKontrak10||0, d.metode||'', d.jenisKontrak||'', d.jenisBelanja||'',
+      d.addKe||'', d.noAdd||'', d.tglAdd||'', d.nilaiAdd||0, d.jaWaktu||'',
+      d.tglMulai||'', d.tglSelesai||'', d.statusPho||'Belum', d.noPho||'', d.tglPho||'', d.fisik||0,
+      d.realisasi||0, pct?parseFloat(pct.toFixed(1)):0, d.ppk||'', d.pptk||'', d.staf||'', d.ketua||'', d.sekretaris||'',
+      a[0]||'', a[1]||'', a[2]||''];
+  });
+  var terpakai = (MTDATA||[]).reduce(function(s,d){return s+(d.realisasi||0);},0);
+  var sisa = MT_TOTAL_BUDGET - terpakai;
+  var topRows = [
+    ['Kegiatan Maintenance Bidang Bina Marga 2026'],
+    [],
+    ['Total Anggran Belanja Pemeliharaan Jalan dan Jembatan-Jalan-Jalan Kabupaten Pemeliharaan Rutin Jalan dan Jembatan Bidang Binamarga', MT_TOTAL_BUDGET],
+    ['Total Anggran Belanja Pemeliharaan Jalan dan Jembatan-Jalan-Jalan Kabupaten Pemeliharaan Rutin Jalan dan Jembatan Bidang Binamarga Telah digunakan', terpakai],
+    ['Total Anggran Belanja Pemeliharaan Jalan dan Jembatan-Jalan-Jalan Kabupaten Pemeliharaan Rutin Jalan dan Jembatan Bidang Binamarga Tersedia', sisa],
+    [],
+    []
+  ];
+  var aoa = topRows.concat([hdr]).concat(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Maintenance');
+  var ts = new Date();
+  var fn = 'Maintenance2026_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())+'_'+pad(ts.getHours())+pad(ts.getMinutes())+'.xlsx';
+  XLSX.writeFile(wb, fn);
+  toast('Excel Maintenance didownload: '+fn);
+}
+
 function rAll() {
   rMetrics();
   rDashboard();
@@ -4279,6 +4988,8 @@ function rAll() {
   jkRelink();
   rJK();
   rJKMetrics();
+  rMT();
+  rMTBudget();
 }
 
 // ── Metric cards ──────────────────────────────────────────
@@ -5151,34 +5862,33 @@ function jkImportConfirm() {
     var docs = [];
     snap.forEach(function(doc) { docs.push(doc.ref); });
     var CHUNK = 400;
-    function deleteChunk(idx, done) {
-      if (idx >= docs.length) { done(); return; }
-      var batch = db.batch();
-      var end = Math.min(idx+CHUNK, docs.length);
-      for (var i=idx; i<end; i++) batch.delete(docs[i]);
-      batch.commit().then(function(){ deleteChunk(end, done); });
-    }
     return new Promise(function(resolve, reject) {
-      try { deleteChunk(0, resolve); } catch(e) { reject(e); }
+      function deleteChunk(idx) {
+        if (idx >= docs.length) { resolve(); return; }
+        var batch = db.batch();
+        var end = Math.min(idx+CHUNK, docs.length);
+        for (var i=idx; i<end; i++) batch.delete(docs[i]);
+        batch.commit().then(function(){ deleteChunk(end); }).catch(reject);
+      }
+      deleteChunk(0);
     });
   }).then(function() {
     btn.textContent = '⏳ Menyimpan data baru...';
     var items = JK_IMPORT_STAGED;
     var CHUNK = 400;
-    function writeChunk(idx, done) {
-      if (idx >= items.length) { done(); return; }
-      var batch = db.batch();
-      var end = Math.min(idx+CHUNK, items.length);
-      for (var i=idx; i<end; i++) {
-        var d = Object.assign({}, items[i]);
-        delete d.ruasLink; // ruasLink dihitung ulang otomatis oleh jkRelink(), tidak disimpan
-        batch.set(db.collection('jasa_konsultansi').doc(String(d.no)), d);
-      }
-      batch.commit().then(function(){ writeChunk(end, done); })
-        .catch(function(e){ throw e; });
-    }
     return new Promise(function(resolve, reject) {
-      try { writeChunk(0, resolve); } catch(e) { reject(e); }
+      function writeChunk(idx) {
+        if (idx >= items.length) { resolve(); return; }
+        var batch = db.batch();
+        var end = Math.min(idx+CHUNK, items.length);
+        for (var i=idx; i<end; i++) {
+          var d = Object.assign({}, items[i]);
+          delete d.ruasLink; // ruasLink dihitung ulang otomatis oleh jkRelink(), tidak disimpan
+          batch.set(db.collection('jasa_konsultansi').doc(String(d.no)), d);
+        }
+        batch.commit().then(function(){ writeChunk(end); }).catch(reject);
+      }
+      writeChunk(0);
     });
   }).then(function() {
     toast('✅ Import berhasil — '+JK_IMPORT_STAGED.length+' paket Jasa Konsultansi tersinkron');
@@ -5615,6 +6325,56 @@ function submitTambahKegiatan() {
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button onclick="closeTambahJK()" style="padding:9px 18px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit">Batal</button>
         <button id="jktk-submit" onclick="submitTambahJK()" style="padding:9px 18px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL TAMBAH MAINTENANCE ===== -->
+<div id="modal-tambah-mt" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:2100;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #e8e4df;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1e3a5f">➕ Tambah Kegiatan Maintenance</div>
+        <div style="font-size:12px;color:#9b9b96;margin-top:2px">Field utama &mdash; data lain dapat diupdate kemudian</div>
+      </div>
+      <button onclick="closeTambahMT()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9b9b96;line-height:1">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Uraian Kegiatan <span style="color:#dc2626">*</span></label>
+        <input id="mttk-uraian" type="text" placeholder="Pemeliharaan Rutin Jalan dan Jembatan Bidang Bina Marga (...)" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Nilai Pagu APBD-P (Rp)</label>
+        <input id="mttk-pagu" type="number" placeholder="165000000" min="0" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div id="mttk-error" style="display:none;padding:10px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:7px;color:#dc2626;font-size:12px;margin-bottom:14px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeTambahMT()" style="padding:9px 18px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit">Batal</button>
+        <button id="mttk-submit" onclick="submitTambahMT()" style="padding:9px 18px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL SET TOTAL ANGGARAN MAINTENANCE ===== -->
+<div id="modal-budget-mt" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:2100;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #e8e4df;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:700;color:#1e3a5f">💰 Set Total Anggaran Maintenance</div>
+      <button onclick="closeEditBudgetMT()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9b9b96;line-height:1">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px">Total Anggaran (Pagu DPA, Rp)</label>
+        <input id="mtbg-total" type="number" placeholder="2560588500" min="0" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;font-family:inherit;box-sizing:border-box">
+        <div style="font-size:11px;color:#9b9b96;margin-top:5px">Anggaran Terpakai &amp; Sisa Anggaran dihitung otomatis dari total ini dikurangi realisasi pembayaran seluruh paket.</div>
+      </div>
+      <div id="mtbg-error" style="display:none;padding:10px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:7px;color:#dc2626;font-size:12px;margin-bottom:14px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeEditBudgetMT()" style="padding:9px 18px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit">Batal</button>
+        <button id="mtbg-submit" onclick="submitBudgetMT()" style="padding:9px 18px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">💾 Simpan</button>
       </div>
     </div>
   </div>
